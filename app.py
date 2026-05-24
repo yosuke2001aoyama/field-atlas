@@ -170,7 +170,10 @@ def apply_style() -> None:
             }
 
             [data-testid="stSidebar"] input[type="radio"] {
-                display: none;
+                opacity: 0;
+                width: 0;
+                height: 0;
+                margin: 0;
             }
 
             [data-testid="stSidebar"] p {
