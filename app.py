@@ -208,6 +208,27 @@ def apply_style() -> None:
                 font-weight: 800;
             }
 
+            .top-nav-active {
+                border-radius: 999px;
+                padding: 0.74rem 0.9rem;
+                text-align: center;
+                color: #ffffff;
+                background: linear-gradient(135deg, #17211c, #2f6f58);
+                box-shadow: 0 12px 26px rgba(23, 33, 28, 0.14);
+                font-weight: 800;
+                min-height: 2.7rem;
+            }
+
+            .top-nav-wrap {
+                margin: 0 0 1.25rem;
+                padding: 0.55rem;
+                border: 1px solid rgba(23, 33, 28, 0.10);
+                border-radius: 24px;
+                background: rgba(255, 255, 255, 0.48);
+                backdrop-filter: blur(18px);
+                box-shadow: 0 14px 34px rgba(23, 33, 28, 0.06);
+            }
+
             [data-testid="stSidebar"] .stButton > button {
                 width: 100%;
                 justify-content: flex-start;
@@ -442,6 +463,20 @@ def render_sidebar(pages: list[str]) -> str:
         index=pages.index(st.session_state.page),
         label_visibility="collapsed",
     )
+
+
+def render_top_nav(pages: list[str]) -> None:
+    st.markdown('<div class="top-nav-wrap">', unsafe_allow_html=True)
+    for row_start in range(0, len(pages), 4):
+        cols = st.columns(4)
+        for col, page_name in zip(cols, pages[row_start : row_start + 4]):
+            with col:
+                if page_name == st.session_state.page:
+                    st.markdown(f'<div class="top-nav-active">{page_name}</div>', unsafe_allow_html=True)
+                elif st.button(page_name, key=f"top_nav_{page_name}", use_container_width=True):
+                    st.session_state.page = page_name
+                    st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def home_page() -> None:
@@ -941,6 +976,7 @@ def main() -> None:
         st.session_state.page = "Home"
     page = render_sidebar(pages)
     st.session_state.page = page
+    render_top_nav(pages)
 
     if page == "Home":
         home_page()
