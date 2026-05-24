@@ -28,6 +28,7 @@ def build_map_points(field_notes: pd.DataFrame, farmstay_logs: pd.DataFrame) -> 
             pd.DataFrame(
                 {
                     "source": "Field note",
+                    "source_id": field_notes["id"].astype(str),
                     "title": field_notes["title"],
                     "location": field_notes["location_name"],
                     "category": field_notes["category"],
@@ -43,6 +44,7 @@ def build_map_points(field_notes: pd.DataFrame, farmstay_logs: pd.DataFrame) -> 
             pd.DataFrame(
                 {
                     "source": "Farmstay log",
+                    "source_id": farmstay_logs["id"].astype(str),
                     "title": farmstay_logs["farm_name"].fillna("Farmstay"),
                     "location": farmstay_logs["location_name"],
                     "category": farmstay_logs["farm_type"].fillna("farmstay"),
