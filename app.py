@@ -180,6 +180,43 @@ def apply_style() -> None:
                 font-size: 0.95rem;
             }
 
+            .sidebar-tagline {
+                color: rgba(23, 33, 28, 0.62);
+                font-size: 0.86rem;
+                line-height: 1.35;
+                margin: -0.2rem 0 1.2rem;
+            }
+
+            .nav-active {
+                border-radius: 999px;
+                padding: 0.76rem 0.92rem;
+                margin: 0.35rem 0;
+                color: #ffffff;
+                background: linear-gradient(135deg, #17211c, #2f6f58);
+                box-shadow: 0 10px 26px rgba(23, 33, 28, 0.18);
+                font-weight: 800;
+            }
+
+            [data-testid="stSidebar"] .stButton > button {
+                width: 100%;
+                justify-content: flex-start;
+                border-radius: 999px;
+                padding: 0.72rem 0.92rem;
+                margin: 0.08rem 0;
+                color: var(--atlas-ink);
+                background: rgba(255, 255, 255, 0.58);
+                border: 1px solid rgba(23, 33, 28, 0.10);
+                box-shadow: none;
+                font-weight: 750;
+                min-height: 2.7rem;
+            }
+
+            [data-testid="stSidebar"] .stButton > button:hover {
+                background: rgba(255, 255, 255, 0.84);
+                border-color: rgba(47, 111, 88, 0.32);
+                transform: translateX(2px);
+            }
+
             .atlas-hero {
                 min-height: 70vh;
                 display: grid;
@@ -380,6 +417,20 @@ def render_context_block(text: str) -> None:
             st.markdown(f"**{label.strip()}**: {content.strip()}")
         else:
             st.write(block)
+
+
+def render_sidebar(pages: list[str]) -> None:
+    st.sidebar.title("Field Atlas")
+    st.sidebar.markdown(
+        '<div class="sidebar-tagline">Private road notes, maps, farmstay logs, and public-ready storytelling.</div>',
+        unsafe_allow_html=True,
+    )
+    for page_name in pages:
+        if page_name == st.session_state.page:
+            st.sidebar.markdown(f'<div class="nav-active">{page_name}</div>', unsafe_allow_html=True)
+        elif st.sidebar.button(page_name, key=f"nav_{page_name}", use_container_width=True):
+            st.session_state.page = page_name
+            st.rerun()
 
 
 def home_page() -> None:
@@ -877,9 +928,8 @@ def main() -> None:
     ]
     if "page" not in st.session_state:
         st.session_state.page = "Home"
-    st.sidebar.title("Field Atlas")
-    page = st.sidebar.radio("Navigate", pages, index=pages.index(st.session_state.page))
-    st.session_state.page = page
+    render_sidebar(pages)
+    page = st.session_state.page
 
     if page == "Home":
         home_page()
