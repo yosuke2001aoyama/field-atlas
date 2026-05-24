@@ -31,7 +31,7 @@ from map_utils import build_map_points
 from privacy_utils import create_public_version_for_farmstay, create_public_version_for_note
 
 
-st.set_page_config(page_title="Field Atlas", page_icon="FA", layout="wide")
+st.set_page_config(page_title="Field Atlas", page_icon="🗺️", layout="wide")
 initialize_app()
 
 
@@ -61,47 +61,294 @@ EXPORT_TYPES = [
     "Markdown archive",
 ]
 
+HERO_IMAGE_URL = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80"
+MAP_IMAGE_URL = "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=1600&q=80"
+
 
 def apply_style() -> None:
     st.markdown(
         """
         <style>
-            .stApp {
-                background: #f8f6f1;
-                color: #1f2a24;
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap');
+
+            :root {
+                --atlas-ink: #17211c;
+                --atlas-muted: #657064;
+                --atlas-paper: #f4f1ea;
+                --atlas-card: rgba(255, 255, 255, 0.86);
+                --atlas-line: rgba(32, 42, 35, 0.12);
+                --atlas-green: #2f6f58;
+                --atlas-rust: #a65d3a;
+                --atlas-gold: #d1a451;
             }
+
+            .stApp {
+                background:
+                    radial-gradient(circle at 7% 8%, rgba(47, 111, 88, 0.10), transparent 27rem),
+                    linear-gradient(180deg, #f7f4ed 0%, #ede8dd 100%);
+                color: var(--atlas-ink);
+                font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            }
+
+            .block-container {
+                max-width: 1220px;
+                padding-top: 1.6rem;
+                padding-bottom: 4rem;
+            }
+
             h1, h2, h3 {
-                font-family: Georgia, 'Times New Roman', serif;
+                font-family: Newsreader, Georgia, 'Times New Roman', serif;
+                letter-spacing: 0;
+                color: var(--atlas-ink);
+            }
+
+            p, label, div, span {
                 letter-spacing: 0;
             }
-            .atlas-hero {
-                border-bottom: 1px solid #d8d1c4;
-                padding: 2.2rem 0 1.4rem 0;
-                margin-bottom: 1.25rem;
+
+            [data-testid="stSidebar"] {
+                background:
+                    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(244, 241, 234, 0.96)),
+                    url("https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=900&q=70");
+                background-size: cover;
+                background-position: center;
+                border-right: 1px solid rgba(23, 33, 28, 0.10);
             }
+
+            [data-testid="stSidebar"]::before {
+                content: "";
+                position: fixed;
+                inset: 0 auto 0 0;
+                width: 21rem;
+                pointer-events: none;
+                background: rgba(248, 246, 241, 0.88);
+                backdrop-filter: blur(18px);
+            }
+
+            [data-testid="stSidebar"] > div {
+                position: relative;
+                z-index: 1;
+            }
+
+            [data-testid="stSidebar"] h1 {
+                font-family: Newsreader, Georgia, serif;
+                font-size: 2.35rem;
+                line-height: 1;
+                margin-bottom: 0.1rem;
+            }
+
+            [data-testid="stSidebar"] [role="radiogroup"] {
+                display: grid;
+                gap: 0.42rem;
+                margin-top: 1rem;
+            }
+
+            [data-testid="stSidebar"] label {
+                border: 1px solid rgba(23, 33, 28, 0.10);
+                border-radius: 999px;
+                padding: 0.62rem 0.82rem;
+                background: rgba(255, 255, 255, 0.58);
+                transition: all 160ms ease;
+            }
+
+            [data-testid="stSidebar"] label:hover {
+                border-color: rgba(47, 111, 88, 0.35);
+                background: rgba(255, 255, 255, 0.82);
+                transform: translateX(2px);
+            }
+
+            [data-testid="stSidebar"] label:has(input:checked) {
+                color: #ffffff;
+                border-color: rgba(23, 33, 28, 0.08);
+                background: linear-gradient(135deg, #17211c, #2f6f58);
+                box-shadow: 0 10px 26px rgba(23, 33, 28, 0.18);
+            }
+
+            [data-testid="stSidebar"] label:has(input:checked) p {
+                color: #ffffff;
+                font-weight: 700;
+            }
+
+            [data-testid="stSidebar"] input[type="radio"] {
+                display: none;
+            }
+
+            [data-testid="stSidebar"] p {
+                font-size: 0.95rem;
+            }
+
+            .atlas-hero {
+                min-height: 70vh;
+                display: grid;
+                align-items: end;
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.46);
+                border-radius: 24px;
+                padding: clamp(1.25rem, 4vw, 3rem);
+                margin-bottom: 1.35rem;
+                color: #ffffff;
+                background:
+                    linear-gradient(180deg, rgba(9, 17, 12, 0.04) 0%, rgba(9, 17, 12, 0.74) 100%),
+                    linear-gradient(90deg, rgba(9, 17, 12, 0.82), rgba(9, 17, 12, 0.14) 62%),
+                    url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80");
+                background-size: cover;
+                background-position: center;
+                box-shadow: 0 28px 70px rgba(23, 33, 28, 0.22);
+            }
+
+            .atlas-hero h1 {
+                color: #ffffff;
+                font-size: clamp(4.1rem, 10vw, 8.2rem);
+                line-height: 0.9;
+                margin: 0.35rem 0 0.65rem;
+                max-width: 850px;
+            }
+
+            .atlas-hero h3 {
+                color: rgba(255, 255, 255, 0.92);
+                font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                font-size: clamp(1.18rem, 2vw, 1.65rem);
+                font-weight: 600;
+                max-width: 720px;
+            }
+
+            .atlas-hero p {
+                color: rgba(255, 255, 255, 0.82);
+                max-width: 720px;
+                font-size: 1.02rem;
+            }
+
             .atlas-kicker {
-                color: #6d766b;
-                font-size: 0.88rem;
+                color: rgba(255, 255, 255, 0.76);
+                font-size: 0.78rem;
+                font-weight: 800;
                 text-transform: uppercase;
-                letter-spacing: 0.08rem;
+                letter-spacing: 0.14rem;
                 margin-bottom: 0.35rem;
             }
+
             .atlas-card {
-                background: #ffffff;
-                border: 1px solid #ded8cc;
-                border-radius: 8px;
+                background: var(--atlas-card);
+                border: 1px solid var(--atlas-line);
+                border-radius: 16px;
                 padding: 1rem;
                 margin-bottom: 0.8rem;
+                box-shadow: 0 18px 44px rgba(23, 33, 28, 0.08);
+                backdrop-filter: blur(14px);
             }
+
+            .atlas-panel {
+                background: rgba(255, 255, 255, 0.76);
+                border: 1px solid var(--atlas-line);
+                border-radius: 18px;
+                padding: 1.15rem;
+                box-shadow: 0 18px 46px rgba(23, 33, 28, 0.07);
+            }
+
+            .atlas-action-card {
+                min-height: 9.5rem;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                background: rgba(255, 255, 255, 0.80);
+                border: 1px solid var(--atlas-line);
+                border-radius: 18px;
+                padding: 1.05rem;
+                box-shadow: 0 14px 32px rgba(23, 33, 28, 0.07);
+            }
+
+            .atlas-action-card h4 {
+                margin: 0 0 0.35rem;
+                font-size: 1rem;
+                color: var(--atlas-ink);
+            }
+
+            .atlas-action-card p {
+                margin: 0;
+                color: var(--atlas-muted);
+                font-size: 0.9rem;
+            }
+
+            .atlas-photo-strip {
+                min-height: 13rem;
+                border-radius: 20px;
+                border: 1px solid rgba(255,255,255,0.52);
+                background:
+                    linear-gradient(180deg, rgba(23,33,28,0.10), rgba(23,33,28,0.42)),
+                    url("https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1400&q=80");
+                background-size: cover;
+                background-position: center;
+                box-shadow: 0 18px 44px rgba(23, 33, 28, 0.12);
+            }
+
+            .atlas-pill-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-top: 1rem;
+            }
+
+            .atlas-pill {
+                border: 1px solid rgba(255, 255, 255, 0.35);
+                border-radius: 999px;
+                padding: 0.42rem 0.7rem;
+                color: rgba(255,255,255,0.88);
+                background: rgba(255,255,255,0.12);
+                backdrop-filter: blur(10px);
+                font-size: 0.83rem;
+                font-weight: 700;
+            }
+
             .small-muted {
-                color: #68736a;
+                color: var(--atlas-muted);
                 font-size: 0.92rem;
             }
+
             div[data-testid="stMetric"] {
-                background: #ffffff;
-                border: 1px solid #ded8cc;
-                border-radius: 8px;
-                padding: 0.8rem 1rem;
+                background: rgba(255, 255, 255, 0.78);
+                border: 1px solid var(--atlas-line);
+                border-radius: 18px;
+                padding: 1rem 1.1rem;
+                box-shadow: 0 16px 34px rgba(23, 33, 28, 0.07);
+            }
+
+            div[data-testid="stMetricValue"] {
+                font-family: Newsreader, Georgia, serif;
+                font-size: 2.25rem;
+            }
+
+            div[data-testid="stForm"], div[data-testid="stExpander"], [data-testid="stVerticalBlockBorderWrapper"] {
+                border-radius: 18px !important;
+            }
+
+            .stButton > button, .stDownloadButton > button, button[kind="primaryFormSubmit"] {
+                border-radius: 999px;
+                border: 1px solid rgba(23, 33, 28, 0.14);
+                background: linear-gradient(135deg, #17211c, #2f6f58);
+                color: white;
+                font-weight: 800;
+                min-height: 2.8rem;
+                box-shadow: 0 12px 24px rgba(23, 33, 28, 0.14);
+            }
+
+            .stButton > button:hover, button[kind="primaryFormSubmit"]:hover {
+                border-color: rgba(47, 111, 88, 0.34);
+                filter: brightness(1.05);
+            }
+
+            .stTextInput input, .stTextArea textarea, .stNumberInput input {
+                border-radius: 12px;
+                border-color: rgba(23, 33, 28, 0.14);
+                background: rgba(255, 255, 255, 0.82);
+            }
+
+            [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+                border-radius: 12px;
+                background: rgba(255, 255, 255, 0.82);
+            }
+
+            iframe {
+                border-radius: 18px;
             }
         </style>
         """,
@@ -141,10 +388,18 @@ def home_page() -> None:
     st.markdown(
         """
         <div class="atlas-hero">
-            <div class="atlas-kicker">Personal field-note system</div>
+            <div>
+            <div class="atlas-kicker">Private field intelligence for the American road</div>
             <h1>Field Atlas</h1>
             <h3>An AI field companion for understanding America by road.</h3>
             <p>Collect roadtrip and farmstay observations, map them, generate cultural context, and turn private notes into public-ready stories.</p>
+            <div class="atlas-pill-row">
+                <span class="atlas-pill">Road notes</span>
+                <span class="atlas-pill">Farmstay logs</span>
+                <span class="atlas-pill">Map memory</span>
+                <span class="atlas-pill">Private by default</span>
+            </div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -155,20 +410,42 @@ def home_page() -> None:
     col2.metric("States visited", states_count)
     col3.metric("Farmstay logs", len(farms))
 
-    st.subheader("Quick Actions")
+    st.markdown("### Start From The Field")
     c1, c2, c3, c4 = st.columns(4)
-    if c1.button("Add Field Note", use_container_width=True):
-        st.session_state.page = "Add Field Note"
-        st.rerun()
-    if c2.button("Generate AI Brief", use_container_width=True):
-        st.session_state.page = "AI Companion"
-        st.rerun()
-    if c3.button("Add Farmstay Log", use_container_width=True):
-        st.session_state.page = "Farmstay Log"
-        st.rerun()
-    if c4.button("Export Notes", use_container_width=True):
-        st.session_state.page = "Export Center"
-        st.rerun()
+    with c1:
+        st.markdown('<div class="atlas-action-card"><div><h4>Capture a place</h4><p>Save a raw note with location, media, tags, and privacy level.</p></div></div>', unsafe_allow_html=True)
+        if st.button("Add Field Note", use_container_width=True):
+            st.session_state.page = "Add Field Note"
+            st.rerun()
+    with c2:
+        st.markdown('<div class="atlas-action-card"><div><h4>Arrive prepared</h4><p>Generate a cultural and historical before-you-arrive brief.</p></div></div>', unsafe_allow_html=True)
+        if st.button("Generate AI Brief", use_container_width=True):
+            st.session_state.page = "AI Companion"
+            st.rerun()
+    with c3:
+        st.markdown('<div class="atlas-action-card"><div><h4>Log farm life</h4><p>Structure work, food, people, surprises, and reflection.</p></div></div>', unsafe_allow_html=True)
+        if st.button("Add Farmstay Log", use_container_width=True):
+            st.session_state.page = "Farmstay Log"
+            st.rerun()
+    with c4:
+        st.markdown('<div class="atlas-action-card"><div><h4>Make it public</h4><p>Turn selected notes into scripts, essays, captions, or public versions.</p></div></div>', unsafe_allow_html=True)
+        if st.button("Export Notes", use_container_width=True):
+            st.session_state.page = "Export Center"
+            st.rerun()
+
+    left, right = st.columns([1.2, 0.8])
+    with left:
+        st.markdown(
+            """
+            <div class="atlas-panel">
+                <h3>Designed for the private-to-public workflow</h3>
+                <p class="small-muted">Field Atlas keeps raw observations separate from organized knowledge and public storytelling. Exact places, raw transcripts, personal names, and real-time movement stay private unless you deliberately transform them.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with right:
+        st.markdown('<div class="atlas-photo-strip"></div>', unsafe_allow_html=True)
 
 
 def add_field_note_page() -> None:
