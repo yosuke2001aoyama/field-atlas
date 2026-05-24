@@ -170,10 +170,21 @@ def apply_style() -> None:
             }
 
             [data-testid="stSidebar"] input[type="radio"] {
-                opacity: 0;
-                width: 0;
-                height: 0;
-                margin: 0;
+                appearance: none;
+                width: 0.58rem;
+                height: 0.58rem;
+                border-radius: 999px;
+                border: 1px solid rgba(23, 33, 28, 0.24);
+                background: rgba(255, 255, 255, 0.56);
+                margin: 0 0.52rem 0 0;
+                display: inline-block;
+                vertical-align: middle;
+            }
+
+            [data-testid="stSidebar"] input[type="radio"]:checked {
+                border-color: #ffffff;
+                background: var(--atlas-gold);
+                box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22);
             }
 
             [data-testid="stSidebar"] p {
@@ -419,18 +430,18 @@ def render_context_block(text: str) -> None:
             st.write(block)
 
 
-def render_sidebar(pages: list[str]) -> None:
+def render_sidebar(pages: list[str]) -> str:
     st.sidebar.title("Field Atlas")
     st.sidebar.markdown(
         '<div class="sidebar-tagline">Private road notes, maps, farmstay logs, and public-ready storytelling.</div>',
         unsafe_allow_html=True,
     )
-    for page_name in pages:
-        if page_name == st.session_state.page:
-            st.sidebar.markdown(f'<div class="nav-active">{page_name}</div>', unsafe_allow_html=True)
-        elif st.sidebar.button(page_name, key=f"nav_{page_name}", use_container_width=True):
-            st.session_state.page = page_name
-            st.rerun()
+    return st.sidebar.radio(
+        "Navigate",
+        pages,
+        index=pages.index(st.session_state.page),
+        label_visibility="collapsed",
+    )
 
 
 def home_page() -> None:
@@ -928,8 +939,8 @@ def main() -> None:
     ]
     if "page" not in st.session_state:
         st.session_state.page = "Home"
-    render_sidebar(pages)
-    page = st.session_state.page
+    page = render_sidebar(pages)
+    st.session_state.page = page
 
     if page == "Home":
         home_page()
