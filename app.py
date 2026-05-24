@@ -20,6 +20,7 @@ from db import (
     fetch_farmstay_logs,
     fetch_field_notes,
     get_field_note,
+    get_farmstay_log,
     initialize_app,
     insert_ai_brief,
     insert_farmstay_log,
@@ -233,17 +234,40 @@ def add_field_note_page() -> None:
 
 def map_view_page() -> None:
     st.title("Map View")
+    st.caption("Search your notes, see the matching places on the map, then open the record without leaving this page.")
     notes = fetch_field_notes()
     farms = fetch_farmstay_logs()
     mapped, needs_location = build_map_points(notes, farms)
 
+    search = st.text_input("Search mapped notes", placeholder="Try: market, Knoxville, farm, church")
+    category_options = ["All"]
+    if not mapped.empty:
+        category_options += sorted({str(value) for value in mapped["category"].dropna() if str(value)})
+    selected_category = st.selectbox("Map category", category_options)
+
+    visible = mapped.copy()
+    if selected_category != "All":
+        visible = visible[visible["category"].astype(str) == selected_category]
+    if search:
+        query = search.lower()
+        visible = visible[
+            visible[["title", "location", "category", "summary"]]
+            .fillna("")
+            .astype(str)
+            .agg(" ".join, axis=1)
+            .str.lower()
+            .str.contains(query, na=False)
+        ]
+
     if mapped.empty:
         st.info("No notes with coordinates yet.")
+    elif visible.empty:
+        st.info("No mapped records match the current search.")
     else:
-        midpoint = [mapped["longitude"].mean(), mapped["latitude"].mean()]
+        midpoint = [visible["longitude"].mean(), visible["latitude"].mean()]
         layer = pdk.Layer(
             "ScatterplotLayer",
-            data=mapped,
+            data=visible,
             get_position="[longitude, latitude]",
             get_fill_color="color",
             get_radius=9000,
@@ -262,6 +286,36 @@ def map_view_page() -> None:
             ),
             use_container_width=True,
         )
+
+        labels = {
+            f"{row.source}:{row.source_id}": f"{row.source} · {row.title} · {row.location}"
+            for row in visible.itertuples()
+        }
+        selected_record = st.selectbox(
+            "Open mapped record",
+            list(labels.keys()),
+            format_func=lambda value: labels[value],
+        )
+        selected_row = visible[
+            (visible["source"] + ":" + visible["source_id"].astype(str)) == selected_record
+        ].iloc[0]
+        with st.container(border=True):
+            st.subheader(selected_row["title"])
+            st.write(f"{selected_row['location']} · {selected_row['category']}")
+            st.write(selected_row["summary"])
+            c1, c2 = st.columns(2)
+            if c1.button("Create Public Version", key=f"map_public_{selected_record}"):
+                st.session_state.selected_public = (
+                    "Field note" if selected_row["source"] == "Field note" else "Farmstay log",
+                    int(selected_row["source_id"]),
+                )
+                st.session_state.page = "Privacy / Public Version"
+                st.rerun()
+            if c2.button("Export This Record", key=f"map_export_{selected_record}"):
+                source_type = "Field note" if selected_row["source"] == "Field note" else "Farmstay log"
+                st.session_state.export_selection = [f"{source_type}:{selected_row['source_id']}"]
+                st.session_state.page = "Export Center"
+                st.rerun()
 
     if not needs_location.empty:
         st.subheader("Needs Location Data")
@@ -365,6 +419,7 @@ def filter_library(items: pd.DataFrame) -> pd.DataFrame:
     state = c2.selectbox("State", ["All"] + sorted({str(x) for x in filtered.get("display_state", pd.Series()).dropna() if str(x)}))
     privacy = c3.selectbox("Privacy", ["All"] + sorted({str(x) for x in filtered.get("privacy_level", pd.Series()).dropna() if str(x)}))
     tag = c4.text_input("Tag search")
+    keyword = st.text_input("Search title, place, summary, and note text")
 
     if category != "All":
         filtered = filtered[filtered["display_category"].astype(str) == category]
@@ -374,6 +429,11 @@ def filter_library(items: pd.DataFrame) -> pd.DataFrame:
         filtered = filtered[filtered.get("privacy_level", "").astype(str) == privacy]
     if tag:
         filtered = filtered[filtered.get("tags", "").fillna("").str.contains(tag, case=False, na=False)]
+    if keyword:
+        searchable = filtered[
+            ["display_title", "display_location", "display_category", "display_text", "ai_summary"]
+        ].fillna("").astype(str).agg(" ".join, axis=1)
+        filtered = filtered[searchable.str.contains(keyword, case=False, na=False)]
     return filtered
 
 
@@ -474,6 +534,22 @@ def privacy_page() -> None:
         no real-time posting recommendation.
         """
     )
+
+    if st.session_state.get("selected_public") and st.session_state.selected_public[0] == "Farmstay log":
+        log = get_farmstay_log(int(st.session_state.selected_public[1]))
+        if log:
+            st.subheader("Farmstay public version")
+            st.text_area("Public text", create_public_version_for_farmstay(log), height=320)
+            st.markdown("**Removed/private details checklist**")
+            for item in [
+                "Exact farm name generalized",
+                "Exact date generalized",
+                "Private people and affiliations removed where detected",
+                "Written as an anonymous travel reflection",
+                "Manual review still required before publishing",
+            ]:
+                st.checkbox(item, value=True, disabled=True)
+            st.divider()
 
     notes = fetch_field_notes()
     if notes.empty:
