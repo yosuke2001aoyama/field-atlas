@@ -1,0 +1,547 @@
+from __future__ import annotations
+
+import shutil
+from datetime import date
+from pathlib import Path
+
+import pandas as pd
+import pydeck as pdk
+import streamlit as st
+
+from ai_utils import (
+    generate_ai_context,
+    generate_ai_summary,
+    generate_destination_brief,
+    generate_farmstay_summary,
+)
+from db import (
+    BASE_DIR,
+    fetch_all_library_items,
+    fetch_farmstay_logs,
+    fetch_field_notes,
+    get_field_note,
+    initialize_app,
+    insert_ai_brief,
+    insert_farmstay_log,
+    insert_field_note,
+)
+from export_utils import generate_export, save_export
+from map_utils import build_map_points
+from privacy_utils import create_public_version_for_farmstay, create_public_version_for_note
+
+
+st.set_page_config(page_title="Field Atlas", page_icon="FA", layout="wide")
+initialize_app()
+
+
+CATEGORIES = [
+    "food",
+    "farm",
+    "small town",
+    "road",
+    "motel",
+    "church",
+    "conversation",
+    "landscape",
+    "museum",
+    "music",
+    "neighborhood",
+    "other",
+]
+
+FARM_TYPES = ["vegetable", "dairy", "livestock", "vineyard", "mixed", "homestead", "market garden", "other"]
+PRIVACY_LEVELS = ["private", "semi-private", "public-ready"]
+EXPORT_TYPES = [
+    "Podcast script",
+    "Substack-style essay",
+    "Instagram caption",
+    "Japanese diary",
+    "English field note",
+    "Markdown archive",
+]
+
+
+def apply_style() -> None:
+    st.markdown(
+        """
+        <style>
+            .stApp {
+                background: #f8f6f1;
+                color: #1f2a24;
+            }
+            h1, h2, h3 {
+                font-family: Georgia, 'Times New Roman', serif;
+                letter-spacing: 0;
+            }
+            .atlas-hero {
+                border-bottom: 1px solid #d8d1c4;
+                padding: 2.2rem 0 1.4rem 0;
+                margin-bottom: 1.25rem;
+            }
+            .atlas-kicker {
+                color: #6d766b;
+                font-size: 0.88rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08rem;
+                margin-bottom: 0.35rem;
+            }
+            .atlas-card {
+                background: #ffffff;
+                border: 1px solid #ded8cc;
+                border-radius: 8px;
+                padding: 1rem;
+                margin-bottom: 0.8rem;
+            }
+            .small-muted {
+                color: #68736a;
+                font-size: 0.92rem;
+            }
+            div[data-testid="stMetric"] {
+                background: #ffffff;
+                border: 1px solid #ded8cc;
+                border-radius: 8px;
+                padding: 0.8rem 1rem;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def save_upload(uploaded_file, folder: str) -> str:
+    if not uploaded_file:
+        return ""
+    target_dir = BASE_DIR / "uploads" / folder
+    target_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = f"{pd.Timestamp.now().strftime('%Y%m%d%H%M%S')}_{uploaded_file.name.replace('/', '_')}"
+    target = target_dir / safe_name
+    with target.open("wb") as out_file:
+        shutil.copyfileobj(uploaded_file, out_file)
+    return str(target.relative_to(BASE_DIR))
+
+
+def render_context_block(text: str) -> None:
+    if not text:
+        return
+    for block in text.split("\n\n"):
+        if ":" in block:
+            label, content = block.split(":", 1)
+            st.markdown(f"**{label.strip()}**: {content.strip()}")
+        else:
+            st.write(block)
+
+
+def home_page() -> None:
+    notes = fetch_field_notes()
+    farms = fetch_farmstay_logs()
+    states = notes["state"].dropna()
+    states_count = len({state for state in states if str(state).strip()})
+
+    st.markdown(
+        """
+        <div class="atlas-hero">
+            <div class="atlas-kicker">Personal field-note system</div>
+            <h1>Field Atlas</h1>
+            <h3>An AI field companion for understanding America by road.</h3>
+            <p>Collect roadtrip and farmstay observations, map them, generate cultural context, and turn private notes into public-ready stories.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total field notes", len(notes))
+    col2.metric("States visited", states_count)
+    col3.metric("Farmstay logs", len(farms))
+
+    st.subheader("Quick Actions")
+    c1, c2, c3, c4 = st.columns(4)
+    if c1.button("Add Field Note", use_container_width=True):
+        st.session_state.page = "Add Field Note"
+        st.rerun()
+    if c2.button("Generate AI Brief", use_container_width=True):
+        st.session_state.page = "AI Companion"
+        st.rerun()
+    if c3.button("Add Farmstay Log", use_container_width=True):
+        st.session_state.page = "Farmstay Log"
+        st.rerun()
+    if c4.button("Export Notes", use_container_width=True):
+        st.session_state.page = "Export Center"
+        st.rerun()
+
+
+def add_field_note_page() -> None:
+    st.title("Add Field Note")
+    st.caption("Capture the raw material first. You can refine, anonymize, and export it later.")
+
+    with st.form("field_note_form", clear_on_submit=False):
+        left, right = st.columns(2)
+        title = left.text_input("Title")
+        note_date = right.date_input("Date", value=date.today())
+        location_name = left.text_input("Location name")
+        address = right.text_input("Address")
+        city = left.text_input("City")
+        state = right.text_input("State")
+        lat_col, lon_col = st.columns(2)
+        latitude = lat_col.number_input("Latitude", value=None, format="%.6f")
+        longitude = lon_col.number_input("Longitude", value=None, format="%.6f")
+        category = st.selectbox("Category", CATEGORIES)
+        note_text = st.text_area("Note text", height=180)
+        photo = st.file_uploader("Photo upload", type=["png", "jpg", "jpeg", "webp"])
+        audio = st.file_uploader("Audio upload", type=["mp3", "m4a", "wav", "aac"])
+        audio_transcript = st.text_area("Audio transcript", height=120)
+        tags = st.text_input("Tags", placeholder="comma-separated tags")
+        privacy_level = st.radio("Privacy level", PRIVACY_LEVELS, horizontal=True)
+        submitted = st.form_submit_button("Save Field Note")
+
+    if submitted:
+        if not title.strip() and not note_text.strip():
+            st.error("Please add at least a title or note text.")
+            return
+        photo_path = save_upload(photo, "photos")
+        audio_path = save_upload(audio, "audio")
+        location = location_name or city or state
+        ai_summary = generate_ai_summary(note_text, category, location)
+        ai_context = generate_ai_context(note_text, category, location)
+        note_id = insert_field_note(
+            {
+                "title": title or "Untitled field note",
+                "date": note_date.isoformat(),
+                "location_name": location_name,
+                "address": address,
+                "latitude": latitude,
+                "longitude": longitude,
+                "city": city,
+                "state": state,
+                "category": category,
+                "note_text": note_text,
+                "photo_path": photo_path,
+                "audio_path": audio_path,
+                "audio_transcript": audio_transcript,
+                "ai_summary": ai_summary,
+                "ai_context": ai_context,
+                "tags": tags,
+                "privacy_level": privacy_level,
+            }
+        )
+        st.success(f"Saved field note #{note_id}.")
+        with st.container(border=True):
+            st.subheader(title or "Untitled field note")
+            st.write(ai_summary)
+            render_context_block(ai_context)
+
+
+def map_view_page() -> None:
+    st.title("Map View")
+    notes = fetch_field_notes()
+    farms = fetch_farmstay_logs()
+    mapped, needs_location = build_map_points(notes, farms)
+
+    if mapped.empty:
+        st.info("No notes with coordinates yet.")
+    else:
+        midpoint = [mapped["longitude"].mean(), mapped["latitude"].mean()]
+        layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=mapped,
+            get_position="[longitude, latitude]",
+            get_fill_color="color",
+            get_radius=9000,
+            pickable=True,
+            opacity=0.82,
+        )
+        tooltip = {
+            "html": "<b>{title}</b><br/>{location}<br/>{category}<br/><br/>{summary}<br/><em>Open details in Note Library.</em>",
+            "style": {"backgroundColor": "#1f2a24", "color": "white"},
+        }
+        st.pydeck_chart(
+            pdk.Deck(
+                layers=[layer],
+                initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=4.2),
+                tooltip=tooltip,
+            ),
+            use_container_width=True,
+        )
+
+    if not needs_location.empty:
+        st.subheader("Needs Location Data")
+        st.dataframe(needs_location[["source", "title", "location", "category"]], use_container_width=True)
+
+
+def ai_companion_page() -> None:
+    st.title("AI Companion")
+    st.caption("Mocked for now, structured so a real model call can replace it later.")
+
+    with st.form("brief_form"):
+        destination = st.text_input("Destination")
+        state = st.text_input("State")
+        trip_purpose = st.text_input("Optional trip purpose")
+        interests = st.multiselect(
+            "Optional interests",
+            ["history", "food", "race/community", "agriculture", "music", "religion", "economy", "small-town life", "nature", "sports"],
+        )
+        generate = st.form_submit_button("Generate Before You Arrive Brief")
+
+    if generate:
+        brief = generate_destination_brief(destination, state, trip_purpose, interests)
+        st.session_state.current_brief = brief
+
+    brief = st.session_state.get("current_brief")
+    if brief:
+        section_labels = [
+            ("brief_15_sec", "1. 15-second brief"),
+            ("historical_background", "2. Historical background"),
+            ("cultural_signals", "3. Cultural signals to notice"),
+            ("local_food", "4. Food and local institutions"),
+            ("local_institutions", "Local institutions"),
+            ("questions_to_ask", "5. Questions to ask locals"),
+            ("field_note_prompts", "6. Field note prompts"),
+            ("safety_etiquette", "7. Safety / etiquette notes"),
+        ]
+        for key, label in section_labels:
+            with st.container(border=True):
+                st.markdown(f"**{label}**")
+                st.write(brief[key])
+        if st.button("Save this brief"):
+            brief_id = insert_ai_brief(brief)
+            st.success(f"Saved brief #{brief_id}.")
+
+
+def farmstay_log_page() -> None:
+    st.title("Farmstay Log")
+    with st.form("farmstay_form"):
+        left, right = st.columns(2)
+        log_date = left.date_input("Date", value=date.today())
+        farm_name = right.text_input("Farm name")
+        location_name = left.text_input("Location name")
+        farm_type = right.selectbox("Farm type", FARM_TYPES)
+        lat_col, lon_col = st.columns(2)
+        latitude = lat_col.number_input("Latitude", value=None, format="%.6f", key="farm_lat")
+        longitude = lon_col.number_input("Longitude", value=None, format="%.6f", key="farm_lon")
+        work_done = st.text_area("Work done")
+        people_met = st.text_area("People met")
+        food_eaten = st.text_area("Food eaten")
+        conversation_topics = st.text_area("Conversation topics")
+        lifestyle_observations = st.text_area("Lifestyle observations")
+        labor_intensity = st.slider("Labor intensity", 1, 5, 3)
+        community_feeling = st.slider("Community feeling", 1, 5, 3)
+        surprises = st.text_area("What surprised me")
+        reflection = st.text_area("Reflection", height=140)
+        submitted = st.form_submit_button("Save Farmstay Log")
+
+    if submitted:
+        payload = {
+            "date": log_date.isoformat(),
+            "farm_name": farm_name,
+            "location_name": location_name,
+            "latitude": latitude,
+            "longitude": longitude,
+            "farm_type": farm_type,
+            "work_done": work_done,
+            "people_met": people_met,
+            "food_eaten": food_eaten,
+            "conversation_topics": conversation_topics,
+            "lifestyle_observations": lifestyle_observations,
+            "labor_intensity": labor_intensity,
+            "community_feeling": community_feeling,
+            "surprises": surprises,
+            "reflection": reflection,
+        }
+        payload["ai_summary"] = generate_farmstay_summary(payload)
+        payload["public_version"] = create_public_version_for_farmstay(payload)
+        log_id = insert_farmstay_log(payload)
+        st.success(f"Saved farmstay log #{log_id}.")
+        with st.container(border=True):
+            st.subheader(farm_name or "Farmstay log")
+            st.write(payload["ai_summary"])
+            st.markdown("**Anonymized public version preview**")
+            st.write(payload["public_version"])
+
+
+def filter_library(items: pd.DataFrame) -> pd.DataFrame:
+    filtered = items.copy()
+    c1, c2, c3, c4 = st.columns(4)
+    category = c1.selectbox("Category", ["All"] + sorted({str(x) for x in filtered["display_category"].dropna() if str(x)}))
+    state = c2.selectbox("State", ["All"] + sorted({str(x) for x in filtered.get("display_state", pd.Series()).dropna() if str(x)}))
+    privacy = c3.selectbox("Privacy", ["All"] + sorted({str(x) for x in filtered.get("privacy_level", pd.Series()).dropna() if str(x)}))
+    tag = c4.text_input("Tag search")
+
+    if category != "All":
+        filtered = filtered[filtered["display_category"].astype(str) == category]
+    if state != "All":
+        filtered = filtered[filtered["display_state"].astype(str) == state]
+    if privacy != "All":
+        filtered = filtered[filtered.get("privacy_level", "").astype(str) == privacy]
+    if tag:
+        filtered = filtered[filtered.get("tags", "").fillna("").str.contains(tag, case=False, na=False)]
+    return filtered
+
+
+def note_library_page() -> None:
+    st.title("Note Library")
+    items = fetch_all_library_items()
+    if items.empty:
+        st.info("No notes yet.")
+        return
+    filtered = filter_library(items)
+    st.caption(f"{len(filtered)} item(s)")
+
+    for _, item in filtered.iterrows():
+        with st.container(border=True):
+            cols = st.columns([3, 1])
+            cols[0].subheader(item.get("display_title") or "Untitled")
+            cols[1].markdown(f"**{item.get('source_type')}**")
+            st.write(f"{item.get('date', '')} · {item.get('display_location', '')} · {item.get('display_category', '')}")
+            st.caption(f"Privacy: {item.get('privacy_level', 'private')}")
+            st.write(item.get("ai_summary", ""))
+            b1, b2, b3 = st.columns(3)
+            detail_key = f"detail_{item.get('source_type')}_{item.get('source_id')}"
+            public_key = f"public_{item.get('source_type')}_{item.get('source_id')}"
+            if b1.button("View Details", key=detail_key):
+                st.session_state.selected_detail = (item.get("source_type"), int(item.get("source_id")))
+            if b2.button("Create Public Version", key=public_key):
+                st.session_state.selected_public = (item.get("source_type"), int(item.get("source_id")))
+                st.session_state.page = "Privacy / Public Version"
+                st.rerun()
+            if b3.button("Export", key=f"export_{item.get('source_type')}_{item.get('source_id')}"):
+                st.session_state.export_selection = [f"{item.get('source_type')}:{item.get('source_id')}"]
+                st.session_state.page = "Export Center"
+                st.rerun()
+
+    if st.session_state.get("selected_detail"):
+        source_type, source_id = st.session_state.selected_detail
+        st.divider()
+        st.subheader("Details")
+        record = get_field_note(source_id) if source_type == "Field note" else None
+        if source_type == "Farmstay log":
+            farms = fetch_farmstay_logs()
+            match = farms[farms["id"] == source_id]
+            record = match.iloc[0].to_dict() if not match.empty else None
+        if record:
+            st.json(record)
+
+
+def get_selected_items(selection: list[str], items: pd.DataFrame) -> list[dict]:
+    selected: list[dict] = []
+    for token in selection:
+        try:
+            source_type, source_id = token.split(":", 1)
+        except ValueError:
+            continue
+        match = items[(items["source_type"] == source_type) & (items["source_id"].astype(str) == source_id)]
+        if not match.empty:
+            selected.append(match.iloc[0].to_dict())
+    return selected
+
+
+def export_center_page() -> None:
+    st.title("Export Center")
+    items = fetch_all_library_items()
+    if items.empty:
+        st.info("Add notes before exporting.")
+        return
+
+    options = [f"{row.source_type}:{row.source_id}" for row in items.itertuples()]
+    labels = {f"{row.source_type}:{row.source_id}": f"{row.source_type} · {row.display_title} · {row.display_location}" for row in items.itertuples()}
+    default = st.session_state.pop("export_selection", [])
+    selection = st.multiselect("Select one or more notes", options, default=default, format_func=lambda value: labels.get(value, value))
+    export_type = st.selectbox("Export format", EXPORT_TYPES)
+
+    if st.button("Generate Export"):
+        selected_items = get_selected_items(selection, items)
+        if not selected_items:
+            st.error("Please select at least one note.")
+            return
+        title, content = generate_export(export_type, selected_items)
+        st.session_state.generated_export = {"title": title, "content": content, "items": selected_items, "type": export_type}
+
+    generated = st.session_state.get("generated_export")
+    if generated:
+        st.subheader(generated["title"])
+        st.text_area("Generated content", generated["content"], height=420)
+        if st.button("Save Export Record"):
+            export_id = save_export(generated["type"], generated["items"], generated["content"], generated["title"])
+            st.success(f"Saved export #{export_id}.")
+
+
+def privacy_page() -> None:
+    st.title("Privacy / Public Version")
+    st.warning("Please manually review before publishing.")
+    st.markdown(
+        """
+        Privacy principles: exact location and exact date are private by default; raw voice transcripts are private by default;
+        names of private individuals are private by default; public output should be delayed and generalized; no affiliation disclosure;
+        no real-time posting recommendation.
+        """
+    )
+
+    notes = fetch_field_notes()
+    if notes.empty:
+        st.info("No field notes available.")
+        return
+
+    options = notes["id"].astype(str).tolist()
+    labels = {str(row.id): f"{row.title} · {row.location_name} · {row.date}" for row in notes.itertuples()}
+    default_id = None
+    if st.session_state.get("selected_public") and st.session_state.selected_public[0] == "Field note":
+        default_id = str(st.session_state.selected_public[1])
+    selected = st.selectbox(
+        "Select a field note",
+        options,
+        index=options.index(default_id) if default_id in options else 0,
+        format_func=lambda value: labels.get(value, value),
+    )
+
+    if st.button("Create anonymized public version"):
+        note = get_field_note(int(selected))
+        if note:
+            st.session_state.public_version = create_public_version_for_note(note)
+
+    public = st.session_state.get("public_version")
+    if public:
+        st.subheader(public["public_title"])
+        st.caption(f"Public location level: {public['public_location']}")
+        st.text_area("Public text", public["public_text"], height=320)
+        st.markdown("**Removed/private details checklist**")
+        for item in public["removed_checklist"]:
+            st.checkbox(item, value=True, disabled=True)
+
+
+def main() -> None:
+    apply_style()
+    pages = [
+        "Home",
+        "Add Field Note",
+        "Map View",
+        "AI Companion",
+        "Farmstay Log",
+        "Note Library",
+        "Export Center",
+        "Privacy / Public Version",
+    ]
+    if "page" not in st.session_state:
+        st.session_state.page = "Home"
+    st.sidebar.title("Field Atlas")
+    page = st.sidebar.radio("Navigate", pages, index=pages.index(st.session_state.page))
+    st.session_state.page = page
+
+    if page == "Home":
+        home_page()
+    elif page == "Add Field Note":
+        add_field_note_page()
+    elif page == "Map View":
+        map_view_page()
+    elif page == "AI Companion":
+        ai_companion_page()
+    elif page == "Farmstay Log":
+        farmstay_log_page()
+    elif page == "Note Library":
+        note_library_page()
+    elif page == "Export Center":
+        export_center_page()
+    elif page == "Privacy / Public Version":
+        privacy_page()
+
+
+if __name__ == "__main__":
+    main()
