@@ -16,7 +16,7 @@ def _combine_notes(items: list[dict]) -> str:
 
 def generate_export(export_type: str, items: list[dict]) -> tuple[str, str]:
     source = _combine_notes(items)
-    first_title = items[0].get("display_title") if items else "Field Atlas Notes"
+    first_title = items[0].get("display_title") if items else "Waymark U.S. Notes"
     title = f"{export_type}: {first_title}"
 
     if export_type == "Podcast script":
@@ -26,7 +26,7 @@ def generate_export(export_type: str, items: list[dict]) -> tuple[str, str]:
             "What I noticed:\nThe details point toward food, work, movement, memory, and local institutions.\n\n"
             "Why it matters:\nSmall observations can show how national stories become daily routines.\n\n"
             "Reflection:\nThe strongest field notes preserve uncertainty while naming what changed in the observer.\n\n"
-            "Closing line:\nThis is Field Atlas, listening to America one place at a time."
+            "Closing line:\nThis is Waymark U.S., listening to America one place at a time."
         )
     elif export_type == "Substack-style essay":
         content = (
@@ -44,7 +44,7 @@ def generate_export(export_type: str, items: list[dict]) -> tuple[str, str]:
             "- One local detail changed the mood of the stop.\n"
             "- Food, work, and public space carried more context than expected.\n"
             "- The best observation is still a question.\n\n"
-            "#FieldAtlas #RoadNotes #AmericanPlaces #FieldJournal #TravelWriting"
+            "#WaymarkUS #RoadNotes #AmericanPlaces #FieldJournal #TravelWriting"
         )
     elif export_type == "Japanese diary":
         content = (
@@ -60,7 +60,7 @@ def generate_export(export_type: str, items: list[dict]) -> tuple[str, str]:
             "Field interpretation: This note should remain observational, specific, and modest. It is a record of what was noticed, not a final explanation of the place."
         )
     else:
-        content = f"# Field Atlas Markdown Archive\n\n{source}"
+        content = f"# Waymark U.S. Markdown Archive\n\n{source}"
 
     return title, content
 
