@@ -114,8 +114,16 @@ MAJOR_US_CITIES = pd.DataFrame(
 
 INTERSTATE_ROUTES = pd.DataFrame(
     [
+        {"name": "I-5", "path": [[-117.1611, 32.7157], [-118.2437, 34.0522], [-122.4194, 37.7749], [-122.3321, 47.6062]]},
         {"name": "I-90", "path": [[-122.3321, 47.6062], [-104.9903, 39.7392], [-87.6298, 41.8781], [-74.0060, 40.7128]]},
         {"name": "I-10", "path": [[-118.2437, 34.0522], [-95.3698, 29.7604], [-90.0715, 29.9511], [-80.1918, 25.7617]]},
+        {"name": "I-15", "path": [[-117.1611, 32.7157], [-115.1398, 36.1699], [-111.8910, 40.7608], [-112.0391, 46.5891]]},
+        {"name": "I-25", "path": [[-106.6504, 35.0844], [-104.9903, 39.7392], [-104.8214, 41.1400]]},
+        {"name": "I-40", "path": [[-118.2437, 34.0522], [-112.0740, 33.4484], [-97.5164, 35.4676], [-86.7816, 36.1627], [-78.6382, 35.7796], [-77.9447, 34.2257]]},
+        {"name": "I-70", "path": [[-111.8910, 40.7608], [-104.9903, 39.7392], [-94.5786, 39.0997], [-86.1581, 39.7684], [-77.0369, 38.9072]]},
+        {"name": "I-75", "path": [[-80.1918, 25.7617], [-84.3880, 33.7490], [-84.5120, 39.1031], [-83.0458, 42.3314]]},
+        {"name": "I-81", "path": [[-83.9207, 35.9606], [-80.8431, 35.2271], [-77.4360, 37.5407], [-76.1474, 43.0481]]},
+        {"name": "I-94", "path": [[-93.2650, 44.9778], [-87.6298, 41.8781], [-83.0458, 42.3314], [-77.0369, 38.9072]]},
         {"name": "I-95", "path": [[-80.1918, 25.7617], [-84.3880, 33.7490], [-74.0060, 40.7128]]},
         {"name": "I-35", "path": [[-97.7431, 30.2672], [-97.3308, 37.6872], [-93.2650, 44.9778]]},
         {"name": "I-80", "path": [[-122.4194, 37.7749], [-104.9903, 39.7392], [-87.6298, 41.8781], [-74.0060, 40.7128]]},
@@ -508,6 +516,37 @@ def apply_style() -> None:
                 stroke-width: 1.9;
                 stroke-linecap: round;
                 stroke-linejoin: round;
+            }
+
+            .must-visit-card {
+                overflow: hidden;
+                border: 1px solid rgba(62, 48, 33, 0.16);
+                background: rgba(255, 252, 246, 0.92);
+                box-shadow: 0 22px 58px rgba(35, 24, 13, 0.08);
+                margin-bottom: 1.1rem;
+            }
+
+            .must-visit-card img {
+                width: 100%;
+                aspect-ratio: 16 / 9;
+                object-fit: cover;
+                display: block;
+            }
+
+            .must-visit-card div {
+                padding: 1.2rem;
+            }
+
+            .must-visit-card h4 {
+                font-family: Newsreader, Georgia, serif;
+                margin: 0 0 0.45rem;
+                font-size: 1.5rem;
+            }
+
+            .must-visit-card p {
+                color: var(--atlas-muted);
+                line-height: 1.62;
+                margin: 0;
             }
 
             .voice-dock {
@@ -911,6 +950,11 @@ def brief_icon_svg(key: str) -> str:
         "questions_to_ask": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 9a3 3 0 1 1 4.7 2.5c-1.2.8-1.7 1.4-1.7 2.8"></path><path d="M12 18h.01"></path><circle cx="12" cy="12" r="9"></circle></svg>',
         "field_note_prompts": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11a2.2 2.2 0 0 0-3-3L5 17l-1 3z"></path><path d="M14 7l3 3"></path></svg>',
         "safety_etiquette": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3z"></path><path d="M9 12l2 2 4-5"></path></svg>',
+        "population_snapshot": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V7l5-3 5 3v12"></path><path d="M14 19V9l6 3v7"></path><path d="M7 10h2M7 14h2M16 14h2"></path></svg>',
+        "industry_snapshot": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19h18"></path><path d="M5 19V9l4 3V9l4 3V7h5v12"></path><path d="M8 16h1M12 16h1M16 16h1"></path></svg>',
+        "sports_snapshot": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M7 8c3 2 7 2 10 0M7 16c3-2 7-2 10 0M12 4c-2 4-2 12 0 16M12 4c2 4 2 12 0 16"></path></svg>',
+        "food_snapshot": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16"></path><path d="M6 12c.5-4 3-7 6-7s5.5 3 6 7"></path><path d="M7 16h10l-1 4H8l-1-4z"></path></svg>',
+        "politics_snapshot": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"></path><path d="M6 17V9l6-4 6 4v8"></path><path d="M9 17v-5h6v5"></path></svg>',
         "community_lens": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path><path d="M3.5 20c.7-3.5 2.4-5 4.5-5s3.8 1.5 4.5 5M11.5 20c.7-3.5 2.4-5 4.5-5s3.8 1.5 4.5 5"></path></svg>',
         "economy_lens": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"></path><path d="M6 19V9l4 3V9l4 3V7h4v12"></path></svg>',
         "nature_lens": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V8"></path><path d="M12 8c-4 0-7 3-7 7 4 0 7-3 7-7z"></path><path d="M12 12c4 0 7-3 7-7-4 0-7 3-7 7z"></path></svg>',
@@ -1430,7 +1474,7 @@ def ai_companion_page() -> None:
     )
     interests = st.multiselect(
         "Optional interests",
-        ["history", "food", "race/community", "agriculture", "music", "religion", "economy", "small-town life", "nature", "sports"],
+        ["history", "food", "race/community", "agriculture", "music", "religion", "economy", "politics", "small-town life", "nature", "sports"],
         default=["history", "food", "economy"],
     )
     custom_question = st.text_input(
@@ -1505,7 +1549,16 @@ def ai_companion_page() -> None:
 
         speech_text = " ".join(
             brief.get(key, "")
-            for key in ["brief_15_sec", "historical_background", "cultural_signals", "local_food", "questions_to_ask", "safety_etiquette"]
+            for key in [
+                "brief_15_sec",
+                "population_snapshot",
+                "industry_snapshot",
+                "sports_snapshot",
+                "food_snapshot",
+                "politics_snapshot",
+                "historical_background",
+                "questions_to_ask",
+            ]
         )
         speech_json = json.dumps(speech_text)
         components.html(
@@ -1538,6 +1591,10 @@ def ai_companion_page() -> None:
         )
 
         section_labels = [
+            ("population_snapshot", "Population"),
+            ("industry_snapshot", "Industries"),
+            ("sports_snapshot", "Sports"),
+            ("food_snapshot", "Food"),
             ("historical_background", "Historical Background"),
             ("cultural_signals", "Cultural Signals"),
         ]
@@ -1553,12 +1610,34 @@ def ai_companion_page() -> None:
             section_labels.append(("nature_lens", "Nature Lens"))
         if "music" in interests and brief.get("music_lens"):
             section_labels.append(("music_lens", "Music Lens"))
+        if "politics" in interests and brief.get("politics_snapshot"):
+            section_labels.append(("politics_snapshot", "Politics"))
         section_labels.extend(
             [
                 ("questions_to_ask", "Questions To Ask"),
                 ("field_note_prompts", "Field Note Prompts"),
             ]
         )
+        if brief.get("must_visit"):
+            st.markdown("### Must Visit")
+            spot_cols = st.columns(min(2, len(brief["must_visit"])))
+            for col, spot in zip(spot_cols, brief["must_visit"]):
+                with col:
+                    spot_name = html.escape(str(spot.get("name", "Place to visit")))
+                    spot_why = html.escape(str(spot.get("why", "")))
+                    spot_image = html.escape(str(spot.get("image_url", HERO_IMAGE_URL)))
+                    st.markdown(
+                        f"""
+                        <div class="must-visit-card">
+                            <img src="{spot_image}" alt="{spot_name}">
+                            <div>
+                                <h4>{spot_name}</h4>
+                                <p>{spot_why}</p>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
         for row_start in range(0, len(section_labels), 2):
             cols = st.columns(2)
             for col, (key, label) in zip(cols, section_labels[row_start : row_start + 2]):
