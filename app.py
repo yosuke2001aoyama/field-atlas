@@ -9,6 +9,7 @@ import pandas as pd
 import pydeck as pdk
 import streamlit as st
 import streamlit.components.v1 as components
+from streamlit_searchbox import st_searchbox
 
 from ai_utils import (
     generate_ai_context,
@@ -17,6 +18,7 @@ from ai_utils import (
     generate_farmstay_summary,
     geocode_destination,
     normalize_destination,
+    search_destination_suggestions,
 )
 from db import (
     BASE_DIR,
@@ -67,30 +69,6 @@ EXPORT_TYPES = [
 
 HERO_IMAGE_URL = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80"
 MAP_IMAGE_URL = "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=1600&q=80"
-
-DESTINATION_SUGGESTIONS = {
-    "New Orleans": "Louisiana",
-    "Louisville": "Kentucky",
-    "Knoxville": "Tennessee",
-    "Asheville": "North Carolina",
-    "Raleigh": "North Carolina",
-    "Chicago": "Illinois",
-    "Nashville": "Tennessee",
-    "Memphis": "Tennessee",
-    "Charleston": "South Carolina",
-    "Savannah": "Georgia",
-    "Detroit": "Michigan",
-    "Pittsburgh": "Pennsylvania",
-    "Santa Fe": "New Mexico",
-    "Tucson": "Arizona",
-    "Portland": "Oregon",
-    "Seattle": "Washington",
-    "Austin": "Texas",
-    "Marfa": "Texas",
-    "Burlington": "Vermont",
-    "Boise": "Idaho",
-}
-
 
 def apply_style() -> None:
     st.markdown(
@@ -175,6 +153,21 @@ def apply_style() -> None:
                 font-size: 0.86rem;
                 line-height: 1.35;
                 margin: -0.2rem 0 1.2rem;
+            }
+
+            .nav-section {
+                margin: 1.05rem 0 0.2rem;
+                color: var(--atlas-gold);
+                font-size: 0.72rem;
+                font-weight: 900;
+                letter-spacing: 0.12rem;
+                text-transform: uppercase;
+            }
+
+            .nav-child {
+                margin-left: 0.7rem;
+                padding-left: 0.7rem;
+                border-left: 1px solid rgba(183, 150, 93, 0.26);
             }
 
             .nav-active {
@@ -538,23 +531,33 @@ def render_sidebar(pages: list[str]) -> str:
         "Search & Map": "Search & Map",
         "Capture Note": "Capture Note",
         "AI Brief": "AI Brief",
-        "Farmstay Log": "Farmstay Log",
+        "Community Log": "Community Log",
         "Library": "Library",
         "Export": "Export",
         "Publish Safely": "Publish Safely",
     }
     st.sidebar.title("Field Atlas")
     st.sidebar.markdown(
-        '<div class="sidebar-tagline">Private road notes, maps, farmstay logs, and public-ready storytelling.</div>',
+        '<div class="sidebar-tagline">Private road notes, maps, community logs, and public-ready storytelling.</div>',
         unsafe_allow_html=True,
     )
-    for page_name in pages:
+    def nav_button(page_name: str, child: bool = False) -> None:
         label = nav_labels.get(page_name, page_name)
+        display_label = f"  {label}" if child else label
         if page_name == st.session_state.page:
-            st.sidebar.markdown(f'<div class="nav-active">{label}</div>', unsafe_allow_html=True)
-        elif st.sidebar.button(label, key=f"side_nav_{page_name}"):
+            st.sidebar.markdown(f'<div class="nav-active">{display_label}</div>', unsafe_allow_html=True)
+        elif st.sidebar.button(display_label, key=f"side_nav_{page_name}"):
             st.session_state.page = page_name
             st.rerun()
+
+    nav_button("Home")
+    st.sidebar.markdown('<div class="nav-section">Before</div>', unsafe_allow_html=True)
+    nav_button("Before the Journey")
+    nav_button("AI Brief", child=True)
+    st.sidebar.markdown('<div class="nav-section">After</div>', unsafe_allow_html=True)
+    nav_button("After the Journey")
+    for page_name in ["Search & Map", "Capture Note", "Community Log", "Library", "Export", "Publish Safely"]:
+        nav_button(page_name, child=True)
     return st.session_state.page
 
 
@@ -563,18 +566,16 @@ def go_to(page_name: str) -> None:
     st.rerun()
 
 
-def destination_matches(query: str) -> list[tuple[str, str]]:
-    normalized = " ".join((query or "").lower().split())
-    if not normalized:
-        return []
-    matches = []
-    for city, state in DESTINATION_SUGGESTIONS.items():
-        haystack = f"{city} {state}".lower()
-        compact = city.lower().replace(" ", "")
-        query_compact = normalized.replace(" ", "")
-        if haystack.startswith(normalized) or normalized in haystack or compact.startswith(query_compact):
-            matches.append((city, state))
-    return matches[:6]
+def destination_search_options(query: str) -> list[str]:
+    suggestions = search_destination_suggestions(query)
+    if "destination_payloads" not in st.session_state:
+        st.session_state.destination_payloads = {}
+    labels = []
+    for item in suggestions:
+        label = item["label"]
+        st.session_state.destination_payloads[label] = item
+        labels.append(label)
+    return labels
 
 
 def home_page() -> None:
@@ -589,10 +590,10 @@ def home_page() -> None:
             <div class="atlas-kicker">Private field intelligence for the American road</div>
             <h1>Field Atlas</h1>
             <h3>An AI field companion for understanding America by road.</h3>
-            <p>Collect roadtrip and farmstay observations, map them, generate cultural context, and turn private notes into public-ready stories.</p>
+            <p>Collect roadtrip and community observations, map them, generate cultural context, and turn private notes into public-ready stories.</p>
             <div class="atlas-pill-row">
                 <span class="atlas-pill">Road notes</span>
-                <span class="atlas-pill">Farmstay logs</span>
+                <span class="atlas-pill">Community logs</span>
                 <span class="atlas-pill">Map memory</span>
                 <span class="atlas-pill">Private by default</span>
             </div>
@@ -655,21 +656,6 @@ def home_page() -> None:
             use_container_width=True,
         )
 
-    st.markdown("### Concierge Actions")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown('<div class="atlas-action-card"><div><h4>Plan before arrival</h4><p>Enter a destination and get a sourced, photo-backed local brief.</p></div></div>', unsafe_allow_html=True)
-        if st.button("Generate AI Brief", width="stretch"):
-            go_to("AI Brief")
-    with c2:
-        st.markdown('<div class="atlas-action-card"><div><h4>Log farm life</h4><p>Structure work, food, people, surprises, and reflection from a stay.</p></div></div>', unsafe_allow_html=True)
-        if st.button("Add Farmstay Log", width="stretch"):
-            go_to("Farmstay Log")
-    with c3:
-        st.markdown('<div class="atlas-action-card"><div><h4>Create from notes</h4><p>Export selected observations as a script, essay, caption, diary, or archive.</p></div></div>', unsafe_allow_html=True)
-        if st.button("Open Export", width="stretch"):
-            go_to("Export")
-
     left, right = st.columns([1.2, 0.8])
     with left:
         st.markdown(
@@ -714,6 +700,16 @@ def before_journey_page() -> None:
             """,
             unsafe_allow_html=True,
         )
+    st.markdown('<div class="atlas-choice-label">Included in this mode</div>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="atlas-panel">
+            <h3>AI Brief</h3>
+            <p class="small-muted">Search any U.S. city, town, national park, historical park, landmark, or destination covered by OpenStreetMap, then generate a sourced local brief.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def after_journey_page() -> None:
@@ -723,7 +719,7 @@ def after_journey_page() -> None:
     actions = [
         ("Search the map", "Find notes by place, category, and memory.", "Search & Map", "Open Map"),
         ("Capture a note", "Save a raw observation with photos, transcript, and publishing choice.", "Capture Note", "Add Note"),
-        ("Publish carefully", "Create an anonymized public draft and review removed details.", "Publish Safely", "Prepare Public Version"),
+        ("Community log", "Record a farmstay, local conversation, community event, or meaningful exchange.", "Community Log", "Add Community Log"),
     ]
     for col, (title, body, page_name, button_label) in zip((c1, c2, c3), actions):
         with col:
@@ -732,6 +728,20 @@ def after_journey_page() -> None:
                 unsafe_allow_html=True,
             )
             if st.button(button_label, key=f"after_{page_name}", width="stretch"):
+                go_to(page_name)
+    c4, c5, c6 = st.columns(3)
+    more_actions = [
+        ("Library", "Read your real field reviews and detailed source notes.", "Library", "Open Library"),
+        ("Export", "Turn selected observations into essays, scripts, captions, or archive notes.", "Export", "Create Export"),
+        ("Publish safely", "Create an anonymized public draft and review removed details.", "Publish Safely", "Prepare Public Version"),
+    ]
+    for col, (title, body, page_name, button_label) in zip((c4, c5, c6), more_actions):
+        with col:
+            st.markdown(
+                f'<div class="atlas-action-card"><div><h4>{title}</h4><p>{body}</p></div></div>',
+                unsafe_allow_html=True,
+            )
+            if st.button(button_label, key=f"after_more_{page_name}", width="stretch"):
                 go_to(page_name)
 
 
@@ -883,13 +893,13 @@ def map_view_page() -> None:
             c1, c2 = st.columns(2)
             if c1.button("Create Public Version", key=f"map_public_{selected_record}"):
                 st.session_state.selected_public = (
-                    "Field note" if selected_row["source"] == "Field note" else "Farmstay log",
+                    "Field note" if selected_row["source"] == "Field note" else "Community log",
                     int(selected_row["source_id"]),
                 )
                 st.session_state.page = "Publish Safely"
                 st.rerun()
             if c2.button("Export This Record", key=f"map_export_{selected_record}"):
-                source_type = "Field note" if selected_row["source"] == "Field note" else "Farmstay log"
+                source_type = "Field note" if selected_row["source"] == "Field note" else "Community log"
                 st.session_state.export_selection = [f"{source_type}:{selected_row['source_id']}"]
                 st.session_state.page = "Export"
                 st.rerun()
@@ -901,33 +911,34 @@ def map_view_page() -> None:
 
 def ai_companion_page() -> None:
     st.title("AI Brief")
-    st.caption("Type a destination. Field Atlas predicts likely places, suggests the state, then builds a sourced before-you-arrive brief.")
+    st.caption("Start typing a destination. Suggestions come from OpenStreetMap, so small cities, national parks, historical parks, landmarks, and rural places are searchable.")
 
-    destination_options = ["Type to search a destination..."] + [
-        f"{city} — {state}" for city, state in DESTINATION_SUGGESTIONS.items()
-    ]
-    destination_choice = st.selectbox(
-        "Destination",
-        destination_options,
-        help="Click this field and type, for example, 'new or' to narrow the list to New Orleans — Louisiana.",
+    selected_label = st_searchbox(
+        destination_search_options,
+        placeholder="Try: Shelbyville Indiana, New Orleans, Yellowstone, Independence National Historical Park",
+        label="Destination",
+        default="",
+        default_use_searchterm=True,
+        clear_on_submit=False,
+        edit_after_submit="current",
+        debounce=450,
+        key="destination_searchbox",
+        help="Suggestions appear as you type. If you press enter without selecting one, Field Atlas will still try to geocode your text.",
     )
-    custom_destination = st.text_input("Other destination", placeholder="Use only if the destination is not in the suggestions")
-    selected_prediction = None
-    if destination_choice != "Type to search a destination...":
-        city, state = destination_choice.split(" — ", 1)
-        selected_prediction = (city, state)
-    destination = custom_destination.strip() if custom_destination.strip() else (
-        selected_prediction[0] if selected_prediction else ""
-    )
+    selected_payload = st.session_state.get("destination_payloads", {}).get(selected_label)
+    destination = ""
 
-    if selected_prediction:
-        corrected, suggested_state = selected_prediction
+    if selected_payload:
+        corrected = selected_payload.get("destination", "")
+        suggested_state = selected_payload.get("state", "")
+        destination = corrected
         st.markdown(
-            f'<div class="atlas-card"><div class="atlas-choice-label">Prediction</div><strong>{corrected}</strong><br><span class="small-muted">{suggested_state}</span></div>',
+            f'<div class="atlas-card"><div class="atlas-choice-label">Selected place</div><strong>{html.escape(corrected)}</strong><br><span class="small-muted">{html.escape(selected_payload.get("display_name", suggested_state))}</span></div>',
             unsafe_allow_html=True,
         )
-        suggested_geo = {}
+        suggested_geo = selected_payload
     else:
+        destination = selected_label or ""
         corrected = normalize_destination(destination)
         suggested_geo = geocode_destination(corrected) if corrected else {}
         suggested_state = suggested_geo.get("state", "")
@@ -939,7 +950,7 @@ def ai_companion_page() -> None:
                 st.caption(f"Autocorrected destination: {corrected}")
     trip_purpose = st.selectbox(
         "Trip purpose",
-        ["General field observation", "Road trip stop", "Farmstay preparation", "Food research", "Essay/podcast research", "Public field note"],
+        ["General field observation", "Road trip stop", "Community visit", "Food research", "Essay/podcast research", "Public field note"],
     )
     interests = st.multiselect(
         "Optional interests",
@@ -953,6 +964,14 @@ def ai_companion_page() -> None:
             st.error("Please enter a destination first.")
         else:
             brief = generate_destination_brief(corrected or destination, suggested_state, trip_purpose, interests)
+            if selected_payload and not brief.get("latitude"):
+                brief.update(
+                    {
+                        "latitude": selected_payload.get("latitude"),
+                        "longitude": selected_payload.get("longitude"),
+                        "display_name": selected_payload.get("display_name", brief.get("display_name")),
+                    }
+                )
             st.session_state.current_brief = brief
 
     brief = st.session_state.get("current_brief")
@@ -1062,26 +1081,30 @@ def ai_companion_page() -> None:
 
 
 def farmstay_log_page() -> None:
-    st.title("Farmstay Log")
+    st.title("Community Log")
+    st.caption("Use this for farmstays, local conversations, community events, shared meals, volunteer days, or any meaningful exchange with people in a place. Keep private names and exact addresses out of public versions.")
     with st.form("farmstay_form"):
         left, right = st.columns(2)
         log_date = left.date_input("Date", value=date.today())
-        farm_name = right.text_input("Farm name")
+        farm_name = right.text_input("Community / host / place name")
         location_name = left.text_input("Location name")
-        farm_type = right.selectbox("Farm type", FARM_TYPES)
+        farm_type = right.selectbox(
+            "Encounter type",
+            ["local conversation", "community event", "farmstay", "market visit", "homestay", "volunteer day", "religious or civic gathering", "workshop", "other"],
+        )
         lat_col, lon_col = st.columns(2)
         latitude = lat_col.number_input("Latitude", value=None, format="%.6f", key="farm_lat")
         longitude = lon_col.number_input("Longitude", value=None, format="%.6f", key="farm_lon")
-        work_done = st.text_area("Work done")
-        people_met = st.text_area("People met")
-        food_eaten = st.text_area("Food eaten")
+        work_done = st.text_area("Activity / what happened")
+        people_met = st.text_area("People met (private; use first names or roles only if safe)")
+        food_eaten = st.text_area("Food or hospitality shared")
         conversation_topics = st.text_area("Conversation topics")
-        lifestyle_observations = st.text_area("Lifestyle observations")
-        labor_intensity = st.slider("Labor intensity", 1, 5, 3)
+        lifestyle_observations = st.text_area("Community observations")
+        labor_intensity = st.slider("Intensity of interaction", 1, 5, 3)
         community_feeling = st.slider("Community feeling", 1, 5, 3)
         surprises = st.text_area("What surprised me")
         reflection = st.text_area("Reflection", height=140)
-        submitted = st.form_submit_button("Save Farmstay Log")
+        submitted = st.form_submit_button("Save Community Log")
 
     if submitted:
         payload = {
@@ -1104,9 +1127,9 @@ def farmstay_log_page() -> None:
         payload["ai_summary"] = generate_farmstay_summary(payload)
         payload["public_version"] = create_public_version_for_farmstay(payload)
         log_id = insert_farmstay_log(payload)
-        st.success(f"Saved farmstay log #{log_id}.")
+        st.success(f"Saved community log #{log_id}.")
         with st.container(border=True):
-            st.subheader(farm_name or "Farmstay log")
+            st.subheader(farm_name or "Community log")
             st.write(payload["ai_summary"])
             st.markdown("**Anonymized public version preview**")
             st.write(payload["public_version"])
@@ -1137,8 +1160,24 @@ def filter_library(items: pd.DataFrame) -> pd.DataFrame:
     return filtered
 
 
+def render_review_text(item: pd.Series) -> str:
+    text = str(item.get("display_text") or item.get("note_text") or "").strip()
+    if not text and str(item.get("source_type")) == "Community log":
+        parts = [
+            item.get("work_done", ""),
+            item.get("conversation_topics", ""),
+            item.get("lifestyle_observations", ""),
+            item.get("reflection", ""),
+        ]
+        text = " ".join(str(part).strip() for part in parts if str(part).strip())
+    if not text:
+        text = str(item.get("ai_summary") or "No review text recorded yet.").strip()
+    return text[:700] + ("..." if len(text) > 700 else "")
+
+
 def note_library_page() -> None:
     st.title("Library")
+    st.caption("Actual field reviews from your notes and community logs. AI summaries are secondary; the review text is the primary record.")
     items = fetch_all_library_items()
     if items.empty:
         st.info("No notes yet.")
@@ -1153,7 +1192,10 @@ def note_library_page() -> None:
             cols[1].markdown(f"**{item.get('source_type')}**")
             st.write(f"{item.get('date', '')} · {item.get('display_location', '')} · {item.get('display_category', '')}")
             st.caption(f"Privacy: {item.get('privacy_level', 'private')}")
-            st.write(item.get("ai_summary", ""))
+            st.markdown("**Field review**")
+            st.write(render_review_text(item))
+            if item.get("ai_summary"):
+                st.caption(f"AI context: {item.get('ai_summary')}")
             b1, b2, b3 = st.columns(3)
             detail_key = f"detail_{item.get('source_type')}_{item.get('source_id')}"
             public_key = f"public_{item.get('source_type')}_{item.get('source_id')}"
@@ -1171,14 +1213,17 @@ def note_library_page() -> None:
     if st.session_state.get("selected_detail"):
         source_type, source_id = st.session_state.selected_detail
         st.divider()
-        st.subheader("Details")
+        st.subheader("Readable Details")
         record = get_field_note(source_id) if source_type == "Field note" else None
-        if source_type == "Farmstay log":
+        if source_type == "Community log":
             farms = fetch_farmstay_logs()
             match = farms[farms["id"] == source_id]
             record = match.iloc[0].to_dict() if not match.empty else None
         if record:
-            st.json(record)
+            for label, value in record.items():
+                if value not in (None, ""):
+                    st.markdown(f"**{label.replace('_', ' ').title()}**")
+                    st.write(value)
 
 
 def get_selected_items(selection: list[str], items: pd.DataFrame) -> list[dict]:
@@ -1234,10 +1279,10 @@ def privacy_page() -> None:
         """
     )
 
-    if st.session_state.get("selected_public") and st.session_state.selected_public[0] == "Farmstay log":
+    if st.session_state.get("selected_public") and st.session_state.selected_public[0] == "Community log":
         log = get_farmstay_log(int(st.session_state.selected_public[1]))
         if log:
-            st.subheader("Farmstay public version")
+            st.subheader("Community public version")
             st.text_area("Public text", create_public_version_for_farmstay(log), height=320)
             st.markdown("**Removed/private details checklist**")
             for item in [
@@ -1291,7 +1336,7 @@ def main() -> None:
         "Search & Map",
         "Capture Note",
         "AI Brief",
-        "Farmstay Log",
+        "Community Log",
         "Library",
         "Export",
         "Publish Safely",
@@ -1315,7 +1360,7 @@ def main() -> None:
         map_view_page()
     elif page == "AI Brief":
         ai_companion_page()
-    elif page == "Farmstay Log":
+    elif page == "Community Log":
         farmstay_log_page()
     elif page == "Library":
         note_library_page()
