@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import json
 import shutil
+import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 
@@ -13,20 +14,16 @@ import streamlit.components.v1 as components
 from streamlit_searchbox import st_searchbox
 
 from ai_utils import (
-    NOTE_THEMES,
-    classify_note_theme,
     generate_ai_context,
     generate_ai_summary,
     generate_destination_brief,
     generate_farmstay_summary,
-    generate_public_ready_summary,
     geocode_destination,
     normalize_destination,
     search_destination_suggestions,
 )
 from db import (
     BASE_DIR,
-    fetch_ai_briefs,
     fetch_all_library_items,
     fetch_farmstay_logs,
     fetch_field_notes,
@@ -61,6 +58,30 @@ CATEGORIES = [
     "logistics",
     "other",
 ]
+
+NOTE_THEMES = [
+    "travel",
+    "food",
+    "people",
+    "culture",
+    "economy",
+    "politics/news",
+    "personal reflection",
+    "nature",
+    "logistics",
+]
+
+THEME_KEYWORDS = {
+    "food": ["food", "meal", "diner", "coffee", "market", "restaurant", "bread", "breakfast"],
+    "people": ["people", "conversation", "met", "neighbor", "vendor", "host", "local"],
+    "culture": ["music", "church", "festival", "museum", "accent", "school", "tradition"],
+    "economy": ["industry", "work", "job", "housing", "price", "warehouse", "factory", "tourism", "labor"],
+    "politics/news": ["election", "policy", "mayor", "county", "news", "politic", "protest", "government"],
+    "personal reflection": ["felt", "wondered", "realized", "remember", "lonely", "surprised", "thought"],
+    "nature": ["river", "mountain", "forest", "trail", "weather", "soil", "rain", "field", "landscape"],
+    "logistics": ["train", "bus", "station", "road", "motel", "drive", "parking", "airport", "route"],
+    "travel": ["arrived", "road", "trip", "walk", "visited", "drive", "downtown", "stop", "journey"],
+}
 
 FARM_TYPES = ["vegetable", "dairy", "livestock", "vineyard", "mixed", "homestead", "market garden", "other"]
 PRIVACY_LEVELS = ["private", "semi-private", "public-ready"]
@@ -569,6 +590,35 @@ def render_context_block(text: str) -> None:
             st.write(block)
 
 
+def classify_note_theme(text: str, tags: str = "", mood: str = "") -> str:
+    haystack = f"{text or ''} {tags or ''} {mood or ''}".lower()
+    scores = {theme: 0 for theme in NOTE_THEMES}
+    for theme, keywords in THEME_KEYWORDS.items():
+        scores[theme] += sum(1 for keyword in keywords if keyword in haystack)
+    best_theme, best_score = max(scores.items(), key=lambda item: item[1])
+    return best_theme if best_score else "personal reflection"
+
+
+def generate_public_ready_summary(text: str, location: str, theme: str) -> str:
+    cleaned = " ".join((text or "").split())
+    seed = cleaned[:220] if cleaned else "This note records a small observation from movement through place."
+    return (
+        f"An anonymous {theme} field note from {location or 'a U.S. place'}: {seed} "
+        "Exact timing, private names, and sensitive details should be reviewed before publication."
+    )
+
+
+def fetch_saved_briefs() -> pd.DataFrame:
+    db_path = BASE_DIR / "data" / "field_atlas.db"
+    if not db_path.exists():
+        return pd.DataFrame()
+    try:
+        with sqlite3.connect(db_path) as conn:
+            return pd.read_sql_query("SELECT * FROM ai_briefs ORDER BY id DESC", conn)
+    except Exception:
+        return pd.DataFrame()
+
+
 def render_sidebar(pages: list[str]) -> str:
     nav_labels = {
         "Home": "Home",
@@ -837,7 +887,7 @@ def map_view_page() -> None:
     st.caption("Explore saved memories and saved place briefs without mixing them up. Reviews are what you experienced; briefs are context you asked for.")
     notes = fetch_field_notes()
     farms = fetch_farmstay_logs()
-    briefs = fetch_ai_briefs()
+    briefs = fetch_saved_briefs()
     mapped, needs_location = build_map_points(notes, farms)
     brief_points = build_brief_map_points(briefs)
 
