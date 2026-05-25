@@ -624,7 +624,7 @@ def render_sidebar(pages: list[str]) -> str:
         "Home": "Home",
         "Memory Map": "Memory Map",
         "Read Reviews": "Read Reviews",
-        "Search My Notes": "Search My Notes",
+        "Search My Notes": "Search Notes",
         "Capture Note": "Capture Note",
         "Ask About This Place": "Ask About This Place",
         "Community Log": "Community Log",
@@ -647,18 +647,15 @@ def render_sidebar(pages: list[str]) -> str:
             st.rerun()
 
     nav_button("Home")
-    st.sidebar.markdown('<div class="nav-section">Output Mode</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="nav-section">Understand</div>', unsafe_allow_html=True)
     nav_button("Ask About This Place")
     nav_button("Memory Map")
     nav_button("Read Reviews")
-    st.sidebar.markdown('<div class="nav-section">Input Mode</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="nav-section">Capture</div>', unsafe_allow_html=True)
     nav_button("Capture Note")
     nav_button("Community Log")
-    st.sidebar.markdown('<div class="nav-section">Review</div>', unsafe_allow_html=True)
-    nav_button("Search My Notes")
+    st.sidebar.markdown('<div class="nav-section">Revisit & Share</div>', unsafe_allow_html=True)
     nav_button("Journey Review")
-    nav_button("Library")
-    nav_button("Export")
     nav_button("Publish Safely")
     return st.session_state.page
 
@@ -729,33 +726,33 @@ def home_page() -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="atlas-choice-label">Choose a mode</div>', unsafe_allow_html=True)
+    st.markdown('<div class="atlas-choice-label">What do you want to do?</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(
             """
             <div class="journey-card">
-                <div class="atlas-choice-label">Output mode</div>
-                <h3>Ask about a place</h3>
-                <p>Search a city, park, landmark, or neighborhood. Get a sourced brief, map context, and field prompts before you arrive.</p>
+                <div class="atlas-choice-label">Understand</div>
+                <h3>Learn what to notice</h3>
+                <p>Search a city, park, landmark, or neighborhood. Get a sourced brief, map context, and prompts for what to watch as you move.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        if st.button("Ask About This Place", width="stretch"):
+        if st.button("Learn About a Place", width="stretch"):
             go_to("Ask About This Place")
     with c2:
         st.markdown(
             """
             <div class="journey-card">
-                <div class="atlas-choice-label">Input mode</div>
-                <h3>Capture what you notice</h3>
-                <p>Save a quick note with mood, tags, location, privacy status, and automatic theme organization.</p>
+                <div class="atlas-choice-label">Capture</div>
+                <h3>Save a moving thought</h3>
+                <p>Speak in the car, type on a walk, or paste a rough impression. It stays private unless you choose to prepare it for public knowledge.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        if st.button("Capture Note", width="stretch"):
+        if st.button("Record a Thought", width="stretch"):
             go_to("Capture Note")
 
     if not mapped.empty:
@@ -799,30 +796,82 @@ def home_page() -> None:
 
 def add_field_note_page() -> None:
     st.title("Capture Note")
-    st.caption("Input mode: capture what you notice now. Notes are private by default and can be organized or published later.")
+    st.caption("Capture a moving thought from the car, a sidewalk, a station, or a quiet room. Everything is private first; selected notes can later become public knowledge.")
+    st.markdown(
+        """
+        <div class="atlas-panel">
+            <h3>Private first, useful later</h3>
+            <p class="small-muted">Waymark U.S. is built for small voice notes and rough thoughts: say what you notice, attach the place, and let the system organize it. Public sharing is always a later choice, never the default.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("**Where are you noticing this?**")
+    selected_location_label = st_searchbox(
+        destination_search_options,
+        placeholder="City, park, landmark...",
+        label=None,
+        default="",
+        default_use_searchterm=True,
+        clear_on_submit=False,
+        edit_after_submit="current",
+        debounce=450,
+        key="capture_location_searchbox",
+    )
+    st.caption("Start typing, then choose a suggested U.S. place. Example: Grand Canyon, Shelbyville Indiana, New Orleans.")
+    selected_location_payload = st.session_state.get("destination_payloads", {}).get(selected_location_label)
+    if selected_location_label and not selected_location_payload:
+        selected_location_payload = geocode_destination(selected_location_label)
+
+    default_location = ""
+    default_city = ""
+    default_state = ""
+    default_latitude = None
+    default_longitude = None
+    if selected_location_payload:
+        default_location = selected_location_payload.get("destination") or selected_location_label
+        default_city = selected_location_payload.get("city", "")
+        default_state = selected_location_payload.get("state", "")
+        default_latitude = selected_location_payload.get("latitude")
+        default_longitude = selected_location_payload.get("longitude")
+        st.markdown(
+            f'<div class="atlas-card"><div class="atlas-choice-label">Place locked</div><strong>{html.escape(default_location)}</strong><br><span class="small-muted">{html.escape(selected_location_payload.get("display_name", default_state))}</span></div>',
+            unsafe_allow_html=True,
+        )
 
     with st.form("field_note_form", clear_on_submit=False):
         left, right = st.columns(2)
         title = left.text_input("Title")
         note_date = right.date_input("Date", value=date.today())
         note_time = right.time_input("Time", value=datetime.now().time().replace(second=0, microsecond=0))
-        location_name = left.text_input("Location name")
+        location_name = left.text_input("Location name", value=default_location)
         address = right.text_input("Address")
-        city = left.text_input("City")
-        state = right.text_input("State")
+        city = left.text_input("City", value=default_city)
+        state = right.text_input("State", value=default_state)
         lat_col, lon_col = st.columns(2)
-        latitude = lat_col.number_input("Latitude", value=None, format="%.6f")
-        longitude = lon_col.number_input("Longitude", value=None, format="%.6f")
+        latitude = lat_col.number_input("Latitude", value=default_latitude, format="%.6f")
+        longitude = lon_col.number_input("Longitude", value=default_longitude, format="%.6f")
         mood = st.selectbox(
             "Mood / feeling",
             ["curious", "calm", "energized", "uncertain", "moved", "overwhelmed", "reflective", "practical", "other"],
         )
-        note_text = st.text_area("Raw note", height=190, placeholder="Paste a quick field thought, overheard detail, route memory, or reflection.")
+        note_text = st.text_area("Raw note", height=190, placeholder="Type a thought, paste a voice transcript, or jot down what you just noticed.")
         photo = st.file_uploader("Photo upload", type=["png", "jpg", "jpeg", "webp"])
-        audio = st.file_uploader("Audio upload", type=["mp3", "m4a", "wav", "aac"])
-        audio_transcript = st.text_area("Audio transcript", height=120)
+        if hasattr(st, "audio_input"):
+            audio = st.audio_input("Record voice memo")
+            backup_audio = st.file_uploader("Or upload audio", type=["mp3", "m4a", "wav", "aac", "webm"])
+            audio = audio or backup_audio
+        else:
+            audio = st.file_uploader("Voice memo upload", type=["mp3", "m4a", "wav", "aac", "webm"])
+        audio_transcript = st.text_area(
+            "Voice transcript / dictated text",
+            height=120,
+            placeholder="For now, paste a transcript here. Future versions can connect Whisper or on-device transcription.",
+        )
         tags = st.text_input("Tags", placeholder="comma-separated tags")
-        auto_category = classify_note_theme(note_text, tags, mood) if note_text or tags else "personal reflection"
+        preview_text = "\n\n".join(part for part in [note_text, audio_transcript] if part)
+        auto_category = classify_note_theme(preview_text, tags, mood) if preview_text or tags else "personal reflection"
         st.caption(f"Auto theme preview: {auto_category}")
         publishing_choice = st.selectbox(
             "Publishing choice",
@@ -836,15 +885,16 @@ def add_field_note_page() -> None:
         submitted = st.form_submit_button("Save Note")
 
     if submitted:
-        if not title.strip() and not note_text.strip():
-            st.error("Please add at least a title or note text.")
+        captured_text = "\n\n".join(part for part in [note_text.strip(), audio_transcript.strip()] if part)
+        if not title.strip() and not captured_text.strip() and not audio:
+            st.error("Please add a title, note text, transcript, or voice memo.")
             return
         photo_path = save_upload(photo, "photos")
         audio_path = save_upload(audio, "audio")
         location = location_name or city or state
-        category = classify_note_theme(note_text, tags, mood)
-        ai_summary = generate_public_ready_summary(note_text, location, category)
-        ai_context = generate_ai_context(note_text, category, location)
+        category = classify_note_theme(captured_text, tags, mood)
+        ai_summary = generate_public_ready_summary(captured_text, location, category)
+        ai_context = generate_ai_context(captured_text, category, location)
         privacy_level = {
             "Keep private in my notes": "private",
             "Save as semi-private working note": "semi-private",
@@ -861,7 +911,7 @@ def add_field_note_page() -> None:
                 "city": city,
                 "state": state,
                 "category": category,
-                "note_text": note_text,
+                "note_text": captured_text,
                 "photo_path": photo_path,
                 "audio_path": audio_path,
                 "audio_transcript": audio_transcript,
@@ -876,7 +926,7 @@ def add_field_note_page() -> None:
         with st.container(border=True):
             st.subheader(title or "Untitled field note")
             st.caption(f"{location or 'No location'} | {category} | {mood} | {privacy_level}")
-            st.write(note_text)
+            st.write(captured_text or "Voice memo saved. Add a transcript later for search and summaries.")
             st.markdown("**Organized summary**")
             st.write(ai_summary)
             render_context_block(ai_context)
@@ -1372,8 +1422,8 @@ def render_review_text(item: pd.Series) -> str:
 
 
 def note_library_page() -> None:
-    st.title("Library")
-    st.caption("Actual field reviews from your notes and community logs. AI summaries are secondary; the review text is the primary record.")
+    st.title("Search Notes")
+    st.caption("Find private notes, community logs, and public-ready reflections by place, theme, tag, or keyword.")
     items = fetch_all_library_items()
     if items.empty:
         st.info("No notes yet.")
@@ -1424,18 +1474,18 @@ def note_library_page() -> None:
 
 def journey_review_page() -> None:
     st.title("Journey Review")
-    st.caption("Turn saved movement notes into a calm review: what you noticed, places that mattered, recurring themes, and a public-ready draft.")
+    st.caption("A simple reflection view: choose a set of notes, see the strongest places and themes, then draft a private or public reflection.")
     items = fetch_all_library_items()
     if items.empty:
         st.info("Capture a note first, then come back here to review the journey.")
         return
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     places = sorted({str(value) for value in items["display_location"].dropna() if str(value)})
     themes = sorted({str(value) for value in items["display_category"].dropna() if str(value)})
     selected_place = c1.selectbox("Place", ["All"] + places)
     selected_theme = c2.selectbox("Theme", ["All"] + themes)
-    max_items = c3.slider("Notes to include", 1, min(12, len(items)), min(5, len(items)))
+    max_items = 6
 
     filtered = items.copy()
     if selected_place != "All":
@@ -1454,7 +1504,7 @@ def journey_review_page() -> None:
     place_counts = filtered["display_location"].fillna("Unknown place").value_counts()
     theme_counts = filtered["display_category"].fillna("personal reflection").value_counts()
 
-    st.markdown("### What I Noticed")
+    st.markdown("### Notes in This Reflection")
     for line in notice_lines[:5]:
         st.markdown(f"- {line}")
 
@@ -1464,22 +1514,13 @@ def journey_review_page() -> None:
     st.markdown("### Recurring Themes")
     st.write(", ".join(f"{theme} ({count})" for theme, count in theme_counts.items()))
 
-    st.markdown("### Questions To Explore Later")
-    for question in [
-        "What did I keep noticing without planning to notice it?",
-        "Which local institutions made the place legible?",
-        "Where did the public-facing story differ from everyday life?",
-        "Which details should remain private before any public draft?",
-    ]:
-        st.markdown(f"- {question}")
-
     public_draft = (
         "I moved through a set of U.S. places with a notebook mindset rather than a checklist. "
         f"The strongest memories clustered around {', '.join(place_counts.index[:3])}. "
         f"Recurring themes included {', '.join(theme_counts.index[:4])}. "
         "The public version should keep the feeling of movement and observation while removing exact addresses, private names, raw transcripts, and real-time details."
     )
-    st.markdown("### Public-Ready Travel Reflection Draft")
+    st.markdown("### Reflection Draft")
     st.text_area("Draft", public_draft, height=220)
 
 
