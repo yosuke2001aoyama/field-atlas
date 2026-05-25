@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import shutil
 from datetime import date
 from pathlib import Path
@@ -67,6 +68,29 @@ EXPORT_TYPES = [
 HERO_IMAGE_URL = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80"
 MAP_IMAGE_URL = "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=1600&q=80"
 
+DESTINATION_SUGGESTIONS = {
+    "New Orleans": "Louisiana",
+    "Louisville": "Kentucky",
+    "Knoxville": "Tennessee",
+    "Asheville": "North Carolina",
+    "Raleigh": "North Carolina",
+    "Chicago": "Illinois",
+    "Nashville": "Tennessee",
+    "Memphis": "Tennessee",
+    "Charleston": "South Carolina",
+    "Savannah": "Georgia",
+    "Detroit": "Michigan",
+    "Pittsburgh": "Pennsylvania",
+    "Santa Fe": "New Mexico",
+    "Tucson": "Arizona",
+    "Portland": "Oregon",
+    "Seattle": "Washington",
+    "Austin": "Texas",
+    "Marfa": "Texas",
+    "Burlington": "Vermont",
+    "Boise": "Idaho",
+}
+
 
 def apply_style() -> None:
     st.markdown(
@@ -75,20 +99,22 @@ def apply_style() -> None:
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap');
 
             :root {
-                --atlas-ink: #17211c;
-                --atlas-muted: #657064;
-                --atlas-paper: #f4f1ea;
-                --atlas-card: rgba(255, 255, 255, 0.86);
-                --atlas-line: rgba(32, 42, 35, 0.12);
-                --atlas-green: #2f6f58;
-                --atlas-rust: #a65d3a;
-                --atlas-gold: #d1a451;
+                --atlas-ink: #161411;
+                --atlas-muted: #746d62;
+                --atlas-paper: #f7f2e8;
+                --atlas-card: rgba(255, 252, 246, 0.90);
+                --atlas-line: rgba(62, 48, 33, 0.16);
+                --atlas-green: #263f35;
+                --atlas-rust: #8d5d3e;
+                --atlas-gold: #b7965d;
+                --atlas-deep: #11100e;
             }
 
             .stApp {
                 background:
-                    radial-gradient(circle at 7% 8%, rgba(47, 111, 88, 0.10), transparent 27rem),
-                    linear-gradient(180deg, #f7f4ed 0%, #ede8dd 100%);
+                    linear-gradient(90deg, rgba(183, 150, 93, 0.07) 0 1px, transparent 1px 100%),
+                    linear-gradient(180deg, #faf7f0 0%, #efe6d7 100%);
+                background-size: 64px 100%, auto;
                 color: var(--atlas-ink);
                 font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             }
@@ -111,8 +137,8 @@ def apply_style() -> None:
 
             [data-testid="stSidebar"] {
                 background:
-                    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(244, 241, 234, 0.96)),
-                    url("https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=900&q=70");
+                    linear-gradient(180deg, rgba(255, 252, 246, 0.93), rgba(239, 230, 215, 0.98)),
+                    url("https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=900&q=80");
                 background-size: cover;
                 background-position: center;
                 border-right: 1px solid rgba(23, 33, 28, 0.10);
@@ -124,8 +150,8 @@ def apply_style() -> None:
                 inset: 0 auto 0 0;
                 width: 21rem;
                 pointer-events: none;
-                background: rgba(248, 246, 241, 0.88);
-                backdrop-filter: blur(18px);
+                background: rgba(250, 247, 240, 0.86);
+                backdrop-filter: blur(22px);
             }
 
             [data-testid="stSidebar"] > div {
@@ -152,12 +178,13 @@ def apply_style() -> None:
             }
 
             .nav-active {
-                border-radius: 999px;
-                padding: 0.78rem 0.94rem;
-                margin: 0.22rem 0;
-                color: #ffffff;
-                background: linear-gradient(135deg, #17211c, #2f6f58);
-                box-shadow: 0 10px 26px rgba(23, 33, 28, 0.18);
+                border-radius: 0;
+                padding: 0.74rem 0.34rem;
+                margin: 0.18rem 0 0.18rem 0.15rem;
+                color: var(--atlas-ink);
+                border-left: 3px solid var(--atlas-gold);
+                background: linear-gradient(90deg, rgba(183, 150, 93, 0.13), transparent);
+                box-shadow: none;
                 font-weight: 800;
             }
 
@@ -189,45 +216,46 @@ def apply_style() -> None:
             [data-testid="stSidebar"] .stButton > button {
                 width: 100%;
                 justify-content: flex-start;
-                border-radius: 999px;
-                padding: 0.70rem 0.92rem;
+                border-radius: 0;
+                padding: 0.70rem 0.34rem;
                 margin: 0.08rem 0;
                 color: var(--atlas-ink);
-                background: rgba(255, 255, 255, 0.58);
-                border: 1px solid rgba(23, 33, 28, 0.10);
+                background: transparent;
+                border: 0;
+                border-bottom: 1px solid rgba(62, 48, 33, 0.10);
                 box-shadow: none;
                 font-weight: 750;
                 min-height: 2.7rem;
             }
 
             [data-testid="stSidebar"] .stButton > button:hover {
-                background: rgba(255, 255, 255, 0.84);
-                border-color: rgba(47, 111, 88, 0.32);
-                transform: translateX(2px);
+                background: rgba(183, 150, 93, 0.09);
+                border-color: rgba(183, 150, 93, 0.26);
+                transform: translateX(3px);
             }
 
             .atlas-hero {
-                min-height: 42vh;
+                min-height: 50vh;
                 display: grid;
                 align-items: end;
                 overflow: hidden;
-                border: 1px solid rgba(255, 255, 255, 0.46);
-                border-radius: 24px;
-                padding: clamp(1.15rem, 3vw, 2.45rem);
-                margin-bottom: 1.35rem;
+                border: 1px solid rgba(255, 252, 246, 0.54);
+                border-radius: 0;
+                padding: clamp(1.4rem, 4vw, 3.4rem);
+                margin-bottom: 1.8rem;
                 color: #ffffff;
                 background:
-                    linear-gradient(180deg, rgba(9, 17, 12, 0.04) 0%, rgba(9, 17, 12, 0.74) 100%),
-                    linear-gradient(90deg, rgba(9, 17, 12, 0.82), rgba(9, 17, 12, 0.14) 62%),
+                    linear-gradient(180deg, rgba(9, 17, 12, 0.02) 0%, rgba(9, 17, 12, 0.76) 100%),
+                    linear-gradient(90deg, rgba(9, 17, 12, 0.86), rgba(9, 17, 12, 0.18) 66%),
                     url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80");
                 background-size: cover;
                 background-position: center;
-                box-shadow: 0 28px 70px rgba(23, 33, 28, 0.22);
+                box-shadow: 0 34px 90px rgba(35, 24, 13, 0.24);
             }
 
             .atlas-hero h1 {
                 color: #ffffff;
-                font-size: clamp(3.2rem, 7vw, 5.8rem);
+                font-size: clamp(3.4rem, 7.4vw, 6.4rem);
                 line-height: 0.9;
                 margin: 0.35rem 0 0.65rem;
                 max-width: 850px;
@@ -248,7 +276,7 @@ def apply_style() -> None:
             }
 
             .atlas-kicker {
-                color: rgba(255, 255, 255, 0.76);
+                color: rgba(244, 220, 171, 0.94);
                 font-size: 0.78rem;
                 font-weight: 800;
                 text-transform: uppercase;
@@ -259,19 +287,19 @@ def apply_style() -> None:
             .atlas-card {
                 background: var(--atlas-card);
                 border: 1px solid var(--atlas-line);
-                border-radius: 16px;
-                padding: 1rem;
+                border-radius: 0;
+                padding: 1.1rem;
                 margin-bottom: 0.8rem;
-                box-shadow: 0 18px 44px rgba(23, 33, 28, 0.08);
-                backdrop-filter: blur(14px);
+                box-shadow: 0 22px 52px rgba(35, 24, 13, 0.08);
+                backdrop-filter: blur(16px);
             }
 
             .atlas-panel {
-                background: rgba(255, 255, 255, 0.76);
+                background: rgba(255, 252, 246, 0.82);
                 border: 1px solid var(--atlas-line);
-                border-radius: 18px;
-                padding: 1.15rem;
-                box-shadow: 0 18px 46px rgba(23, 33, 28, 0.07);
+                border-radius: 0;
+                padding: 1.25rem;
+                box-shadow: 0 18px 46px rgba(35, 24, 13, 0.07);
             }
 
             .atlas-action-card {
@@ -279,11 +307,11 @@ def apply_style() -> None:
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
-                background: rgba(255, 255, 255, 0.80);
+                background: rgba(255, 252, 246, 0.86);
                 border: 1px solid var(--atlas-line);
-                border-radius: 18px;
-                padding: 1.05rem;
-                box-shadow: 0 14px 32px rgba(23, 33, 28, 0.07);
+                border-radius: 0;
+                padding: 1.16rem;
+                box-shadow: 0 16px 38px rgba(35, 24, 13, 0.07);
             }
 
             .atlas-action-card h4 {
@@ -311,20 +339,20 @@ def apply_style() -> None:
             }
 
             .atlas-route-card {
-                min-height: 13rem;
+                min-height: 15rem;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
-                border: 1px solid rgba(255, 255, 255, 0.54);
-                border-radius: 22px;
-                padding: 1.25rem;
+                border: 1px solid rgba(255, 252, 246, 0.56);
+                border-radius: 0;
+                padding: 1.5rem;
                 color: #ffffff;
                 background:
                     linear-gradient(180deg, rgba(9, 17, 12, 0.06), rgba(9, 17, 12, 0.72)),
                     url("https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1400&q=80");
                 background-size: cover;
                 background-position: center;
-                box-shadow: 0 20px 52px rgba(23, 33, 28, 0.16);
+                box-shadow: 0 26px 68px rgba(35, 24, 13, 0.18);
             }
 
             .atlas-route-card h3, .atlas-route-card p {
@@ -341,9 +369,67 @@ def apply_style() -> None:
                 color: var(--atlas-muted);
                 font-size: 0.82rem;
                 font-weight: 800;
-                letter-spacing: 0.08rem;
+                letter-spacing: 0.12rem;
                 text-transform: uppercase;
                 margin-bottom: 0.5rem;
+            }
+
+            .journey-card {
+                min-height: 17rem;
+                padding: 1.55rem;
+                border: 1px solid rgba(62, 48, 33, 0.16);
+                background: rgba(255, 252, 246, 0.88);
+                box-shadow: 0 22px 60px rgba(35, 24, 13, 0.08);
+            }
+
+            .journey-card h3 {
+                font-size: 2rem;
+                margin: 0.35rem 0 0.65rem;
+            }
+
+            .journey-card p {
+                color: var(--atlas-muted);
+                line-height: 1.65;
+            }
+
+            .brief-hero {
+                min-height: 27rem;
+                display: grid;
+                align-items: end;
+                padding: 1.55rem;
+                margin: 1rem 0 1.25rem;
+                color: white;
+                border: 1px solid rgba(255, 252, 246, 0.58);
+                background-size: cover;
+                background-position: center;
+                box-shadow: 0 28px 76px rgba(35, 24, 13, 0.20);
+            }
+
+            .brief-hero h2 {
+                color: white;
+                font-size: clamp(2.45rem, 5vw, 4.75rem);
+                margin: 0.3rem 0;
+            }
+
+            .brief-hero p {
+                color: rgba(255,255,255,0.84);
+                max-width: 52rem;
+            }
+
+            .brief-section {
+                min-height: 10rem;
+                padding: 1.25rem;
+                border-top: 2px solid var(--atlas-gold);
+                background: rgba(255, 252, 246, 0.88);
+                box-shadow: 0 18px 46px rgba(35, 24, 13, 0.06);
+            }
+
+            .brief-section h4 {
+                margin: 0 0 0.7rem;
+                color: var(--atlas-ink);
+                font-size: 0.86rem;
+                letter-spacing: 0.1rem;
+                text-transform: uppercase;
             }
 
             .atlas-pill-row {
@@ -447,6 +533,8 @@ def render_context_block(text: str) -> None:
 def render_sidebar(pages: list[str]) -> str:
     nav_labels = {
         "Home": "Home",
+        "Before the Journey": "Before the Journey",
+        "After the Journey": "After the Journey",
         "Search & Map": "Search & Map",
         "Capture Note": "Capture Note",
         "AI Brief": "AI Brief",
@@ -475,6 +563,20 @@ def go_to(page_name: str) -> None:
     st.rerun()
 
 
+def destination_matches(query: str) -> list[tuple[str, str]]:
+    normalized = " ".join((query or "").lower().split())
+    if not normalized:
+        return []
+    matches = []
+    for city, state in DESTINATION_SUGGESTIONS.items():
+        haystack = f"{city} {state}".lower()
+        compact = city.lower().replace(" ", "")
+        query_compact = normalized.replace(" ", "")
+        if haystack.startswith(normalized) or normalized in haystack or compact.startswith(query_compact):
+            matches.append((city, state))
+    return matches[:6]
+
+
 def home_page() -> None:
     notes = fetch_field_notes()
     farms = fetch_farmstay_logs()
@@ -500,39 +602,34 @@ def home_page() -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="atlas-choice-label">What do you want to do now?</div>', unsafe_allow_html=True)
+    st.markdown('<div class="atlas-choice-label">Choose your journey mode</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(
             """
-            <div class="atlas-route-card">
-                <div>
-                    <h3>Search the atlas</h3>
-                    <p>Open the map first, search your field notes, and jump into the record that explains a place.</p>
-                </div>
+            <div class="journey-card">
+                <div class="atlas-choice-label">Before the journey</div>
+                <h3>Plan where you are going</h3>
+                <p>Enter a destination, get local context, see it on the map, and decide what to notice before you arrive.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        if st.button("Search Notes on the Map", width="stretch"):
-            go_to("Search & Map")
+        if st.button("Plan a Journey", width="stretch"):
+            go_to("Before the Journey")
     with c2:
         st.markdown(
             """
-            <div class="atlas-action-card">
-                <div>
-                    <h4>Capture or publish</h4>
-                    <p>Add a private note from the road, or turn selected material into a public-ready story after review.</p>
-                </div>
+            <div class="journey-card">
+                <div class="atlas-choice-label">After the journey</div>
+                <h3>Reflect on what happened</h3>
+                <p>Search your mapped notes, write field records, and transform selected memories into publishable work.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        left_button, right_button = st.columns(2)
-        if left_button.button("Add a Note", width="stretch"):
-            go_to("Capture Note")
-        if right_button.button("Publish Safely", width="stretch"):
-            go_to("Publish Safely")
+        if st.button("Reflect on a Journey", width="stretch"):
+            go_to("After the Journey")
 
     if not mapped.empty:
         st.markdown("### Your Atlas Map")
@@ -558,7 +655,7 @@ def home_page() -> None:
             use_container_width=True,
         )
 
-    st.markdown("### Next Actions")
+    st.markdown("### Concierge Actions")
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown('<div class="atlas-action-card"><div><h4>Plan before arrival</h4><p>Enter a destination and get a sourced, photo-backed local brief.</p></div></div>', unsafe_allow_html=True)
@@ -586,6 +683,56 @@ def home_page() -> None:
         )
     with right:
         st.markdown('<div class="atlas-photo-strip"></div>', unsafe_allow_html=True)
+
+
+def before_journey_page() -> None:
+    st.title("Before the Journey")
+    st.caption("Start here when you are deciding where to go or what to notice before arrival.")
+    c1, c2 = st.columns([1.1, 0.9])
+    with c1:
+        st.markdown(
+            """
+            <div class="atlas-route-card">
+                <div>
+                    <div class="atlas-choice-label">Destination intelligence</div>
+                    <h3>Before You Arrive Brief</h3>
+                    <p>Type a place, choose the best suggestion, then receive a sourced visual brief with map context and field prompts.</p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Open AI Brief", width="stretch"):
+            go_to("AI Brief")
+    with c2:
+        st.markdown(
+            """
+            <div class="atlas-panel">
+                <h3>What this helps you do</h3>
+                <p class="small-muted">Arrive with a quiet checklist: history, food, institutions, work rhythms, local etiquette, and questions worth asking.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def after_journey_page() -> None:
+    st.title("After the Journey")
+    st.caption("Start here when you want to search, reflect, organize, or publish what you experienced.")
+    c1, c2, c3 = st.columns(3)
+    actions = [
+        ("Search the map", "Find notes by place, category, and memory.", "Search & Map", "Open Map"),
+        ("Capture a note", "Save a raw observation with photos, transcript, and publishing choice.", "Capture Note", "Add Note"),
+        ("Publish carefully", "Create an anonymized public draft and review removed details.", "Publish Safely", "Prepare Public Version"),
+    ]
+    for col, (title, body, page_name, button_label) in zip((c1, c2, c3), actions):
+        with col:
+            st.markdown(
+                f'<div class="atlas-action-card"><div><h4>{title}</h4><p>{body}</p></div></div>',
+                unsafe_allow_html=True,
+            )
+            if st.button(button_label, key=f"after_{page_name}", width="stretch"):
+                go_to(page_name)
 
 
 def add_field_note_page() -> None:
@@ -754,18 +901,42 @@ def map_view_page() -> None:
 
 def ai_companion_page() -> None:
     st.title("AI Brief")
-    st.caption("Enter a destination. Field Atlas corrects light typos, suggests the state, then builds a sourced before-you-arrive brief.")
+    st.caption("Type a destination. Field Atlas predicts likely places, suggests the state, then builds a sourced before-you-arrive brief.")
 
-    destination = st.text_input("Destination", placeholder="Try: Louiville, Asheville, Chicago")
-    corrected = normalize_destination(destination)
-    suggested_geo = geocode_destination(corrected) if corrected else {}
-    suggested_state = suggested_geo.get("state", "")
-    if corrected:
-        c1, c2 = st.columns(2)
-        c1.info(f"Destination: {corrected}")
-        c2.info(f"Suggested state: {suggested_state or 'Not found yet'}")
-        if corrected != destination.strip():
-            st.caption(f"Autocorrected destination: {corrected}")
+    destination_options = ["Type to search a destination..."] + [
+        f"{city} — {state}" for city, state in DESTINATION_SUGGESTIONS.items()
+    ]
+    destination_choice = st.selectbox(
+        "Destination",
+        destination_options,
+        help="Click this field and type, for example, 'new or' to narrow the list to New Orleans — Louisiana.",
+    )
+    custom_destination = st.text_input("Other destination", placeholder="Use only if the destination is not in the suggestions")
+    selected_prediction = None
+    if destination_choice != "Type to search a destination...":
+        city, state = destination_choice.split(" — ", 1)
+        selected_prediction = (city, state)
+    destination = custom_destination.strip() if custom_destination.strip() else (
+        selected_prediction[0] if selected_prediction else ""
+    )
+
+    if selected_prediction:
+        corrected, suggested_state = selected_prediction
+        st.markdown(
+            f'<div class="atlas-card"><div class="atlas-choice-label">Prediction</div><strong>{corrected}</strong><br><span class="small-muted">{suggested_state}</span></div>',
+            unsafe_allow_html=True,
+        )
+        suggested_geo = {}
+    else:
+        corrected = normalize_destination(destination)
+        suggested_geo = geocode_destination(corrected) if corrected else {}
+        suggested_state = suggested_geo.get("state", "")
+        if corrected:
+            c1, c2 = st.columns(2)
+            c1.info(f"Destination: {corrected}")
+            c2.info(f"Suggested state: {suggested_state or 'Not found yet'}")
+            if corrected != destination.strip():
+                st.caption(f"Autocorrected destination: {corrected}")
     trip_purpose = st.selectbox(
         "Trip purpose",
         ["General field observation", "Road trip stop", "Farmstay preparation", "Food research", "Essay/podcast research", "Public field note"],
@@ -787,9 +958,23 @@ def ai_companion_page() -> None:
     brief = st.session_state.get("current_brief")
     if brief:
         title_line = ", ".join(part for part in [brief.get("destination"), brief.get("state")] if part)
-        st.markdown(f"### Before You Arrive: {title_line}")
-        if brief.get("image_url"):
-            st.image(brief["image_url"], width="stretch")
+        image_url = brief.get("image_url") or HERO_IMAGE_URL
+        safe_title = html.escape(title_line)
+        safe_location = html.escape(brief.get("display_name") or title_line)
+        safe_brief = html.escape(brief.get("brief_15_sec", ""))
+        st.markdown(
+            f"""
+            <div class="brief-hero" style="background-image: linear-gradient(180deg, rgba(9, 8, 6, 0.05), rgba(9, 8, 6, 0.74)), linear-gradient(90deg, rgba(9, 8, 6, 0.82), rgba(9, 8, 6, 0.08)), url('{image_url}');">
+                <div>
+                    <div class="atlas-kicker">Before You Arrive</div>
+                    <h2>{safe_title}</h2>
+                    <p>{safe_brief}</p>
+                    <div class="atlas-pill-row"><span class="atlas-pill">{safe_location}</span></div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         if brief.get("latitude") and brief.get("longitude"):
             map_df = pd.DataFrame(
@@ -839,19 +1024,29 @@ def ai_companion_page() -> None:
         )
 
         section_labels = [
-            ("brief_15_sec", "1. 15-second brief"),
-            ("historical_background", "2. Historical background"),
-            ("cultural_signals", "3. Cultural signals to notice"),
-            ("local_food", "4. Food and local institutions"),
-            ("local_institutions", "Local institutions"),
-            ("questions_to_ask", "5. Questions to ask locals"),
-            ("field_note_prompts", "6. Field note prompts"),
-            ("safety_etiquette", "7. Safety / etiquette notes"),
+            ("historical_background", "Historical Background"),
+            ("cultural_signals", "Cultural Signals"),
+            ("local_food", "Food & Institutions"),
+            ("questions_to_ask", "Questions To Ask"),
+            ("field_note_prompts", "Field Note Prompts"),
+            ("safety_etiquette", "Safety & Etiquette"),
         ]
-        for key, label in section_labels:
-            with st.container(border=True):
-                st.markdown(f"**{label}**")
-                st.write(brief[key])
+        for row_start in range(0, len(section_labels), 2):
+            cols = st.columns(2)
+            for col, (key, label) in zip(cols, section_labels[row_start : row_start + 2]):
+                with col:
+                    st.markdown(
+                        f"""
+                        <div class="brief-section">
+                            <h4>{html.escape(label)}</h4>
+                            <p>{html.escape(str(brief.get(key, "")))}</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+        with st.container(border=True):
+            st.markdown("**Local institutions**")
+            st.write(brief["local_institutions"])
         if brief.get("source_summaries"):
             with st.container(border=True):
                 st.markdown("**Reference snapshots**")
@@ -1091,6 +1286,8 @@ def main() -> None:
     apply_style()
     pages = [
         "Home",
+        "Before the Journey",
+        "After the Journey",
         "Search & Map",
         "Capture Note",
         "AI Brief",
@@ -1108,6 +1305,10 @@ def main() -> None:
 
     if page == "Home":
         home_page()
+    elif page == "Before the Journey":
+        before_journey_page()
+    elif page == "After the Journey":
+        after_journey_page()
     elif page == "Capture Note":
         add_field_note_page()
     elif page == "Search & Map":
