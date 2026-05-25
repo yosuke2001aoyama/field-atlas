@@ -14,6 +14,7 @@ import streamlit.components.v1 as components
 from streamlit_searchbox import st_searchbox
 
 from ai_utils import (
+    CURATED_US_DESTINATIONS,
     generate_ai_context,
     generate_ai_summary,
     generate_destination_brief,
@@ -96,6 +97,19 @@ EXPORT_TYPES = [
 
 HERO_IMAGE_URL = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80"
 MAP_IMAGE_URL = "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=1600&q=80"
+GUIDEBOOK_INTERESTS = [
+    "history",
+    "food",
+    "race/community",
+    "agriculture",
+    "music",
+    "religion",
+    "economy",
+    "politics",
+    "small-town life",
+    "nature",
+    "sports",
+]
 
 MAJOR_US_CITIES = pd.DataFrame(
     [
@@ -127,6 +141,34 @@ INTERSTATE_ROUTES = pd.DataFrame(
         {"name": "I-95", "path": [[-80.1918, 25.7617], [-84.3880, 33.7490], [-74.0060, 40.7128]]},
         {"name": "I-35", "path": [[-97.7431, 30.2672], [-97.3308, 37.6872], [-93.2650, 44.9778]]},
         {"name": "I-80", "path": [[-122.4194, 37.7749], [-104.9903, 39.7392], [-87.6298, 41.8781], [-74.0060, 40.7128]]},
+    ]
+)
+
+PLACE_BRIEF_CANDIDATES = pd.DataFrame(
+    [
+        {
+            "source": "Brief candidate",
+            "source_id": f"curated-{idx}",
+            "title": item["destination"],
+            "location": f'{item["destination"]}, {item["state"]}',
+            "state": item["state"],
+            "category": item["kind"],
+            "latitude": item["latitude"],
+            "longitude": item["longitude"],
+            "summary": "Click to open a guidebook-style place brief.",
+            "color": [183, 150, 93],
+        }
+        for idx, item in enumerate(CURATED_US_DESTINATIONS)
+    ]
+    + [
+        {"source": "Brief candidate", "source_id": "tourism-acadia", "title": "Acadia National Park", "location": "Acadia National Park, Maine", "state": "Maine", "category": "national park", "latitude": 44.3386, "longitude": -68.2733, "summary": "Click to open a guidebook-style place brief.", "color": [183, 150, 93]},
+        {"source": "Brief candidate", "source_id": "tourism-smokies", "title": "Great Smoky Mountains National Park", "location": "Great Smoky Mountains National Park, Tennessee", "state": "Tennessee", "category": "national park", "latitude": 35.6532, "longitude": -83.5070, "summary": "Click to open a guidebook-style place brief.", "color": [183, 150, 93]},
+        {"source": "Brief candidate", "source_id": "tourism-zion", "title": "Zion National Park", "location": "Zion National Park, Utah", "state": "Utah", "category": "national park", "latitude": 37.2982, "longitude": -113.0263, "summary": "Click to open a guidebook-style place brief.", "color": [183, 150, 93]},
+        {"source": "Brief candidate", "source_id": "tourism-yosemite", "title": "Yosemite National Park", "location": "Yosemite National Park, California", "state": "California", "category": "national park", "latitude": 37.8651, "longitude": -119.5383, "summary": "Click to open a guidebook-style place brief.", "color": [183, 150, 93]},
+        {"source": "Brief candidate", "source_id": "tourism-independence", "title": "Independence National Historical Park", "location": "Independence National Historical Park, Pennsylvania", "state": "Pennsylvania", "category": "historical park", "latitude": 39.9489, "longitude": -75.1500, "summary": "Click to open a guidebook-style place brief.", "color": [183, 150, 93]},
+        {"source": "Brief candidate", "source_id": "tourism-gettysburg", "title": "Gettysburg National Military Park", "location": "Gettysburg National Military Park, Pennsylvania", "state": "Pennsylvania", "category": "historical park", "latitude": 39.8309, "longitude": -77.2311, "summary": "Click to open a guidebook-style place brief.", "color": [183, 150, 93]},
+        {"source": "Brief candidate", "source_id": "tourism-grand-teton", "title": "Grand Teton National Park", "location": "Grand Teton National Park, Wyoming", "state": "Wyoming", "category": "national park", "latitude": 43.7904, "longitude": -110.6818, "summary": "Click to open a guidebook-style place brief.", "color": [183, 150, 93]},
+        {"source": "Brief candidate", "source_id": "tourism-everglades", "title": "Everglades National Park", "location": "Everglades National Park, Florida", "state": "Florida", "category": "national park", "latitude": 25.2866, "longitude": -80.8987, "summary": "Click to open a guidebook-style place brief.", "color": [183, 150, 93]},
     ]
 )
 
@@ -834,6 +876,15 @@ def go_to(page_name: str) -> None:
     st.rerun()
 
 
+def open_place_brief(destination: str, state: str = "", display_name: str = "") -> None:
+    brief = generate_destination_brief(destination, state, "Map exploration", GUIDEBOOK_INTERESTS)
+    if display_name:
+        brief["display_name"] = display_name
+    st.session_state.current_brief = brief
+    st.session_state.page = "Ask About This Place"
+    st.rerun()
+
+
 def destination_search_options(query: str) -> list[str]:
     suggestions = search_destination_suggestions(query)
     if "destination_payloads" not in st.session_state:
@@ -874,35 +925,41 @@ def render_compact_map(points: pd.DataFrame, target_payload: dict | None = None,
     if points.empty and not include_routes:
         st.info("No mapped records yet.")
         return
-    if points.empty and include_routes:
-        points = MAJOR_US_CITIES.assign(color=[[110, 84, 46]] * len(MAJOR_US_CITIES))
     if target_payload and target_payload.get("latitude") and target_payload.get("longitude"):
         midpoint = [target_payload["longitude"], target_payload["latitude"]]
         zoom = 6.8
-    else:
+    elif not points.empty:
         midpoint = [points["longitude"].mean(), points["latitude"].mean()]
         zoom = 3.5
-    layers = [
-        pdk.Layer(
-            "ScatterplotLayer",
-            data=points,
-            get_position="[longitude, latitude]",
-            get_fill_color="color",
-            get_radius=10000,
-            pickable=True,
-            opacity=0.82,
-        )
-    ]
-    if include_routes:
-        city_points = MAJOR_US_CITIES.assign(color=[[110, 84, 46]] * len(MAJOR_US_CITIES))
+    else:
+        midpoint = [PLACE_BRIEF_CANDIDATES["longitude"].mean(), PLACE_BRIEF_CANDIDATES["latitude"].mean()]
+        zoom = 3.5
+    layers = []
+    if not points.empty:
         layers.append(
             pdk.Layer(
                 "ScatterplotLayer",
-                data=city_points,
+                data=points,
+                id="saved-brief-points" if include_routes else "memory-points",
+                get_position="[longitude, latitude]",
+                get_fill_color="color",
+                get_radius=10000,
+                pickable=True,
+                auto_highlight=True,
+                opacity=0.82,
+            )
+        )
+    if include_routes:
+        layers.append(
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=PLACE_BRIEF_CANDIDATES,
+                id="brief-candidates",
                 get_position="[longitude, latitude]",
                 get_fill_color="color",
                 get_radius=12500,
                 pickable=True,
+                auto_highlight=True,
                 opacity=0.52,
             )
         )
@@ -916,7 +973,7 @@ def render_compact_map(points: pd.DataFrame, target_payload: dict | None = None,
                 pickable=False,
             )
         )
-    st.pydeck_chart(
+    event = st.pydeck_chart(
         pdk.Deck(
             layers=layers,
             initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=zoom),
@@ -926,7 +983,25 @@ def render_compact_map(points: pd.DataFrame, target_payload: dict | None = None,
             },
         ),
         use_container_width=True,
+        on_select="rerun" if include_routes else "ignore",
+        selection_mode="single-object",
+        key="compact_brief_route_map" if include_routes else "compact_memory_map",
     )
+    if include_routes:
+        selected_objects = getattr(event.selection, "objects", {}) if event else {}
+        clicked = None
+        for layer_id in ("brief-candidates", "saved-brief-points"):
+            objects = selected_objects.get(layer_id, [])
+            if objects:
+                clicked = objects[0]
+                break
+        if clicked:
+            open_place_brief(
+                str(clicked.get("title", "")),
+                str(clicked.get("state", "")),
+                str(clicked.get("location", "")),
+            )
+        st.caption("Zoom in and click a gold place marker to open its brief. Highway lines are route context; place markers are clickable.")
 
 
 def answer_home_question(question: str) -> str:
@@ -1376,35 +1451,96 @@ def render_memory_map(visible: pd.DataFrame, map_place_payload: dict | None, map
 
 
 def render_brief_map(visible: pd.DataFrame, map_place_payload: dict | None, map_place_label: str) -> None:
-    if visible.empty:
-        st.info("No saved briefs with map coordinates yet. Generate and save a brief from Ask About This Place.")
-        return
+    candidate_points = PLACE_BRIEF_CANDIDATES.copy()
+    if map_place_label:
+        query = map_place_label.lower()
+        filtered_candidates = candidate_points[
+            candidate_points[["title", "location", "category"]]
+            .fillna("")
+            .astype(str)
+            .agg(" ".join, axis=1)
+            .str.lower()
+            .str.contains(query, na=False)
+        ]
+        if not filtered_candidates.empty:
+            candidate_points = filtered_candidates
     if map_place_payload and map_place_payload.get("latitude") and map_place_payload.get("longitude"):
         midpoint = [map_place_payload["longitude"], map_place_payload["latitude"]]
         zoom = 8.4
-    else:
+    elif not visible.empty:
         midpoint = [visible["longitude"].mean(), visible["latitude"].mean()]
         zoom = 4.2
-    layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=visible,
-        get_position="[longitude, latitude]",
-        get_fill_color="color",
-        get_radius=12000,
-        pickable=True,
-        opacity=0.88,
+    else:
+        midpoint = [candidate_points["longitude"].mean(), candidate_points["latitude"].mean()]
+        zoom = 3.5
+    layers = [
+        pdk.Layer(
+            "ScatterplotLayer",
+            data=candidate_points,
+            id="brief-candidates",
+            get_position="[longitude, latitude]",
+            get_fill_color="color",
+            get_radius=12500,
+            pickable=True,
+            auto_highlight=True,
+            opacity=0.58,
+        )
+    ]
+    if not visible.empty:
+        layers.append(
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=visible,
+                id="saved-brief-points",
+                get_position="[longitude, latitude]",
+                get_fill_color="color",
+                get_radius=15000,
+                pickable=True,
+                auto_highlight=True,
+                opacity=0.92,
+            )
+        )
+    layers.append(
+        pdk.Layer(
+            "PathLayer",
+            data=INTERSTATE_ROUTES,
+            get_path="path",
+            get_color=[183, 150, 93, 110],
+            width_min_pixels=2,
+            pickable=False,
+        )
     )
-    st.pydeck_chart(
+    event = st.pydeck_chart(
         pdk.Deck(
-            layers=[layer],
+            layers=layers,
             initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=zoom),
             tooltip={
-                "html": "<b>{title}</b><br/>{location}<br/><br/>{summary}<br/><em>Open Ask About This Place to generate a new brief.</em>",
+                "html": "<b>{title}</b><br/>{location}<br/>{category}<br/><br/>{summary}",
                 "style": {"backgroundColor": "#3a2c19", "color": "white"},
             },
         ),
         use_container_width=True,
+        on_select="rerun",
+        selection_mode="single-object",
+        key="memory_brief_click_map",
     )
+    selected_objects = getattr(event.selection, "objects", {}) if event else {}
+    clicked = None
+    for layer_id in ("brief-candidates", "saved-brief-points"):
+        objects = selected_objects.get(layer_id, [])
+        if objects:
+            clicked = objects[0]
+            break
+    if clicked:
+        open_place_brief(
+            str(clicked.get("title", "")),
+            str(clicked.get("state", "")),
+            str(clicked.get("location", "")),
+        )
+    st.caption("Gold markers open a place brief. Saved briefs and suggested cities/parks live on this tab; reviews stay separate.")
+    if visible.empty:
+        st.info("No saved briefs match yet. Click a suggested city or park on the map to generate one.")
+        return
     labels = {
         f"{row.source_id}": f"{row.title} | {row.location}"
         for row in visible.itertuples()
@@ -1415,6 +1551,8 @@ def render_brief_map(visible: pd.DataFrame, map_place_payload: dict | None, map_
         st.subheader(selected_row["title"])
         st.write(selected_row["location"])
         st.write(selected_row["summary"])
+        if st.button("Open This Brief", key=f"open_saved_brief_{selected_brief}"):
+            open_place_brief(str(selected_row["title"]), "", str(selected_row["location"]))
 
 
 def ai_companion_page() -> None:
@@ -1472,11 +1610,11 @@ def ai_companion_page() -> None:
         "What are you trying to understand?",
         ["General field observation", "Road trip stop", "Walk or commute", "Study abroad memory", "Community visit", "Food research", "Essay/podcast research", "Public field note"],
     )
-    interests = st.multiselect(
-        "Optional interests",
-        ["history", "food", "race/community", "agriculture", "music", "religion", "economy", "politics", "small-town life", "nature", "sports"],
-        default=["history", "food", "economy"],
+    st.markdown(
+        '<div class="atlas-card"><strong>Guidebook mode</strong><br><span class="small-muted">Waymark now covers the full place brief by default: population, industries, sports, food, politics, history, community, nature, routes, and must-visit places.</span></div>',
+        unsafe_allow_html=True,
     )
+    interests = GUIDEBOOK_INTERESTS
     custom_question = st.text_input(
         "Optional question",
         placeholder="What should I notice here? Why does this town feel this way? What industries dominate this region?",
@@ -1598,19 +1736,17 @@ def ai_companion_page() -> None:
             ("historical_background", "Historical Background"),
             ("cultural_signals", "Cultural Signals"),
         ]
-        if "race/community" in interests and brief.get("community_lens"):
+        if brief.get("community_lens"):
             section_labels.append(("community_lens", "Community Lens"))
-        if "economy" in interests and brief.get("economy_lens"):
+        if brief.get("economy_lens"):
             section_labels.append(("economy_lens", "Economy Lens"))
-        if "food" in interests:
-            section_labels.append(("local_food", "Food & Institutions"))
-        if "agriculture" in interests and brief.get("agriculture_lens"):
+        if brief.get("agriculture_lens"):
             section_labels.append(("agriculture_lens", "Agriculture Lens"))
-        if "nature" in interests and brief.get("nature_lens"):
+        if brief.get("nature_lens"):
             section_labels.append(("nature_lens", "Nature Lens"))
-        if "music" in interests and brief.get("music_lens"):
+        if brief.get("music_lens"):
             section_labels.append(("music_lens", "Music Lens"))
-        if "politics" in interests and brief.get("politics_snapshot"):
+        if brief.get("politics_snapshot"):
             section_labels.append(("politics_snapshot", "Politics"))
         section_labels.extend(
             [
