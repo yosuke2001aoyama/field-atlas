@@ -626,6 +626,74 @@ def apply_style() -> None:
             iframe {
                 border-radius: 18px;
             }
+
+            @media (max-width: 820px) {
+                .block-container {
+                    max-width: 100%;
+                    padding: 0.8rem 0.85rem 4.5rem;
+                }
+
+                [data-testid="stSidebar"]::before {
+                    display: none;
+                }
+
+                [data-testid="stSidebar"] {
+                    background: rgba(250, 247, 240, 0.96);
+                }
+
+                .atlas-hero {
+                    min-height: 34rem;
+                    padding: 1.15rem;
+                    margin: 0 0 1.1rem;
+                }
+
+                .atlas-hero h1 {
+                    font-size: 3.5rem;
+                    line-height: 0.95;
+                }
+
+                .atlas-hero h3 {
+                    font-size: 1.18rem;
+                }
+
+                .atlas-hero p {
+                    font-size: 0.96rem;
+                    line-height: 1.55;
+                }
+
+                .atlas-pill-row {
+                    gap: 0.4rem;
+                }
+
+                .atlas-pill {
+                    font-size: 0.72rem;
+                    padding: 0.38rem 0.55rem;
+                }
+
+                .journey-card {
+                    min-height: 12rem;
+                    padding: 1.05rem;
+                    margin-bottom: 0.7rem;
+                }
+
+                .journey-card h3 {
+                    font-size: 1.55rem;
+                }
+
+                .brief-hero {
+                    min-height: 24rem;
+                    padding: 1.1rem;
+                }
+
+                .brief-hero h2 {
+                    font-size: 2.35rem;
+                }
+
+                .brief-section {
+                    min-height: auto;
+                    padding: 1rem;
+                }
+            }
         </style>
         """,
         unsafe_allow_html=True,
@@ -843,6 +911,11 @@ def brief_icon_svg(key: str) -> str:
         "questions_to_ask": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 9a3 3 0 1 1 4.7 2.5c-1.2.8-1.7 1.4-1.7 2.8"></path><path d="M12 18h.01"></path><circle cx="12" cy="12" r="9"></circle></svg>',
         "field_note_prompts": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11a2.2 2.2 0 0 0-3-3L5 17l-1 3z"></path><path d="M14 7l3 3"></path></svg>',
         "safety_etiquette": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3z"></path><path d="M9 12l2 2 4-5"></path></svg>',
+        "community_lens": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path><path d="M3.5 20c.7-3.5 2.4-5 4.5-5s3.8 1.5 4.5 5M11.5 20c.7-3.5 2.4-5 4.5-5s3.8 1.5 4.5 5"></path></svg>',
+        "economy_lens": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"></path><path d="M6 19V9l4 3V9l4 3V7h4v12"></path></svg>',
+        "nature_lens": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V8"></path><path d="M12 8c-4 0-7 3-7 7 4 0 7-3 7-7z"></path><path d="M12 12c4 0 7-3 7-7-4 0-7 3-7 7z"></path></svg>',
+        "music_lens": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l10-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="16" cy="16" r="3"></circle></svg>',
+        "agriculture_lens": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20c5-8 11-12 16-14"></path><path d="M7 16c-1-4 1-7 5-8 1 4-1 7-5 8z"></path><path d="M13 12c0-4 3-6 7-6 0 4-3 6-7 6z"></path></svg>',
     }
     return icons.get(key, '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle></svg>')
 
@@ -1467,11 +1540,25 @@ def ai_companion_page() -> None:
         section_labels = [
             ("historical_background", "Historical Background"),
             ("cultural_signals", "Cultural Signals"),
-            ("local_food", "Food & Institutions"),
-            ("questions_to_ask", "Questions To Ask"),
-            ("field_note_prompts", "Field Note Prompts"),
-            ("safety_etiquette", "Safety & Etiquette"),
         ]
+        if "race/community" in interests and brief.get("community_lens"):
+            section_labels.append(("community_lens", "Community Lens"))
+        if "economy" in interests and brief.get("economy_lens"):
+            section_labels.append(("economy_lens", "Economy Lens"))
+        if "food" in interests:
+            section_labels.append(("local_food", "Food & Institutions"))
+        if "agriculture" in interests and brief.get("agriculture_lens"):
+            section_labels.append(("agriculture_lens", "Agriculture Lens"))
+        if "nature" in interests and brief.get("nature_lens"):
+            section_labels.append(("nature_lens", "Nature Lens"))
+        if "music" in interests and brief.get("music_lens"):
+            section_labels.append(("music_lens", "Music Lens"))
+        section_labels.extend(
+            [
+                ("questions_to_ask", "Questions To Ask"),
+                ("field_note_prompts", "Field Note Prompts"),
+            ]
+        )
         for row_start in range(0, len(section_labels), 2):
             cols = st.columns(2)
             for col, (key, label) in zip(cols, section_labels[row_start : row_start + 2]):
@@ -1490,6 +1577,8 @@ def ai_companion_page() -> None:
         with st.container(border=True):
             st.markdown("**Local institutions**")
             st.write(brief["local_institutions"])
+        if brief.get("safety_etiquette"):
+            st.caption(f"Privacy and courtesy note: {brief['safety_etiquette']}")
         if brief.get("source_summaries"):
             with st.container(border=True):
                 st.markdown("**Reference snapshots**")
