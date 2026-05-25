@@ -49,8 +49,9 @@ data/*.db
 - Add field notes with location, category, uploads, transcript, tags, and a publishing choice
 - Add structured farmstay logs
 - Seed sample field notes for Louisville, Knoxville, Asheville, Raleigh, and Chicago
+- Start from two top-level modes: planning a future journey or reflecting on a completed one
 - Search notes and farmstay logs directly from a map-first view
-- Generate sourced, photo-backed before-arrival destination briefs
+- Generate sourced, high-resolution, photo-backed before-arrival destination briefs with destination suggestions
 - Search and filter field notes and farmstay logs
 - Generate template exports: podcast script, Substack-style essay, Instagram caption, Japanese diary, English field note, and Markdown archive
 - Create rule-based anonymized public versions with a manual review warning
