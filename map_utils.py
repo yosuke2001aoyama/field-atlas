@@ -16,6 +16,9 @@ CATEGORY_COLORS = {
     "music": [208, 28, 139],
     "neighborhood": [53, 151, 143],
     "farmstay": [26, 150, 65],
+    "community": [183, 150, 93],
+    "local conversation": [183, 150, 93],
+    "community event": [142, 98, 61],
     "other": [100, 100, 100],
 }
 
@@ -43,11 +46,11 @@ def build_map_points(field_notes: pd.DataFrame, farmstay_logs: pd.DataFrame) -> 
         frames.append(
             pd.DataFrame(
                 {
-                    "source": "Farmstay log",
+                    "source": "Community log",
                     "source_id": farmstay_logs["id"].astype(str),
-                    "title": farmstay_logs["farm_name"].fillna("Farmstay"),
+                    "title": farmstay_logs["farm_name"].fillna("Community log"),
                     "location": farmstay_logs["location_name"],
-                    "category": farmstay_logs["farm_type"].fillna("farmstay"),
+                    "category": farmstay_logs["farm_type"].fillna("community"),
                     "latitude": farmstay_logs["latitude"],
                     "longitude": farmstay_logs["longitude"],
                     "summary": farmstay_logs["ai_summary"],
