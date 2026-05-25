@@ -7,12 +7,15 @@ from pathlib import Path
 import pandas as pd
 import pydeck as pdk
 import streamlit as st
+import streamlit.components.v1 as components
 
 from ai_utils import (
     generate_ai_context,
     generate_ai_summary,
     generate_destination_brief,
     generate_farmstay_summary,
+    geocode_destination,
+    normalize_destination,
 )
 from db import (
     BASE_DIR,
@@ -701,24 +704,90 @@ def map_view_page() -> None:
 
 def ai_companion_page() -> None:
     st.title("AI Companion")
-    st.caption("Mocked for now, structured so a real model call can replace it later.")
+    st.caption("Enter a destination. Field Atlas corrects light typos, suggests the state, then builds a sourced before-you-arrive brief.")
 
-    with st.form("brief_form"):
-        destination = st.text_input("Destination")
-        state = st.text_input("State")
-        trip_purpose = st.text_input("Optional trip purpose")
-        interests = st.multiselect(
-            "Optional interests",
-            ["history", "food", "race/community", "agriculture", "music", "religion", "economy", "small-town life", "nature", "sports"],
-        )
-        generate = st.form_submit_button("Generate Before You Arrive Brief")
+    destination = st.text_input("Destination", placeholder="Try: Louiville, Asheville, Chicago")
+    corrected = normalize_destination(destination)
+    suggested_geo = geocode_destination(corrected) if corrected else {}
+    suggested_state = suggested_geo.get("state", "")
+    if corrected:
+        c1, c2 = st.columns(2)
+        c1.info(f"Destination: {corrected}")
+        c2.info(f"Suggested state: {suggested_state or 'Not found yet'}")
+        if corrected != destination.strip():
+            st.caption(f"Autocorrected destination: {corrected}")
+    trip_purpose = st.selectbox(
+        "Trip purpose",
+        ["General field observation", "Road trip stop", "Farmstay preparation", "Food research", "Essay/podcast research", "Public field note"],
+    )
+    interests = st.multiselect(
+        "Optional interests",
+        ["history", "food", "race/community", "agriculture", "music", "religion", "economy", "small-town life", "nature", "sports"],
+        default=["history", "food", "economy"],
+    )
+    generate = st.button("Generate Before You Arrive Brief", use_container_width=True)
 
     if generate:
-        brief = generate_destination_brief(destination, state, trip_purpose, interests)
-        st.session_state.current_brief = brief
+        if not (corrected or destination).strip():
+            st.error("Please enter a destination first.")
+        else:
+            brief = generate_destination_brief(corrected or destination, suggested_state, trip_purpose, interests)
+            st.session_state.current_brief = brief
 
     brief = st.session_state.get("current_brief")
     if brief:
+        title_line = ", ".join(part for part in [brief.get("destination"), brief.get("state")] if part)
+        st.markdown(f"### Before You Arrive: {title_line}")
+        if brief.get("image_url"):
+            st.image(brief["image_url"], use_container_width=True)
+
+        if brief.get("latitude") and brief.get("longitude"):
+            map_df = pd.DataFrame(
+                [{"lat": brief["latitude"], "lon": brief["longitude"], "label": title_line}]
+            )
+            st.pydeck_chart(
+                pdk.Deck(
+                    layers=[
+                        pdk.Layer(
+                            "ScatterplotLayer",
+                            data=map_df,
+                            get_position="[lon, lat]",
+                            get_radius=13000,
+                            get_fill_color=[47, 111, 88, 210],
+                            pickable=True,
+                        )
+                    ],
+                    initial_view_state=pdk.ViewState(
+                        latitude=brief["latitude"],
+                        longitude=brief["longitude"],
+                        zoom=9,
+                    ),
+                    tooltip={"text": "{label}"},
+                ),
+                use_container_width=True,
+            )
+
+        speech_text = " ".join(
+            brief.get(key, "")
+            for key in ["brief_15_sec", "historical_background", "cultural_signals", "local_food", "questions_to_ask", "safety_etiquette"]
+        )
+        escaped_speech = speech_text.replace("\\", "\\\\").replace("`", "\\`")
+        components.html(
+            f"""
+            <button
+              style="border:0;border-radius:999px;padding:12px 18px;background:#17211c;color:white;font-weight:800;cursor:pointer;"
+              onclick="window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(`{escaped_speech}`));">
+              Listen to brief
+            </button>
+            <button
+              style="border:1px solid rgba(23,33,28,.2);border-radius:999px;padding:11px 16px;background:white;color:#17211c;font-weight:800;cursor:pointer;margin-left:8px;"
+              onclick="window.speechSynthesis.cancel();">
+              Stop
+            </button>
+            """,
+            height=56,
+        )
+
         section_labels = [
             ("brief_15_sec", "1. 15-second brief"),
             ("historical_background", "2. Historical background"),
@@ -733,6 +802,15 @@ def ai_companion_page() -> None:
             with st.container(border=True):
                 st.markdown(f"**{label}**")
                 st.write(brief[key])
+        if brief.get("source_summaries"):
+            with st.container(border=True):
+                st.markdown("**Reference snapshots**")
+                for item in brief["source_summaries"]:
+                    st.markdown(f"- [{item.get('title')}]({item.get('url')}) — {item.get('description') or 'public reference'}")
+        if brief.get("sources"):
+            st.markdown("**Sources**")
+            for source in brief["sources"]:
+                st.markdown(f"- [{source['name']}]({source['url']})")
         if st.button("Save this brief"):
             brief_id = insert_ai_brief(brief)
             st.success(f"Saved brief #{brief_id}.")
