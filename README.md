@@ -27,6 +27,7 @@ The app creates its local database and upload folders automatically on first run
 - `privacy_utils.py` - rule-based redaction and public-version helpers
 - `export_utils.py` - template-based export generation
 - `map_utils.py` - map point preparation and category colors
+- `ios/WaymarkUS/` - SwiftUI iOS shell for TestFlight/App Store preparation
 - `data/` - local SQLite database directory
 - `uploads/photos/` - uploaded photos
 - `uploads/audio/` - uploaded audio
@@ -53,6 +54,8 @@ data/*.db
 - Search reviews and saved place briefs directly from a map-first view
 - Generate sourced, high-resolution, photo-backed place briefs with live U.S. destination suggestions from OpenStreetMap
 - Build guidebook-style briefs with population scale, industry structure, sports signals, local food, must-visit places, and a politics baseline
+- Open guidebook briefs directly from map markers for major cities, parks, historical parks, and saved briefs
+- Use a native iOS release shell with web briefs, local quick capture, and privacy guidance
 - Search and filter field notes and community logs
 - Review a journey by recurring places, themes, and a public-ready reflection draft
 - Generate template exports: podcast script, Substack-style essay, Instagram caption, Japanese diary, English field note, and Markdown archive
@@ -77,3 +80,7 @@ The code includes clear extension points for:
 4. Memory graph: connect notes, briefs, routes, places, themes, and public-ready summaries so the map becomes a searchable second brain rather than only a pin board.
 5. Public knowledge layer: let users explicitly mark selected notes as public-ready, anonymize them, review changes, and publish only delayed/generalized versions.
 6. Mobile/PWA polish: improve small-screen navigation, offline note capture, route-aware prompts, and one-tap capture from the road.
+
+## iOS Release Notes
+
+The `ios/WaymarkUS` folder contains a SwiftUI project for TestFlight/App Store preparation. Apple requires a paid Apple Developer Program account for App Store Connect uploads, and final approval is subject to App Review Guidelines, including minimum functionality. The shell includes native quick capture and privacy screens in addition to the web brief/map experience.
