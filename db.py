@@ -28,6 +28,7 @@ FIELD_NOTE_COLUMNS = [
     "photo_path",
     "audio_path",
     "audio_transcript",
+    "mood",
     "ai_summary",
     "ai_context",
     "tags",
@@ -105,6 +106,7 @@ def init_db() -> None:
                 photo_path TEXT,
                 audio_path TEXT,
                 audio_transcript TEXT,
+                mood TEXT,
                 ai_summary TEXT,
                 ai_context TEXT,
                 tags TEXT,
@@ -161,6 +163,9 @@ def init_db() -> None:
             );
             """
         )
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(field_notes)").fetchall()}
+        if "mood" not in existing:
+            conn.execute("ALTER TABLE field_notes ADD COLUMN mood TEXT DEFAULT ''")
 
 
 def seed_sample_data() -> None:
@@ -179,6 +184,7 @@ def seed_sample_data() -> None:
                 "state": "Kentucky",
                 "category": "landscape",
                 "note_text": "At the Louisville riverfront, the Ohio River made the city feel less like a single downtown and more like a crossing point. The bridges, walking paths, and older industrial edges sat beside families, runners, and visitors taking photos near the water. The useful observation was the overlap: infrastructure as scenery, leisure beside logistics, and a regional identity shaped by movement across the river.",
+                "mood": "curious",
                 "tags": "river,city,evening,infrastructure",
             },
             {
@@ -192,6 +198,7 @@ def seed_sample_data() -> None:
                 "state": "Tennessee",
                 "category": "food",
                 "note_text": "A Knoxville breakfast counter showed how quickly an everyday food place becomes a civic room. The scene was ordinary: coffee refills, talk about weather and road work, orange sports references, and people moving in and out before work. It felt like a useful place to study how a university town, Appalachian proximity, and downtown redevelopment meet in daily routine.",
+                "mood": "observant",
                 "tags": "breakfast,conversation,sports,downtown",
             },
             {
@@ -205,6 +212,7 @@ def seed_sample_data() -> None:
                 "state": "North Carolina",
                 "category": "farm",
                 "note_text": "In Asheville, the farmers market mixed practical food shopping with the region's strong visitor economy. The stalls made local agriculture visible, but also raised questions about affordability, land pressure, climate, and the line between regional culture and curated lifestyle. The best detail was how vendors talked about weather and soil as casually as others talk about traffic.",
+                "mood": "reflective",
                 "tags": "market,local food,craft,agriculture",
             },
             {
@@ -218,6 +226,7 @@ def seed_sample_data() -> None:
                 "state": "North Carolina",
                 "category": "neighborhood",
                 "note_text": "A Raleigh neighborhood walk showed the layered feel of a fast-growing Southern city: new apartments, shaded older streets, small churches, research-economy confidence, and signs of rising housing pressure. The place did not read as simply old or new. It felt like a city negotiating how much of its older civic texture can remain visible during rapid growth.",
+                "mood": "thoughtful",
                 "tags": "growth,churches,city,housing",
             },
             {
@@ -231,6 +240,7 @@ def seed_sample_data() -> None:
                 "state": "Illinois",
                 "category": "road",
                 "note_text": "Arriving near Chicago Union Station made the city feel dense before it felt tall. The first impression was not the skyline, but rhythm: commuters, luggage, food halls, office workers, and the choreography of trains and streets. The station area worked as a compressed field note on scale, migration, labor, and the everyday machinery of a major American city.",
+                "mood": "energized",
                 "tags": "arrival,transit,city,station",
             },
         ]
@@ -257,13 +267,14 @@ def seed_sample_data() -> None:
                 conn.execute(
                     """
                     UPDATE field_notes
-                    SET note_text = ?, tags = ?, privacy_level = ?, ai_summary = ?, ai_context = ?, updated_at = ?
-                    WHERE title = ?
-                    """,
-                    (
-                        sample["note_text"],
-                        sample["tags"],
-                        sample["privacy_level"],
+                SET note_text = ?, mood = ?, tags = ?, privacy_level = ?, ai_summary = ?, ai_context = ?, updated_at = ?
+                WHERE title = ?
+                """,
+                (
+                    sample["note_text"],
+                    sample["mood"],
+                    sample["tags"],
+                    sample["privacy_level"],
                         sample["ai_summary"],
                         sample["ai_context"],
                         timestamp,
@@ -402,6 +413,10 @@ def fetch_field_notes() -> pd.DataFrame:
 
 def fetch_farmstay_logs() -> pd.DataFrame:
     return fetch_df("farmstay_logs")
+
+
+def fetch_ai_briefs() -> pd.DataFrame:
+    return fetch_df("ai_briefs")
 
 
 def fetch_all_library_items() -> pd.DataFrame:
