@@ -94,6 +94,68 @@ def geocode_destination(destination: str, state: str = "") -> dict:
     }
 
 
+def search_destination_suggestions(query: str, limit: int = 8) -> list[dict]:
+    cleaned = re.sub(r"\s+", " ", (query or "").strip())
+    if len(cleaned) < 3:
+        return []
+    try:
+        response = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={
+                "q": f"{cleaned}, United States",
+                "format": "jsonv2",
+                "addressdetails": 1,
+                "namedetails": 1,
+                "countrycodes": "us",
+                "limit": limit,
+            },
+            headers=HTTP_HEADERS,
+            timeout=8,
+        )
+        response.raise_for_status()
+        results = response.json()
+    except Exception:
+        return []
+
+    suggestions: list[dict] = []
+    seen = set()
+    for result in results:
+        address = result.get("address", {})
+        state = address.get("state", "")
+        name = (
+            result.get("namedetails", {}).get("name")
+            or address.get("city")
+            or address.get("town")
+            or address.get("village")
+            or address.get("municipality")
+            or address.get("county")
+            or result.get("name")
+            or cleaned.title()
+        )
+        place_type = result.get("type") or result.get("class") or "place"
+        if result.get("class") in {"leisure", "boundary", "tourism"} or "park" in place_type:
+            place_type = "park / landmark"
+        key = (name, state, round(float(result.get("lat", 0)), 3), round(float(result.get("lon", 0)), 3))
+        if key in seen:
+            continue
+        seen.add(key)
+        label = " — ".join(part for part in [name, state] if part)
+        if place_type:
+            label = f"{label} · {place_type}"
+        suggestions.append(
+            {
+                "label": label,
+                "destination": name,
+                "state": state,
+                "display_name": result.get("display_name", label),
+                "latitude": float(result["lat"]) if result.get("lat") else None,
+                "longitude": float(result["lon"]) if result.get("lon") else None,
+                "source_url": "https://nominatim.openstreetmap.org/",
+            }
+        )
+    return suggestions
+
+
 def fetch_wikipedia_summary(title: str) -> dict:
     if not title:
         return {}
@@ -187,12 +249,12 @@ def generate_ai_context(note_text: str, category: str, location: str) -> str:
 
 
 def generate_farmstay_summary(data: dict) -> str:
-    farm_type = data.get("farm_type") or "farm"
+    farm_type = data.get("farm_type") or "community encounter"
     location = data.get("location_name") or "the area"
-    work = _first_sentence(data.get("work_done", ""), "the day's work")
+    work = _first_sentence(data.get("work_done", ""), "what happened")
     return (
-        f"This {farm_type} farmstay near {location} records {work.lower()} "
-        "It connects physical labor, food systems, rural routines, and the social texture of farm life."
+        f"This {farm_type} near {location} records {work.lower()} "
+        "It connects local interaction, hospitality, work or daily routines, and the social texture of place."
     )
 
 
