@@ -97,6 +97,31 @@ EXPORT_TYPES = [
 HERO_IMAGE_URL = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80"
 MAP_IMAGE_URL = "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=1600&q=80"
 
+MAJOR_US_CITIES = pd.DataFrame(
+    [
+        {"title": "New York", "latitude": 40.7128, "longitude": -74.0060, "category": "major city", "summary": "Major U.S. city"},
+        {"title": "Chicago", "latitude": 41.8781, "longitude": -87.6298, "category": "major city", "summary": "Major U.S. city"},
+        {"title": "Los Angeles", "latitude": 34.0522, "longitude": -118.2437, "category": "major city", "summary": "Major U.S. city"},
+        {"title": "Houston", "latitude": 29.7604, "longitude": -95.3698, "category": "major city", "summary": "Major U.S. city"},
+        {"title": "Atlanta", "latitude": 33.7490, "longitude": -84.3880, "category": "major city", "summary": "Major U.S. city"},
+        {"title": "Denver", "latitude": 39.7392, "longitude": -104.9903, "category": "major city", "summary": "Major U.S. city"},
+        {"title": "New Orleans", "latitude": 29.9511, "longitude": -90.0715, "category": "major city", "summary": "Major U.S. city"},
+        {"title": "Seattle", "latitude": 47.6062, "longitude": -122.3321, "category": "major city", "summary": "Major U.S. city"},
+        {"title": "Miami", "latitude": 25.7617, "longitude": -80.1918, "category": "major city", "summary": "Major U.S. city"},
+        {"title": "San Francisco", "latitude": 37.7749, "longitude": -122.4194, "category": "major city", "summary": "Major U.S. city"},
+    ]
+)
+
+INTERSTATE_ROUTES = pd.DataFrame(
+    [
+        {"name": "I-90", "path": [[-122.3321, 47.6062], [-104.9903, 39.7392], [-87.6298, 41.8781], [-74.0060, 40.7128]]},
+        {"name": "I-10", "path": [[-118.2437, 34.0522], [-95.3698, 29.7604], [-90.0715, 29.9511], [-80.1918, 25.7617]]},
+        {"name": "I-95", "path": [[-80.1918, 25.7617], [-84.3880, 33.7490], [-74.0060, 40.7128]]},
+        {"name": "I-35", "path": [[-97.7431, 30.2672], [-97.3308, 37.6872], [-93.2650, 44.9778]]},
+        {"name": "I-80", "path": [[-122.4194, 37.7749], [-104.9903, 39.7392], [-87.6298, 41.8781], [-74.0060, 40.7128]]},
+    ]
+)
+
 def apply_style() -> None:
     st.markdown(
         """
@@ -440,7 +465,11 @@ def apply_style() -> None:
                 min-height: 13rem;
                 padding: 1.55rem;
                 border-top: 3px solid var(--atlas-gold);
-                background: rgba(255, 252, 246, 0.88);
+                background:
+                    linear-gradient(135deg, rgba(255, 252, 246, 0.94), rgba(246, 237, 220, 0.86)),
+                    url("https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=900&q=60");
+                background-size: cover;
+                background-blend-mode: screen;
                 box-shadow: 0 18px 46px rgba(35, 24, 13, 0.06);
                 margin-bottom: 1rem;
             }
@@ -456,7 +485,35 @@ def apply_style() -> None:
             .brief-section p {
                 color: #3a352e;
                 line-height: 1.72;
-                font-size: 0.98rem;
+                font-size: 1.02rem;
+            }
+
+            .brief-icon {
+                display: inline-flex;
+                width: 2.1rem;
+                height: 2.1rem;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 0.75rem;
+                border-radius: 999px;
+                color: #fff;
+                background: #17211c;
+                font-weight: 900;
+                font-size: 0.78rem;
+            }
+
+            .voice-dock {
+                padding: 1.1rem;
+                margin: 0.6rem 0 1rem;
+                border: 1px solid rgba(255,255,255,0.32);
+                background: linear-gradient(135deg, #17211c, #305c4b);
+                color: white;
+                box-shadow: 0 20px 48px rgba(23, 33, 28, 0.16);
+            }
+
+            .voice-dock h3, .voice-dock p {
+                color: white;
+                margin: 0;
             }
 
             .memory-mode-card {
@@ -701,10 +758,84 @@ def build_brief_map_points(briefs: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def render_compact_map(points: pd.DataFrame, target_payload: dict | None = None, include_routes: bool = False) -> None:
+    if points.empty and not include_routes:
+        st.info("No mapped records yet.")
+        return
+    if points.empty and include_routes:
+        points = MAJOR_US_CITIES.assign(color=[[110, 84, 46]] * len(MAJOR_US_CITIES))
+    if target_payload and target_payload.get("latitude") and target_payload.get("longitude"):
+        midpoint = [target_payload["longitude"], target_payload["latitude"]]
+        zoom = 6.8
+    else:
+        midpoint = [points["longitude"].mean(), points["latitude"].mean()]
+        zoom = 3.5
+    layers = [
+        pdk.Layer(
+            "ScatterplotLayer",
+            data=points,
+            get_position="[longitude, latitude]",
+            get_fill_color="color",
+            get_radius=10000,
+            pickable=True,
+            opacity=0.82,
+        )
+    ]
+    if include_routes:
+        city_points = MAJOR_US_CITIES.assign(color=[[110, 84, 46]] * len(MAJOR_US_CITIES))
+        layers.append(
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=city_points,
+                get_position="[longitude, latitude]",
+                get_fill_color="color",
+                get_radius=12500,
+                pickable=True,
+                opacity=0.52,
+            )
+        )
+        layers.append(
+            pdk.Layer(
+                "PathLayer",
+                data=INTERSTATE_ROUTES,
+                get_path="path",
+                get_color=[183, 150, 93, 130],
+                width_min_pixels=2,
+                pickable=True,
+            )
+        )
+    st.pydeck_chart(
+        pdk.Deck(
+            layers=layers,
+            initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=zoom),
+            tooltip={
+                "html": "<b>{title}</b><br/>{category}<br/>{summary}",
+                "style": {"backgroundColor": "#17211c", "color": "white"},
+            },
+        ),
+        use_container_width=True,
+    )
+
+
+def answer_home_question(question: str) -> str:
+    q = (question or "").lower()
+    if not q.strip():
+        return "Ask me what to notice in a place, where your memories cluster, or how to turn notes into a public-safe reflection."
+    if "public" in q or "publish" in q or "share" in q:
+        return "Start private. When you are ready, use Publish Safely to remove exact addresses, private names, raw transcripts, and real-time details before sharing."
+    if "map" in q or "where" in q:
+        return "Use Memory Map. Reviews show lived notes; Briefs show context you generated before or during a trip. The two stay separate so memory and research do not blur."
+    if "notice" in q or "brief" in q or "place" in q:
+        return "Use Ask About This Place. Enter a city, park, landmark, or small town, then generate a visual brief with prompts for what to notice."
+    return "Capture the rough thought first. Waymark U.S. will attach place, theme, mood, and privacy status so scattered notes can become searchable memory later."
+
+
 def home_page() -> None:
     notes = fetch_field_notes()
     farms = fetch_farmstay_logs()
+    briefs = fetch_saved_briefs()
     mapped, _ = build_map_points(notes, farms)
+    brief_points = build_brief_map_points(briefs)
 
     st.markdown(
         """
@@ -755,29 +886,47 @@ def home_page() -> None:
         if st.button("Record a Thought", width="stretch"):
             go_to("Capture Note")
 
-    if not mapped.empty:
-        st.markdown("### Memory Map")
-        midpoint = [mapped["longitude"].mean(), mapped["latitude"].mean()]
-        layer = pdk.Layer(
-            "ScatterplotLayer",
-            data=mapped,
-            get_position="[longitude, latitude]",
-            get_fill_color="color",
-            get_radius=10500,
-            pickable=True,
-            opacity=0.8,
-        )
-        st.pydeck_chart(
-            pdk.Deck(
-                layers=[layer],
-                initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=3.6),
-                tooltip={
-                    "html": "<b>{title}</b><br/>{location}<br/>{category}<br/><br/>{summary}",
-                    "style": {"backgroundColor": "#17211c", "color": "white"},
-                },
-            ),
-            use_container_width=True,
-        )
+    st.markdown("### Ask Waymark")
+    st.markdown(
+        """
+        <div class="voice-dock">
+            <h3>Talk to your travel memory</h3>
+            <p>Ask what to notice, where to look on the map, or how to make a note public-safe.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    question_cols = st.columns([0.7, 1.3])
+    with question_cols[0]:
+        if hasattr(st, "audio_input"):
+            st.audio_input("Ask by voice")
+        st.caption("Voice capture is stored only when you save it as a note. For now, type the question below to get a local response.")
+    with question_cols[1]:
+        home_question = st.text_input("Ask a question", placeholder="What should I notice in New Orleans? How do I publish safely?")
+        if home_question:
+            st.info(answer_home_question(home_question))
+
+    st.markdown("### Explore the Map")
+    home_place_label = st_searchbox(
+        destination_search_options,
+        placeholder="Search a city, park, landmark, or highway corridor...",
+        label=None,
+        default="",
+        default_use_searchterm=True,
+        clear_on_submit=False,
+        edit_after_submit="current",
+        debounce=450,
+        key="home_map_searchbox",
+    )
+    home_place_payload = st.session_state.get("destination_payloads", {}).get(home_place_label)
+    if home_place_label and not home_place_payload:
+        home_place_payload = geocode_destination(home_place_label)
+    review_tab, brief_tab = st.tabs(["Reviews", "Briefs + U.S. Routes"])
+    with review_tab:
+        render_compact_map(mapped, home_place_payload, include_routes=False)
+    with brief_tab:
+        brief_layer = brief_points if not brief_points.empty else pd.DataFrame()
+        render_compact_map(brief_layer, home_place_payload, include_routes=True)
 
     left, right = st.columns([1.2, 0.8])
     with left:
@@ -841,50 +990,49 @@ def add_field_note_page() -> None:
         )
 
     with st.form("field_note_form", clear_on_submit=False):
-        left, right = st.columns(2)
-        title = left.text_input("Title")
-        note_date = right.date_input("Date", value=date.today())
-        note_time = right.time_input("Time", value=datetime.now().time().replace(second=0, microsecond=0))
-        location_name = left.text_input("Location name", value=default_location)
-        address = right.text_input("Address")
-        city = left.text_input("City", value=default_city)
-        state = right.text_input("State", value=default_state)
-        lat_col, lon_col = st.columns(2)
-        latitude = lat_col.number_input("Latitude", value=default_latitude, format="%.6f")
-        longitude = lon_col.number_input("Longitude", value=default_longitude, format="%.6f")
-        mood = st.selectbox(
-            "Mood / feeling",
+        title = st.text_input("Optional title", placeholder="Leave blank and Waymark will treat this as a quick note.")
+        note_text = st.text_area("Raw note", height=190, placeholder="Type a thought, paste a voice transcript, or jot down what you just noticed.")
+        mood_col, privacy_col = st.columns(2)
+        mood = mood_col.selectbox(
+            "Feeling",
             ["curious", "calm", "energized", "uncertain", "moved", "overwhelmed", "reflective", "practical", "other"],
         )
-        note_text = st.text_area("Raw note", height=190, placeholder="Type a thought, paste a voice transcript, or jot down what you just noticed.")
-        photo = st.file_uploader("Photo upload", type=["png", "jpg", "jpeg", "webp"])
+        publishing_choice = privacy_col.selectbox(
+            "Keep it...",
+            [
+                "Private",
+                "Working note",
+                "Public-ready draft",
+            ],
+            help="Private is the default. Public-ready drafts should still be reviewed before publishing.",
+        )
         if hasattr(st, "audio_input"):
             audio = st.audio_input("Record voice memo")
             backup_audio = st.file_uploader("Or upload audio", type=["mp3", "m4a", "wav", "aac", "webm"])
             audio = audio or backup_audio
         else:
             audio = st.file_uploader("Voice memo upload", type=["mp3", "m4a", "wav", "aac", "webm"])
+        photo = st.file_uploader("Optional photo", type=["png", "jpg", "jpeg", "webp"])
         audio_transcript = st.text_area(
             "Voice transcript / dictated text",
             height=120,
             placeholder="For now, paste a transcript here. Future versions can connect Whisper or on-device transcription.",
         )
-        tags = st.text_input("Tags", placeholder="comma-separated tags")
+        tags = st.text_input("Optional tags", placeholder="Waymark can classify later; tags are optional.")
         preview_text = "\n\n".join(part for part in [note_text, audio_transcript] if part)
         auto_category = classify_note_theme(preview_text, tags, mood) if preview_text or tags else "personal reflection"
         st.caption(f"Auto theme preview: {auto_category}")
-        publishing_choice = st.selectbox(
-            "Publishing choice",
-            [
-                "Keep private in my notes",
-                "Save as semi-private working note",
-                "Prepare as public-ready draft",
-            ],
-            help="Private notes keep exact details for your own use. Public-ready drafts should still be reviewed before publishing.",
-        )
         submitted = st.form_submit_button("Save Note")
 
     if submitted:
+        note_date = date.today()
+        note_time = datetime.now().time().replace(second=0, microsecond=0)
+        location_name = default_location or selected_location_label
+        address = ""
+        city = default_city
+        state = default_state
+        latitude = default_latitude
+        longitude = default_longitude
         captured_text = "\n\n".join(part for part in [note_text.strip(), audio_transcript.strip()] if part)
         if not title.strip() and not captured_text.strip() and not audio:
             st.error("Please add a title, note text, transcript, or voice memo.")
@@ -896,9 +1044,9 @@ def add_field_note_page() -> None:
         ai_summary = generate_public_ready_summary(captured_text, location, category)
         ai_context = generate_ai_context(captured_text, category, location)
         privacy_level = {
-            "Keep private in my notes": "private",
-            "Save as semi-private working note": "semi-private",
-            "Prepare as public-ready draft": "public-ready",
+            "Private": "private",
+            "Working note": "semi-private",
+            "Public-ready draft": "public-ready",
         }[publishing_choice]
         note_id = insert_field_note(
             {
@@ -1137,7 +1285,18 @@ def render_brief_map(visible: pd.DataFrame, map_place_payload: dict | None, map_
 
 def ai_companion_page() -> None:
     st.title("Ask About This Place")
-    st.caption("Output mode: enter a U.S. destination, then get a spacious sourced brief with map context, field prompts, and native English audio.")
+    st.markdown(
+        f"""
+        <div class="brief-hero" style="min-height:20rem;background-image: linear-gradient(180deg, rgba(9,8,6,0.16), rgba(9,8,6,0.74)), linear-gradient(90deg, rgba(9,8,6,0.82), rgba(9,8,6,0.12)), url('{MAP_IMAGE_URL}');">
+            <div>
+                <div class="atlas-kicker">Place intelligence</div>
+                <h2>Ask About This Place</h2>
+                <p>Search a U.S. city, park, small town, landmark, or corridor. Waymark builds a sourced visual brief for what to notice before you arrive.</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown("**Destination**")
     selected_label = st_searchbox(
@@ -1261,11 +1420,16 @@ def ai_companion_page() -> None:
         speech_json = json.dumps(speech_text)
         components.html(
             f"""
-            <button
-              style="border:0;border-radius:999px;padding:12px 18px;background:#17211c;color:white;font-weight:800;cursor:pointer;"
-              onclick='
-                const text = {speech_json};
-                const utterance = new SpeechSynthesisUtterance(text);
+            <div style="display:flex;gap:10px;align-items:center;">
+              <button id="listen-brief" style="border:0;border-radius:999px;padding:12px 18px;background:#17211c;color:white;font-weight:800;cursor:pointer;">Listen to brief</button>
+              <button id="stop-brief" style="border:1px solid rgba(23,33,28,.2);border-radius:999px;padding:11px 16px;background:white;color:#17211c;font-weight:800;cursor:pointer;">Stop</button>
+            </div>
+            <script>
+              const briefText = {speech_json};
+              const listen = document.getElementById("listen-brief");
+              const stop = document.getElementById("stop-brief");
+              listen.addEventListener("click", () => {{
+                const utterance = new SpeechSynthesisUtterance(briefText);
                 utterance.lang = "en-US";
                 utterance.rate = 0.92;
                 utterance.pitch = 1.0;
@@ -1276,16 +1440,11 @@ def ai_companion_page() -> None:
                 if (nativeVoice) utterance.voice = nativeVoice;
                 window.speechSynthesis.cancel();
                 window.speechSynthesis.speak(utterance);
-              '>
-              Listen to brief
-            </button>
-            <button
-              style="border:1px solid rgba(23,33,28,.2);border-radius:999px;padding:11px 16px;background:white;color:#17211c;font-weight:800;cursor:pointer;margin-left:8px;"
-              onclick="window.speechSynthesis.cancel();">
-              Stop
-            </button>
+              }});
+              stop.addEventListener("click", () => window.speechSynthesis.cancel());
+            </script>
             """,
-            height=56,
+            height=60,
         )
 
         section_labels = [
@@ -1300,9 +1459,11 @@ def ai_companion_page() -> None:
             cols = st.columns(2)
             for col, (key, label) in zip(cols, section_labels[row_start : row_start + 2]):
                 with col:
+                    icon = label.split()[0][:2].upper()
                     st.markdown(
                         f"""
                         <div class="brief-section">
+                            <div class="brief-icon">{html.escape(icon)}</div>
                             <h4>{html.escape(label)}</h4>
                             <p>{html.escape(str(brief.get(key, "")))}</p>
                         </div>
@@ -1328,37 +1489,49 @@ def ai_companion_page() -> None:
 
 def farmstay_log_page() -> None:
     st.title("Community Log")
-    st.caption("Use this for farmstays, local conversations, community events, shared meals, volunteer days, or any meaningful exchange with people in a place. Keep private names and exact addresses out of public versions.")
+    st.caption("A lightweight place-based memory for conversations, hospitality, local encounters, or community moments. Write freely; Waymark organizes later.")
+    selected_location_label = st_searchbox(
+        destination_search_options,
+        placeholder="Where did this happen?",
+        label=None,
+        default="",
+        default_use_searchterm=True,
+        clear_on_submit=False,
+        edit_after_submit="current",
+        debounce=450,
+        key="community_location_searchbox",
+    )
+    selected_location_payload = st.session_state.get("destination_payloads", {}).get(selected_location_label)
+    if selected_location_label and not selected_location_payload:
+        selected_location_payload = geocode_destination(selected_location_label)
+    default_location = selected_location_payload.get("destination", selected_location_label) if selected_location_payload else selected_location_label
+    default_latitude = selected_location_payload.get("latitude") if selected_location_payload else None
+    default_longitude = selected_location_payload.get("longitude") if selected_location_payload else None
+
     with st.form("farmstay_form"):
-        left, right = st.columns(2)
-        log_date = left.date_input("Date", value=date.today())
-        farm_name = right.text_input("Community / host / place name")
-        location_name = left.text_input("Location name")
-        farm_type = right.selectbox(
-            "Encounter type",
+        farm_name = st.text_input("Optional title", placeholder="Market conversation, dinner with hosts, town meeting...")
+        farm_type = st.selectbox(
+            "Moment type",
             ["local conversation", "community event", "farmstay", "market visit", "homestay", "volunteer day", "religious or civic gathering", "workshop", "other"],
         )
-        lat_col, lon_col = st.columns(2)
-        latitude = lat_col.number_input("Latitude", value=None, format="%.6f", key="farm_lat")
-        longitude = lon_col.number_input("Longitude", value=None, format="%.6f", key="farm_lon")
-        work_done = st.text_area("Activity / what happened")
-        people_met = st.text_area("People met (private; use first names or roles only if safe)")
-        food_eaten = st.text_area("Food or hospitality shared")
-        conversation_topics = st.text_area("Conversation topics")
-        lifestyle_observations = st.text_area("Community observations")
-        labor_intensity = st.slider("Intensity of interaction", 1, 5, 3)
-        community_feeling = st.slider("Community feeling", 1, 5, 3)
-        surprises = st.text_area("What surprised me")
-        reflection = st.text_area("Reflection", height=140)
+        reflection = st.text_area("What happened?", height=220, placeholder="Write it messily. Who was there, what was said, what surprised you, what should stay private?")
+        people_met = st.text_input("Private people note", placeholder="Optional. Roles are safer than names.")
+        community_feeling = st.slider("How strong did the community feeling seem?", 1, 5, 3)
         submitted = st.form_submit_button("Save Community Log")
 
     if submitted:
+        work_done = reflection
+        food_eaten = ""
+        conversation_topics = reflection
+        lifestyle_observations = reflection
+        surprises = ""
+        labor_intensity = 3
         payload = {
-            "date": log_date.isoformat(),
+            "date": date.today().isoformat(),
             "farm_name": farm_name,
-            "location_name": location_name,
-            "latitude": latitude,
-            "longitude": longitude,
+            "location_name": default_location,
+            "latitude": default_latitude,
+            "longitude": default_longitude,
             "farm_type": farm_type,
             "work_done": work_done,
             "people_met": people_met,
