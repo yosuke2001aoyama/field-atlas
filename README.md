@@ -1,6 +1,6 @@
 # Field Atlas
 
-Field Atlas is a Streamlit web app for personal road-trip and farmstay field notes in the United States.
+Field Atlas is a Streamlit web app for personal road-trip, community, and place-based field notes in the United States.
 
 It is designed around three layers:
 
@@ -33,7 +33,7 @@ The app creates its local database and upload folders automatically on first run
 
 ## Privacy Warning
 
-This MVP stores notes, transcripts, photos, audio, and generated outputs locally. Local SQLite files and upload folders may contain private information. Review public versions manually before publishing.
+This app stores notes, transcripts, photos, audio, and generated outputs locally. Local SQLite files and upload folders may contain private information. Review public versions manually before publishing.
 
 Recommended `.gitignore` entries:
 
@@ -47,12 +47,12 @@ data/*.db
 ## Current Features
 
 - Add field notes with location, category, uploads, transcript, tags, and a publishing choice
-- Add structured farmstay logs
+- Add structured community logs for farmstays, local conversations, shared meals, events, and meaningful encounters
 - Seed sample field notes for Louisville, Knoxville, Asheville, Raleigh, and Chicago
 - Start from two top-level modes: planning a future journey or reflecting on a completed one
-- Search notes and farmstay logs directly from a map-first view
-- Generate sourced, high-resolution, photo-backed before-arrival destination briefs with destination suggestions
-- Search and filter field notes and farmstay logs
+- Search notes and community logs directly from a map-first view
+- Generate sourced, high-resolution, photo-backed before-arrival destination briefs with live place suggestions from OpenStreetMap
+- Search and filter field notes and community logs
 - Generate template exports: podcast script, Substack-style essay, Instagram caption, Japanese diary, English field note, and Markdown archive
 - Create rule-based anonymized public versions with a manual review warning
 
