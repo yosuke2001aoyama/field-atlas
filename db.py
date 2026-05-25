@@ -179,7 +179,7 @@ def seed_sample_data() -> None:
                 "state": "Kentucky",
                 "category": "landscape",
                 "note_text": "At the Louisville riverfront, the Ohio River made the city feel less like a single downtown and more like a crossing point. The bridges, walking paths, and older industrial edges sat beside families, runners, and visitors taking photos near the water. The useful observation was the overlap: infrastructure as scenery, leisure beside logistics, and a regional identity shaped by movement across the river.",
-                "tags": "public sample,river,city,evening,infrastructure",
+                "tags": "river,city,evening,infrastructure",
             },
             {
                 "title": "Knoxville diner counter",
@@ -192,7 +192,7 @@ def seed_sample_data() -> None:
                 "state": "Tennessee",
                 "category": "food",
                 "note_text": "A Knoxville breakfast counter showed how quickly an everyday food place becomes a civic room. The scene was ordinary: coffee refills, talk about weather and road work, orange sports references, and people moving in and out before work. It felt like a useful place to study how a university town, Appalachian proximity, and downtown redevelopment meet in daily routine.",
-                "tags": "public sample,breakfast,conversation,sports,downtown",
+                "tags": "breakfast,conversation,sports,downtown",
             },
             {
                 "title": "Asheville market morning",
@@ -205,7 +205,7 @@ def seed_sample_data() -> None:
                 "state": "North Carolina",
                 "category": "farm",
                 "note_text": "In Asheville, the farmers market mixed practical food shopping with the region's strong visitor economy. The stalls made local agriculture visible, but also raised questions about affordability, land pressure, climate, and the line between regional culture and curated lifestyle. The best detail was how vendors talked about weather and soil as casually as others talk about traffic.",
-                "tags": "public sample,market,local food,craft,agriculture",
+                "tags": "market,local food,craft,agriculture",
             },
             {
                 "title": "Raleigh neighborhood walk",
@@ -218,7 +218,7 @@ def seed_sample_data() -> None:
                 "state": "North Carolina",
                 "category": "neighborhood",
                 "note_text": "A Raleigh neighborhood walk showed the layered feel of a fast-growing Southern city: new apartments, shaded older streets, small churches, research-economy confidence, and signs of rising housing pressure. The place did not read as simply old or new. It felt like a city negotiating how much of its older civic texture can remain visible during rapid growth.",
-                "tags": "public sample,growth,churches,city,housing",
+                "tags": "growth,churches,city,housing",
             },
             {
                 "title": "Chicago station arrival",
@@ -231,7 +231,7 @@ def seed_sample_data() -> None:
                 "state": "Illinois",
                 "category": "road",
                 "note_text": "Arriving near Chicago Union Station made the city feel dense before it felt tall. The first impression was not the skyline, but rhythm: commuters, luggage, food halls, office workers, and the choreography of trains and streets. The station area worked as a compressed field note on scale, migration, labor, and the everyday machinery of a major American city.",
-                "tags": "public sample,arrival,transit,city,station",
+                "tags": "arrival,transit,city,station",
             },
         ]
 
@@ -282,27 +282,44 @@ def seed_sample_data() -> None:
                 )
 
         farm_count = conn.execute("SELECT COUNT(*) FROM farmstay_logs").fetchone()[0]
-        if not farm_count:
-            timestamp = now_iso()
-            farm_sample = {
+        timestamp = now_iso()
+        farm_sample = {
                 "date": "2026-04-10",
-                "farm_name": "Public sample vegetable farm",
+                "farm_name": "Blue Ridge community lunch",
                 "location_name": "Blue Ridge foothills",
                 "latitude": 35.5951,
                 "longitude": -82.5515,
-                "farm_type": "vegetable",
+                "farm_type": "community event",
                 "work_done": "Washed greens, helped sort seedlings, and observed how weather shaped the day's work plan.",
-                "people_met": "Public sample only: no private names recorded.",
+                "people_met": "A vendor, a neighbor, and a visitor talked without private names recorded.",
                 "food_eaten": "Simple lunch with seasonal vegetables, bread, and coffee.",
                 "conversation_topics": "Soil, labor, market prices, rainfall, tourism, and the challenge of keeping local food accessible.",
                 "lifestyle_observations": "The day moved by weather, light, tools, shared meals, and practical cooperation rather than by a fixed office rhythm.",
                 "labor_intensity": 4,
                 "community_feeling": 4,
                 "surprises": "The amount of invisible planning behind a small market table.",
-                "reflection": "The farmstay made agriculture feel less like scenery and more like a daily negotiation among land, weather, bodies, money, and community.",
-                "ai_summary": "This public sample farmstay connects physical labor, food systems, rural routines, and the social texture of farm life.",
-                "public_version": "During spring 2026, I spent time at a generalized vegetable farm in the Blue Ridge foothills. The exact farm name and private identities are withheld. The public lesson was about how much planning, weather awareness, and cooperation sit behind local food.",
-            }
+                "reflection": "The encounter made local agriculture feel less like scenery and more like a daily negotiation among land, weather, bodies, money, and community.",
+                "ai_summary": "This community log connects shared food, local work, rural routines, and the social texture of place.",
+                "public_version": "During spring 2026, I spent time in a community food setting in the Blue Ridge foothills. The exact host or organization and private identities are withheld. The public lesson was about how much planning, weather awareness, and cooperation sit behind local food and community life.",
+        }
+        if farm_count:
+            conn.execute(
+                """
+                UPDATE farmstay_logs
+                SET farm_name = ?, farm_type = ?, people_met = ?, reflection = ?, ai_summary = ?, public_version = ?, updated_at = ?
+                WHERE farm_name IN ('Public sample vegetable farm', 'Blue Ridge community lunch')
+                """,
+                (
+                    farm_sample["farm_name"],
+                    farm_sample["farm_type"],
+                    farm_sample["people_met"],
+                    farm_sample["reflection"],
+                    farm_sample["ai_summary"],
+                    farm_sample["public_version"],
+                    timestamp,
+                ),
+            )
+        else:
             values = [farm_sample.get(column, "") for column in FARMSTAY_COLUMNS]
             conn.execute(
                 f"""
@@ -406,16 +423,16 @@ def fetch_all_library_items() -> pd.DataFrame:
     farm_items = pd.DataFrame()
     if not farms.empty:
         farm_items = farms.assign(
-            source_type="Farmstay log",
+            source_type="Community log",
             source_id=farms["id"].astype(str),
-            display_title=farms["farm_name"].fillna("Farmstay log"),
+            display_title=farms["farm_name"].fillna("Community log"),
             display_location=farms["location_name"].fillna(""),
-            display_category=farms["farm_type"].fillna("farmstay"),
+            display_category=farms["farm_type"].fillna("community"),
             display_text=farms["reflection"].fillna(""),
             display_state="",
             privacy_level="private",
-            category=farms["farm_type"].fillna("farmstay"),
-            tags="farmstay",
+            category=farms["farm_type"].fillna("community"),
+            tags="community",
         )
 
     return pd.concat([note_items, farm_items], ignore_index=True, sort=False)
