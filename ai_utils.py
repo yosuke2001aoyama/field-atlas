@@ -9,7 +9,7 @@ import requests
 
 
 HTTP_HEADERS = {
-    "User-Agent": "FieldAtlas/1.0 (public Streamlit app; educational field-note tool)"
+    "User-Agent": "WaymarkUS/1.0 (public Streamlit app; educational field-note tool)"
 }
 
 KNOWN_US_DESTINATIONS = [
@@ -48,6 +48,30 @@ INTEREST_PROMPTS = {
     "sports": "school colors, stadiums, local teams, sports bars, radio talk, and weekend rhythms",
 }
 
+NOTE_THEMES = [
+    "travel",
+    "food",
+    "people",
+    "culture",
+    "economy",
+    "politics/news",
+    "personal reflection",
+    "nature",
+    "logistics",
+]
+
+THEME_KEYWORDS = {
+    "food": ["food", "meal", "diner", "coffee", "market", "restaurant", "bread", "farmers", "breakfast"],
+    "people": ["people", "conversation", "met", "neighbor", "vendor", "friend", "host", "family", "local"],
+    "culture": ["music", "church", "festival", "museum", "ritual", "accent", "school", "sign", "tradition"],
+    "economy": ["industry", "work", "job", "housing", "price", "warehouse", "factory", "tourism", "labor"],
+    "politics/news": ["election", "policy", "mayor", "county", "news", "politic", "protest", "government"],
+    "personal reflection": ["felt", "wondered", "realized", "miss", "remember", "lonely", "surprised", "thought"],
+    "nature": ["river", "mountain", "forest", "trail", "weather", "soil", "rain", "field", "landscape"],
+    "logistics": ["train", "bus", "station", "road", "motel", "drive", "parking", "airport", "route"],
+    "travel": ["arrived", "road", "trip", "walk", "visited", "drive", "downtown", "stop", "journey"],
+}
+
 def _first_sentence(text: str, fallback: str = "No raw note text was provided yet.") -> str:
     cleaned = " ".join((text or "").split())
     if not cleaned:
@@ -63,6 +87,25 @@ def normalize_destination(destination: str) -> str:
     titled = cleaned.title()
     match = difflib.get_close_matches(titled, KNOWN_US_DESTINATIONS, n=1, cutoff=0.78)
     return match[0] if match else titled
+
+
+def classify_note_theme(text: str, tags: str = "", mood: str = "") -> str:
+    """Deterministic placeholder classifier for the movement-based second brain."""
+    haystack = f"{text or ''} {tags or ''} {mood or ''}".lower()
+    scores = {theme: 0 for theme in NOTE_THEMES}
+    for theme, keywords in THEME_KEYWORDS.items():
+        scores[theme] += sum(1 for keyword in keywords if keyword in haystack)
+    best_theme, best_score = max(scores.items(), key=lambda item: item[1])
+    return best_theme if best_score else "personal reflection"
+
+
+def generate_public_ready_summary(text: str, location: str, theme: str) -> str:
+    seed = _first_sentence(text, "This note records a small observation from movement through place.")
+    place = location or "a U.S. place"
+    return (
+        f"An anonymous {theme} field note from {place}: {seed} "
+        "Exact timing, private names, and sensitive details should be reviewed before publication."
+    )
 
 
 def geocode_destination(destination: str, state: str = "") -> dict:
@@ -139,9 +182,9 @@ def search_destination_suggestions(query: str, limit: int = 8) -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
-        label = " — ".join(part for part in [name, state] if part)
+        label = " - ".join(part for part in [name, state] if part)
         if place_type:
-            label = f"{label} · {place_type}"
+            label = f"{label} | {place_type}"
         suggestions.append(
             {
                 "label": label,
