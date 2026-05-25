@@ -13,6 +13,7 @@ HTTP_HEADERS = {
 }
 
 KNOWN_US_DESTINATIONS = [
+    "Boston",
     "Louisville",
     "Knoxville",
     "Asheville",
@@ -33,6 +34,22 @@ KNOWN_US_DESTINATIONS = [
     "Marfa",
     "Burlington",
     "Boise",
+]
+
+CURATED_US_DESTINATIONS = [
+    {"destination": "Boston", "state": "Massachusetts", "latitude": 42.3601, "longitude": -71.0589, "kind": "city"},
+    {"destination": "New York", "state": "New York", "latitude": 40.7128, "longitude": -74.0060, "kind": "city"},
+    {"destination": "Washington", "state": "District of Columbia", "latitude": 38.9072, "longitude": -77.0369, "kind": "city"},
+    {"destination": "Philadelphia", "state": "Pennsylvania", "latitude": 39.9526, "longitude": -75.1652, "kind": "city"},
+    {"destination": "Chicago", "state": "Illinois", "latitude": 41.8781, "longitude": -87.6298, "kind": "city"},
+    {"destination": "Los Angeles", "state": "California", "latitude": 34.0522, "longitude": -118.2437, "kind": "city"},
+    {"destination": "San Francisco", "state": "California", "latitude": 37.7749, "longitude": -122.4194, "kind": "city"},
+    {"destination": "Seattle", "state": "Washington", "latitude": 47.6062, "longitude": -122.3321, "kind": "city"},
+    {"destination": "New Orleans", "state": "Louisiana", "latitude": 29.9511, "longitude": -90.0715, "kind": "city"},
+    {"destination": "Denver", "state": "Colorado", "latitude": 39.7392, "longitude": -104.9903, "kind": "city"},
+    {"destination": "Austin", "state": "Texas", "latitude": 30.2672, "longitude": -97.7431, "kind": "city"},
+    {"destination": "Grand Canyon National Park", "state": "Arizona", "latitude": 36.2679, "longitude": -112.3535, "kind": "national park"},
+    {"destination": "Yellowstone National Park", "state": "Wyoming", "latitude": 44.4280, "longitude": -110.5885, "kind": "national park"},
 ]
 
 INTEREST_PROMPTS = {
@@ -109,6 +126,17 @@ def generate_public_ready_summary(text: str, location: str, theme: str) -> str:
 
 
 def geocode_destination(destination: str, state: str = "") -> dict:
+    cleaned_lookup = re.sub(r"\s+", " ", (destination or "").strip()).lower()
+    for item in CURATED_US_DESTINATIONS:
+        if cleaned_lookup in {item["destination"].lower(), f'{item["destination"].lower()}, {item["state"].lower()}'}:
+            return {
+                "display_name": f'{item["destination"]}, {item["state"]}, United States',
+                "latitude": item["latitude"],
+                "longitude": item["longitude"],
+                "city": item["destination"],
+                "state": item["state"],
+                "source_url": "curated:waymark-us",
+            }
     query = ", ".join(part for part in [destination, state, "United States"] if part)
     if not query.strip():
         return {}
@@ -141,6 +169,24 @@ def search_destination_suggestions(query: str, limit: int = 8) -> list[dict]:
     cleaned = re.sub(r"\s+", " ", (query or "").strip())
     if len(cleaned) < 3:
         return []
+    suggestions: list[dict] = []
+    seen = set()
+    for item in CURATED_US_DESTINATIONS:
+        haystack = f'{item["destination"]} {item["state"]}'.lower()
+        if cleaned.lower() in haystack or item["destination"].lower().startswith(cleaned.lower()):
+            label = f'{item["destination"]} - {item["state"]} | {item["kind"]}'
+            suggestions.append(
+                {
+                    "label": label,
+                    "destination": item["destination"],
+                    "state": item["state"],
+                    "display_name": f'{item["destination"]}, {item["state"]}, United States',
+                    "latitude": item["latitude"],
+                    "longitude": item["longitude"],
+                    "source_url": "curated:waymark-us",
+                }
+            )
+            seen.add((item["destination"], item["state"], round(item["latitude"], 3), round(item["longitude"], 3)))
     try:
         response = requests.get(
             "https://nominatim.openstreetmap.org/search",
@@ -158,10 +204,8 @@ def search_destination_suggestions(query: str, limit: int = 8) -> list[dict]:
         response.raise_for_status()
         results = response.json()
     except Exception:
-        return []
+        return suggestions
 
-    suggestions: list[dict] = []
-    seen = set()
     for result in results:
         address = result.get("address", {})
         state = address.get("state", "")
@@ -316,6 +360,11 @@ def generate_destination_brief(
     summaries = fetch_related_wikipedia_topics(corrected_destination, suggested_state, interests)
     primary = summaries[0] if summaries else {}
     interest_text = ", ".join(interests) if interests else "history, food, economy, and everyday life"
+    interest_lenses = [
+        f"{interest}: {INTEREST_PROMPTS[interest]}"
+        for interest in interests
+        if interest in INTEREST_PROMPTS
+    ]
     source_notes = " ".join(item.get("extract", "") for item in summaries[:3])
     if not source_notes:
         source_notes = f"{place} should be approached through public institutions, roads, foodways, work routines, and local memory."
@@ -342,7 +391,22 @@ def generate_destination_brief(
             f"Public reference material frames {place or 'this place'} through these starting points: {source_notes[:900]}"
         ),
         "cultural_signals": (
-            f"Watch signs, school colors, local newspapers, murals, church boards, storefronts, accents, music, and the gap between visitor imagery and daily routine. Your stated interests: {interest_text}."
+            f"Watch signs, school colors, local newspapers, murals, church boards, storefronts, accents, music, and the gap between visitor imagery and daily routine. Build the brief around these selected interests: {interest_text}."
+        ),
+        "community_lens": (
+            f"Trace neighborhood boundaries, churches, schools, civic organizations, migration stories, and whose histories are visible or missing in public space around {place}."
+        ),
+        "economy_lens": (
+            f"Look for the work that keeps {place} running: hospitals, universities, logistics, tourism, housing pressure, warehouses, main streets, and service labor."
+        ),
+        "agriculture_lens": (
+            f"Notice soil, water, seasonality, farm supply stores, farmers markets, land prices, and how nearby agriculture reaches everyday food places around {place}."
+        ),
+        "nature_lens": (
+            f"Read the rivers, ridgelines, weather, trails, vegetation, and ecological edges as part of local identity rather than scenery alone."
+        ),
+        "music_lens": (
+            f"Listen for venues, church music, street sound, radio, festivals, record shops, and the difference between tourist sound and everyday sound."
         ),
         "local_food": (
             "Look for diners, markets, gas-station food, seasonal produce, regional specialties, immigrant foodways, bakeries, and who seems to gather there at different times of day."
@@ -354,7 +418,8 @@ def generate_destination_brief(
             f"What has changed here in the last ten years? What do outsiders misunderstand? Where do people gather? What work keeps this place running? How does {purpose} change what I notice?"
         ),
         "field_note_prompts": (
-            "Record one sound, one sign, one overheard phrase, one meal, one texture of work, one public institution, and one contradiction."
+            "Record one sound, one sign, one overheard phrase, one meal, one texture of work, one public institution, and one contradiction. "
+            + ("Selected lenses: " + "; ".join(interest_lenses) if interest_lenses else "")
         ),
         "safety_etiquette": (
             "Do not record private conversations without permission. Avoid real-time posting. Ask before photographing people, homes, farms, or workplaces."
