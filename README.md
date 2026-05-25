@@ -1,6 +1,6 @@
 # Waymark U.S.
 
-Waymark U.S. is a Streamlit web app for movement-based notes, place context, memory maps, and public-ready reflections in the United States.
+Waymark U.S. is a Streamlit web app for movement-based notes, voice memos, place context, memory maps, and public-ready reflections in the United States.
 
 It is designed around three layers:
 
@@ -46,14 +46,14 @@ data/*.db
 
 ## Current Features
 
-- Add movement notes with location, mood, auto theme, uploads, transcript, tags, and a publishing choice
+- Add movement notes with place autocomplete, mood, auto theme, voice memo capture/upload, transcript, tags, and a publishing choice
 - Add structured community logs for farmstays, local conversations, shared meals, events, and meaningful encounters
 - Seed sample field notes for Louisville, Knoxville, Asheville, Raleigh, and Chicago
-- Start from input mode and output mode
+- Start from user-facing paths: understand a place, capture a moving thought, and revisit or share later
 - Search reviews and saved place briefs directly from a map-first view
 - Generate sourced, high-resolution, photo-backed place briefs with live U.S. destination suggestions from OpenStreetMap
 - Search and filter field notes and community logs
-- Review a journey by recurring places, themes, questions, and a public-ready reflection draft
+- Review a journey by recurring places, themes, and a public-ready reflection draft
 - Generate template exports: podcast script, Substack-style essay, Instagram caption, Japanese diary, English field note, and Markdown archive
 - Create rule-based anonymized public versions with a manual review warning
 
@@ -62,7 +62,7 @@ data/*.db
 The code includes clear extension points for:
 
 - OpenAI API integration for real summaries and briefs
-- Whisper or other audio transcription
+- Whisper, browser speech recognition, or on-device transcription for voice memos
 - Address geocoding to latitude/longitude
 - Markdown file export
 - Publishing selected public notes to a website
