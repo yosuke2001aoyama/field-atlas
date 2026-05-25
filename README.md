@@ -1,6 +1,6 @@
-# Waymark Atlas
+# Waymark U.S.
 
-Waymark Atlas is a Streamlit web app for personal road-trip, community, and place-based field notes in the United States.
+Waymark U.S. is a Streamlit web app for movement-based notes, place context, memory maps, and public-ready reflections in the United States.
 
 It is designed around three layers:
 
@@ -46,13 +46,14 @@ data/*.db
 
 ## Current Features
 
-- Add field notes with location, category, uploads, transcript, tags, and a publishing choice
+- Add movement notes with location, mood, auto theme, uploads, transcript, tags, and a publishing choice
 - Add structured community logs for farmstays, local conversations, shared meals, events, and meaningful encounters
 - Seed sample field notes for Louisville, Knoxville, Asheville, Raleigh, and Chicago
-- Start from two top-level modes: planning a future journey or reflecting on a completed one
-- Search notes and community logs directly from a map-first view
-- Generate sourced, high-resolution, photo-backed before-arrival destination briefs with live place suggestions from OpenStreetMap
+- Start from input mode and output mode
+- Search reviews and saved place briefs directly from a map-first view
+- Generate sourced, high-resolution, photo-backed place briefs with live U.S. destination suggestions from OpenStreetMap
 - Search and filter field notes and community logs
+- Review a journey by recurring places, themes, questions, and a public-ready reflection draft
 - Generate template exports: podcast script, Substack-style essay, Instagram caption, Japanese diary, English field note, and Markdown archive
 - Create rule-based anonymized public versions with a manual review warning
 
