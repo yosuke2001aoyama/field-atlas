@@ -1,6 +1,6 @@
-# Field Atlas
+# Waymark Atlas
 
-Field Atlas is a Streamlit web app for personal road-trip, community, and place-based field notes in the United States.
+Waymark Atlas is a Streamlit web app for personal road-trip, community, and place-based field notes in the United States.
 
 It is designed around three layers:
 
