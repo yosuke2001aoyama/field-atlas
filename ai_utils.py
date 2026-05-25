@@ -111,13 +111,16 @@ def fetch_wikipedia_summary(title: str) -> dict:
         return {}
     if data.get("type") == "disambiguation":
         return {}
-    thumbnail = data.get("thumbnail", {}).get("source", "")
+    image_url = (
+        data.get("originalimage", {}).get("source")
+        or data.get("thumbnail", {}).get("source", "")
+    )
     return {
         "title": data.get("title", title),
         "extract": data.get("extract", ""),
         "description": data.get("description", ""),
         "url": data.get("content_urls", {}).get("desktop", {}).get("page", f"https://en.wikipedia.org/wiki/{quote(title)}"),
-        "image_url": thumbnail,
+        "image_url": image_url,
         "source_name": "Wikipedia",
     }
 
