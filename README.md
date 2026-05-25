@@ -1,6 +1,6 @@
 # Field Atlas
 
-Field Atlas is a local Streamlit MVP for personal road-trip and farmstay field notes in the United States.
+Field Atlas is a Streamlit web app for personal road-trip and farmstay field notes in the United States.
 
 It is designed around three layers:
 
@@ -44,16 +44,16 @@ uploads/
 data/*.db
 ```
 
-## Current MVP Features
+## Current Features
 
-- Add field notes with location, category, uploads, transcript, tags, and privacy level
+- Add field notes with location, category, uploads, transcript, tags, and a publishing choice
 - Add structured farmstay logs
 - Seed sample field notes for Louisville, Knoxville, Asheville, Raleigh, and Chicago
-- Map notes and farmstay logs with coordinates
-- Generate mock AI summaries, context, and before-arrival destination briefs
+- Search notes and farmstay logs directly from a map-first view
+- Generate sourced, photo-backed before-arrival destination briefs
 - Search and filter field notes and farmstay logs
 - Generate template exports: podcast script, Substack-style essay, Instagram caption, Japanese diary, English field note, and Markdown archive
-- Create rule-based anonymized public versions
+- Create rule-based anonymized public versions with a manual review warning
 
 ## Future Hooks
 
