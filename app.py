@@ -476,7 +476,7 @@ def render_top_nav(pages: list[str]) -> None:
             with col:
                 if page_name == st.session_state.page:
                     st.markdown(f'<div class="top-nav-active">{page_name}</div>', unsafe_allow_html=True)
-                elif st.button(page_name, key=f"top_nav_{page_name}", use_container_width=True):
+                elif st.button(page_name, key=f"top_nav_{page_name}", width="stretch"):
                     st.session_state.page = page_name
                     st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
@@ -517,22 +517,22 @@ def home_page() -> None:
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown('<div class="atlas-action-card"><div><h4>Capture a place</h4><p>Save a raw note with location, media, tags, and privacy level.</p></div></div>', unsafe_allow_html=True)
-        if st.button("Add Field Note", use_container_width=True):
+        if st.button("Add Field Note", width="stretch"):
             st.session_state.page = "Add Field Note"
             st.rerun()
     with c2:
         st.markdown('<div class="atlas-action-card"><div><h4>Arrive prepared</h4><p>Generate a cultural and historical before-you-arrive brief.</p></div></div>', unsafe_allow_html=True)
-        if st.button("Generate AI Brief", use_container_width=True):
+        if st.button("Generate AI Brief", width="stretch"):
             st.session_state.page = "AI Companion"
             st.rerun()
     with c3:
         st.markdown('<div class="atlas-action-card"><div><h4>Log farm life</h4><p>Structure work, food, people, surprises, and reflection.</p></div></div>', unsafe_allow_html=True)
-        if st.button("Add Farmstay Log", use_container_width=True):
+        if st.button("Add Farmstay Log", width="stretch"):
             st.session_state.page = "Farmstay Log"
             st.rerun()
     with c4:
         st.markdown('<div class="atlas-action-card"><div><h4>Make it public</h4><p>Turn selected notes into scripts, essays, captions, or public versions.</p></div></div>', unsafe_allow_html=True)
-        if st.button("Export Notes", use_container_width=True):
+        if st.button("Export Notes", width="stretch"):
             st.session_state.page = "Export Center"
             st.rerun()
 
@@ -664,7 +664,7 @@ def map_view_page() -> None:
                 initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=4.2),
                 tooltip=tooltip,
             ),
-            use_container_width=True,
+            width="stretch",
         )
 
         labels = {
@@ -699,7 +699,7 @@ def map_view_page() -> None:
 
     if not needs_location.empty:
         st.subheader("Needs Location Data")
-        st.dataframe(needs_location[["source", "title", "location", "category"]], use_container_width=True)
+        st.dataframe(needs_location[["source", "title", "location", "category"]], width="stretch")
 
 
 def ai_companion_page() -> None:
@@ -725,7 +725,7 @@ def ai_companion_page() -> None:
         ["history", "food", "race/community", "agriculture", "music", "religion", "economy", "small-town life", "nature", "sports"],
         default=["history", "food", "economy"],
     )
-    generate = st.button("Generate Before You Arrive Brief", use_container_width=True)
+    generate = st.button("Generate Before You Arrive Brief", width="stretch")
 
     if generate:
         if not (corrected or destination).strip():
@@ -739,7 +739,7 @@ def ai_companion_page() -> None:
         title_line = ", ".join(part for part in [brief.get("destination"), brief.get("state")] if part)
         st.markdown(f"### Before You Arrive: {title_line}")
         if brief.get("image_url"):
-            st.image(brief["image_url"], use_container_width=True)
+            st.image(brief["image_url"], width="stretch")
 
         if brief.get("latitude") and brief.get("longitude"):
             map_df = pd.DataFrame(
@@ -764,7 +764,7 @@ def ai_companion_page() -> None:
                     ),
                     tooltip={"text": "{label}"},
                 ),
-                use_container_width=True,
+                width="stretch",
             )
 
         speech_text = " ".join(
