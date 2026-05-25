@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import html
+import json
 import shutil
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -12,16 +13,20 @@ import streamlit.components.v1 as components
 from streamlit_searchbox import st_searchbox
 
 from ai_utils import (
+    NOTE_THEMES,
+    classify_note_theme,
     generate_ai_context,
     generate_ai_summary,
     generate_destination_brief,
     generate_farmstay_summary,
+    generate_public_ready_summary,
     geocode_destination,
     normalize_destination,
     search_destination_suggestions,
 )
 from db import (
     BASE_DIR,
+    fetch_ai_briefs,
     fetch_all_library_items,
     fetch_farmstay_logs,
     fetch_field_notes,
@@ -37,25 +42,23 @@ from map_utils import build_map_points
 from privacy_utils import create_public_version_for_farmstay, create_public_version_for_note
 
 
-APP_NAME = "Waymark Atlas"
+APP_NAME = "Waymark U.S."
 
 
-st.set_page_config(page_title=APP_NAME, page_icon="🗺️", layout="wide")
+st.set_page_config(page_title=APP_NAME, page_icon="US", layout="wide")
 initialize_app()
 
 
 CATEGORIES = [
+    "travel",
     "food",
-    "farm",
-    "small town",
-    "road",
-    "motel",
-    "church",
-    "conversation",
-    "landscape",
-    "museum",
-    "music",
-    "neighborhood",
+    "people",
+    "culture",
+    "economy",
+    "politics/news",
+    "personal reflection",
+    "nature",
+    "logistics",
     "other",
 ]
 
@@ -389,11 +392,11 @@ def apply_style() -> None:
             }
 
             .brief-hero {
-                min-height: 27rem;
+                min-height: 34rem;
                 display: grid;
                 align-items: end;
-                padding: 1.55rem;
-                margin: 1rem 0 1.25rem;
+                padding: clamp(1.6rem, 4vw, 3.4rem);
+                margin: 1.4rem 0 1.6rem;
                 color: white;
                 border: 1px solid rgba(255, 252, 246, 0.58);
                 background-size: cover;
@@ -413,11 +416,12 @@ def apply_style() -> None:
             }
 
             .brief-section {
-                min-height: 10rem;
-                padding: 1.25rem;
-                border-top: 2px solid var(--atlas-gold);
+                min-height: 13rem;
+                padding: 1.55rem;
+                border-top: 3px solid var(--atlas-gold);
                 background: rgba(255, 252, 246, 0.88);
                 box-shadow: 0 18px 46px rgba(35, 24, 13, 0.06);
+                margin-bottom: 1rem;
             }
 
             .brief-section h4 {
@@ -426,6 +430,45 @@ def apply_style() -> None:
                 font-size: 0.86rem;
                 letter-spacing: 0.1rem;
                 text-transform: uppercase;
+            }
+
+            .brief-section p {
+                color: #3a352e;
+                line-height: 1.72;
+                font-size: 0.98rem;
+            }
+
+            .memory-mode-card {
+                min-height: 11rem;
+                padding: 1.35rem;
+                background: rgba(255, 252, 246, 0.88);
+                border: 1px solid rgba(62, 48, 33, 0.14);
+                box-shadow: 0 16px 42px rgba(35, 24, 13, 0.07);
+            }
+
+            .memory-mode-card h3 {
+                margin: 0.2rem 0 0.55rem;
+                font-size: 1.75rem;
+            }
+
+            .map-legend {
+                display: flex;
+                gap: 0.65rem;
+                flex-wrap: wrap;
+                margin: 0.4rem 0 1rem;
+            }
+
+            .map-legend span {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                border: 1px solid rgba(62, 48, 33, 0.14);
+                background: rgba(255, 252, 246, 0.72);
+                padding: 0.45rem 0.7rem;
+                border-radius: 999px;
+                color: var(--atlas-muted);
+                font-size: 0.85rem;
+                font-weight: 700;
             }
 
             .atlas-pill-row {
@@ -529,19 +572,20 @@ def render_context_block(text: str) -> None:
 def render_sidebar(pages: list[str]) -> str:
     nav_labels = {
         "Home": "Home",
-        "Explore Map": "Explore Map",
+        "Memory Map": "Memory Map",
         "Read Reviews": "Read Reviews",
-        "Search & Map": "Search & Map",
+        "Search My Notes": "Search My Notes",
         "Capture Note": "Capture Note",
-        "AI Brief": "AI Brief",
+        "Ask About This Place": "Ask About This Place",
         "Community Log": "Community Log",
         "Library": "Library",
         "Export": "Export",
         "Publish Safely": "Publish Safely",
+        "Journey Review": "Journey Review",
     }
     st.sidebar.title(APP_NAME)
     st.sidebar.markdown(
-        '<div class="sidebar-tagline">Private road notes, maps, community logs, and public-ready storytelling.</div>',
+        '<div class="sidebar-tagline">A U.S. movement journal for notes, place context, memory maps, and public-ready reflection.</div>',
         unsafe_allow_html=True,
     )
     def nav_button(page_name: str, label_override: str | None = None) -> None:
@@ -553,14 +597,16 @@ def render_sidebar(pages: list[str]) -> str:
             st.rerun()
 
     nav_button("Home")
-    st.sidebar.markdown('<div class="nav-section">Before</div>', unsafe_allow_html=True)
-    nav_button("AI Brief", "Plan Brief")
-    nav_button("Explore Map")
+    st.sidebar.markdown('<div class="nav-section">Output Mode</div>', unsafe_allow_html=True)
+    nav_button("Ask About This Place")
+    nav_button("Memory Map")
     nav_button("Read Reviews")
-    st.sidebar.markdown('<div class="nav-section">After</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="nav-section">Input Mode</div>', unsafe_allow_html=True)
     nav_button("Capture Note")
     nav_button("Community Log")
-    nav_button("Search & Map", "Search My Atlas")
+    st.sidebar.markdown('<div class="nav-section">Review</div>', unsafe_allow_html=True)
+    nav_button("Search My Notes")
+    nav_button("Journey Review")
     nav_button("Library")
     nav_button("Export")
     nav_button("Publish Safely")
@@ -584,6 +630,30 @@ def destination_search_options(query: str) -> list[str]:
     return labels
 
 
+def build_brief_map_points(briefs: pd.DataFrame) -> pd.DataFrame:
+    if briefs.empty:
+        return pd.DataFrame()
+    rows = []
+    for brief in briefs.itertuples():
+        geo = geocode_destination(str(brief.destination or ""), str(brief.state or ""))
+        if not geo.get("latitude") or not geo.get("longitude"):
+            continue
+        rows.append(
+            {
+                "source": "Place brief",
+                "source_id": str(brief.id),
+                "title": str(brief.destination or "Saved brief"),
+                "location": geo.get("display_name") or ", ".join(part for part in [brief.destination, brief.state] if part),
+                "category": "brief",
+                "latitude": geo["latitude"],
+                "longitude": geo["longitude"],
+                "summary": str(brief.brief_15_sec or ""),
+                "color": [183, 150, 93],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def home_page() -> None:
     notes = fetch_field_notes()
     farms = fetch_farmstay_logs()
@@ -593,14 +663,14 @@ def home_page() -> None:
         """
         <div class="atlas-hero">
             <div>
-            <div class="atlas-kicker">Private field intelligence for the American road</div>
-            <h1>Waymark Atlas</h1>
-            <h3>An AI field companion for understanding America by road.</h3>
-            <p>Collect roadtrip and community observations, map them, generate cultural context, and turn private notes into public-ready stories.</p>
+            <div class="atlas-kicker">A U.S. movement-based second brain</div>
+            <h1>Waymark U.S.</h1>
+            <h3>Turn movement into memory and understanding.</h3>
+            <p>Capture messy thoughts while moving, organize them by place and theme, ask what to notice nearby, and later turn private notes into careful public reflections.</p>
             <div class="atlas-pill-row">
-                <span class="atlas-pill">Road notes</span>
+                <span class="atlas-pill">Smart travel journal</span>
+                <span class="atlas-pill">Place intelligence</span>
                 <span class="atlas-pill">Community logs</span>
-                <span class="atlas-pill">Map memory</span>
                 <span class="atlas-pill">Private by default</span>
             </div>
             </div>
@@ -609,37 +679,37 @@ def home_page() -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="atlas-choice-label">Choose your journey mode</div>', unsafe_allow_html=True)
+    st.markdown('<div class="atlas-choice-label">Choose a mode</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(
             """
             <div class="journey-card">
-                <div class="atlas-choice-label">Before the journey</div>
-                <h3>Plan where you are going</h3>
-                <p>Enter a destination, get local context, see it on the map, and decide what to notice before you arrive.</p>
+                <div class="atlas-choice-label">Output mode</div>
+                <h3>Ask about a place</h3>
+                <p>Search a city, park, landmark, or neighborhood. Get a sourced brief, map context, and field prompts before you arrive.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        if st.button("Plan a Journey", width="stretch"):
-            go_to("AI Brief")
+        if st.button("Ask About This Place", width="stretch"):
+            go_to("Ask About This Place")
     with c2:
         st.markdown(
             """
             <div class="journey-card">
-                <div class="atlas-choice-label">After the journey</div>
-                <h3>Reflect on what happened</h3>
-                <p>Search your mapped notes, write field records, and transform selected memories into publishable work.</p>
+                <div class="atlas-choice-label">Input mode</div>
+                <h3>Capture what you notice</h3>
+                <p>Save a quick note with mood, tags, location, privacy status, and automatic theme organization.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        if st.button("Reflect on a Journey", width="stretch"):
-            go_to("Search & Map")
+        if st.button("Capture Note", width="stretch"):
+            go_to("Capture Note")
 
     if not mapped.empty:
-        st.markdown("### Your Atlas Map")
+        st.markdown("### Memory Map")
         midpoint = [mapped["longitude"].mean(), mapped["latitude"].mean()]
         layer = pdk.Layer(
             "ScatterplotLayer",
@@ -668,7 +738,7 @@ def home_page() -> None:
             """
             <div class="atlas-panel">
                 <h3>Designed for the private-to-public workflow</h3>
-                <p class="small-muted">Waymark Atlas keeps raw observations separate from organized knowledge and public storytelling. Exact places, raw transcripts, personal names, and real-time movement stay private unless you deliberately transform them.</p>
+                <p class="small-muted">Waymark U.S. keeps raw observations separate from organized knowledge and public storytelling. Exact places, raw transcripts, personal names, and real-time movement stay private unless you deliberately transform them.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -677,88 +747,15 @@ def home_page() -> None:
         st.markdown('<div class="atlas-photo-strip"></div>', unsafe_allow_html=True)
 
 
-def before_journey_page() -> None:
-    st.title("Before the Journey")
-    st.caption("Start here when you are deciding where to go or what to notice before arrival.")
-    c1, c2 = st.columns([1.1, 0.9])
-    with c1:
-        st.markdown(
-            """
-            <div class="atlas-route-card">
-                <div>
-                    <div class="atlas-choice-label">Destination intelligence</div>
-                    <h3>Before You Arrive Brief</h3>
-                    <p>Type a place, choose the best suggestion, then receive a sourced visual brief with map context and field prompts.</p>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("Open AI Brief", width="stretch"):
-            go_to("AI Brief")
-    with c2:
-        st.markdown(
-            """
-            <div class="atlas-panel">
-                <h3>What this helps you do</h3>
-                <p class="small-muted">Arrive with a quiet checklist: history, food, institutions, work rhythms, local etiquette, and questions worth asking.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    st.markdown('<div class="atlas-choice-label">Included in this mode</div>', unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div class="atlas-panel">
-            <h3>AI Brief</h3>
-            <p class="small-muted">Search any U.S. city, town, national park, historical park, landmark, or destination covered by OpenStreetMap, then generate a sourced local brief.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def after_journey_page() -> None:
-    st.title("After the Journey")
-    st.caption("Start here when you want to search, reflect, organize, or publish what you experienced.")
-    c1, c2, c3 = st.columns(3)
-    actions = [
-        ("Search the map", "Find notes by place, category, and memory.", "Search & Map", "Open Map"),
-        ("Capture a note", "Save a raw observation with photos, transcript, and publishing choice.", "Capture Note", "Add Note"),
-        ("Community log", "Record a farmstay, local conversation, community event, or meaningful exchange.", "Community Log", "Add Community Log"),
-    ]
-    for col, (title, body, page_name, button_label) in zip((c1, c2, c3), actions):
-        with col:
-            st.markdown(
-                f'<div class="atlas-action-card"><div><h4>{title}</h4><p>{body}</p></div></div>',
-                unsafe_allow_html=True,
-            )
-            if st.button(button_label, key=f"after_{page_name}", width="stretch"):
-                go_to(page_name)
-    c4, c5, c6 = st.columns(3)
-    more_actions = [
-        ("Library", "Read your real field reviews and detailed source notes.", "Library", "Open Library"),
-        ("Export", "Turn selected observations into essays, scripts, captions, or archive notes.", "Export", "Create Export"),
-        ("Publish safely", "Create an anonymized public draft and review removed details.", "Publish Safely", "Prepare Public Version"),
-    ]
-    for col, (title, body, page_name, button_label) in zip((c4, c5, c6), more_actions):
-        with col:
-            st.markdown(
-                f'<div class="atlas-action-card"><div><h4>{title}</h4><p>{body}</p></div></div>',
-                unsafe_allow_html=True,
-            )
-            if st.button(button_label, key=f"after_more_{page_name}", width="stretch"):
-                go_to(page_name)
-
-
 def add_field_note_page() -> None:
     st.title("Capture Note")
-    st.caption("Save the raw observation, then choose whether it stays private or becomes a public-ready draft.")
+    st.caption("Input mode: capture what you notice now. Notes are private by default and can be organized or published later.")
 
     with st.form("field_note_form", clear_on_submit=False):
         left, right = st.columns(2)
         title = left.text_input("Title")
         note_date = right.date_input("Date", value=date.today())
+        note_time = right.time_input("Time", value=datetime.now().time().replace(second=0, microsecond=0))
         location_name = left.text_input("Location name")
         address = right.text_input("Address")
         city = left.text_input("City")
@@ -766,16 +763,21 @@ def add_field_note_page() -> None:
         lat_col, lon_col = st.columns(2)
         latitude = lat_col.number_input("Latitude", value=None, format="%.6f")
         longitude = lon_col.number_input("Longitude", value=None, format="%.6f")
-        category = st.selectbox("Category", CATEGORIES)
-        note_text = st.text_area("Note text", height=180)
+        mood = st.selectbox(
+            "Mood / feeling",
+            ["curious", "calm", "energized", "uncertain", "moved", "overwhelmed", "reflective", "practical", "other"],
+        )
+        note_text = st.text_area("Raw note", height=190, placeholder="Paste a quick field thought, overheard detail, route memory, or reflection.")
         photo = st.file_uploader("Photo upload", type=["png", "jpg", "jpeg", "webp"])
         audio = st.file_uploader("Audio upload", type=["mp3", "m4a", "wav", "aac"])
         audio_transcript = st.text_area("Audio transcript", height=120)
         tags = st.text_input("Tags", placeholder="comma-separated tags")
+        auto_category = classify_note_theme(note_text, tags, mood) if note_text or tags else "personal reflection"
+        st.caption(f"Auto theme preview: {auto_category}")
         publishing_choice = st.selectbox(
             "Publishing choice",
             [
-                "Keep private in my atlas",
+                "Keep private in my notes",
                 "Save as semi-private working note",
                 "Prepare as public-ready draft",
             ],
@@ -790,17 +792,18 @@ def add_field_note_page() -> None:
         photo_path = save_upload(photo, "photos")
         audio_path = save_upload(audio, "audio")
         location = location_name or city or state
-        ai_summary = generate_ai_summary(note_text, category, location)
+        category = classify_note_theme(note_text, tags, mood)
+        ai_summary = generate_public_ready_summary(note_text, location, category)
         ai_context = generate_ai_context(note_text, category, location)
         privacy_level = {
-            "Keep private in my atlas": "private",
+            "Keep private in my notes": "private",
             "Save as semi-private working note": "semi-private",
             "Prepare as public-ready draft": "public-ready",
         }[publishing_choice]
         note_id = insert_field_note(
             {
                 "title": title or "Untitled field note",
-                "date": note_date.isoformat(),
+                "date": datetime.combine(note_date, note_time).isoformat(timespec="minutes"),
                 "location_name": location_name,
                 "address": address,
                 "latitude": latitude,
@@ -812,6 +815,7 @@ def add_field_note_page() -> None:
                 "photo_path": photo_path,
                 "audio_path": audio_path,
                 "audio_transcript": audio_transcript,
+                "mood": mood,
                 "ai_summary": ai_summary,
                 "ai_context": ai_context,
                 "tags": tags,
@@ -821,16 +825,21 @@ def add_field_note_page() -> None:
         st.success(f"Saved field note #{note_id}.")
         with st.container(border=True):
             st.subheader(title or "Untitled field note")
+            st.caption(f"{location or 'No location'} | {category} | {mood} | {privacy_level}")
+            st.write(note_text)
+            st.markdown("**Organized summary**")
             st.write(ai_summary)
             render_context_block(ai_context)
 
 
 def map_view_page() -> None:
-    st.title("Search & Map")
-    st.caption("Search any destination to orient the map, or search your saved reviews and notes.")
+    st.title("Memory Map")
+    st.caption("Explore saved memories and saved place briefs without mixing them up. Reviews are what you experienced; briefs are context you asked for.")
     notes = fetch_field_notes()
     farms = fetch_farmstay_logs()
+    briefs = fetch_ai_briefs()
     mapped, needs_location = build_map_points(notes, farms)
+    brief_points = build_brief_map_points(briefs)
 
     st.markdown("**Search a place**")
     map_place_label = st_searchbox(
@@ -848,30 +857,54 @@ def map_view_page() -> None:
     if map_place_label and not map_place_payload:
         map_place_payload = geocode_destination(map_place_label)
 
-    search = st.text_input("Search saved notes and reviews", placeholder="Try: market, Knoxville, farm, church")
-    category_options = ["All"]
-    if not mapped.empty:
-        category_options += sorted({str(value) for value in mapped["category"].dropna() if str(value)})
-    selected_category = st.selectbox("Map category", category_options)
+    st.markdown(
+        '<div class="map-legend"><span>Reviews: your lived notes</span><span>Briefs: place context you generated</span></div>',
+        unsafe_allow_html=True,
+    )
 
-    visible = mapped.copy()
-    if selected_category != "All":
-        visible = visible[visible["category"].astype(str) == selected_category]
-    if search:
-        query = search.lower()
-        visible = visible[
-            visible[["title", "location", "category", "summary"]]
-            .fillna("")
-            .astype(str)
-            .agg(" ".join, axis=1)
-            .str.lower()
-            .str.contains(query, na=False)
-        ]
+    review_tab, brief_tab = st.tabs(["Reviews & Notes", "Saved Briefs"])
 
-    if mapped.empty:
-        st.info("No notes with coordinates yet.")
-    elif visible.empty:
-        st.info("No mapped records match the current search.")
+    with review_tab:
+        search = st.text_input("Search saved notes and reviews", placeholder="Try: market, Knoxville, food, station")
+        category_options = ["All"]
+        if not mapped.empty:
+            category_options += sorted({str(value) for value in mapped["category"].dropna() if str(value)})
+        selected_category = st.selectbox("Map category", category_options)
+
+        visible = mapped.copy()
+        if selected_category != "All":
+            visible = visible[visible["category"].astype(str) == selected_category]
+        if search:
+            query = search.lower()
+            visible = visible[
+                visible[["title", "location", "category", "summary"]]
+                .fillna("")
+                .astype(str)
+                .agg(" ".join, axis=1)
+                .str.lower()
+                .str.contains(query, na=False)
+            ]
+        render_memory_map(visible, map_place_payload, map_place_label, needs_location)
+
+    with brief_tab:
+        brief_search = st.text_input("Search saved briefs", placeholder="Try: New Orleans, history, local food")
+        visible_briefs = brief_points.copy()
+        if brief_search and not visible_briefs.empty:
+            query = brief_search.lower()
+            visible_briefs = visible_briefs[
+                visible_briefs[["title", "location", "summary"]]
+                .fillna("")
+                .astype(str)
+                .agg(" ".join, axis=1)
+                .str.lower()
+                .str.contains(query, na=False)
+            ]
+        render_brief_map(visible_briefs, map_place_payload, map_place_label)
+
+
+def render_memory_map(visible: pd.DataFrame, map_place_payload: dict | None, map_place_label: str, needs_location: pd.DataFrame) -> None:
+    if visible.empty:
+        st.info("No mapped reviews match the current search.")
     else:
         if map_place_payload and map_place_payload.get("latitude") and map_place_payload.get("longitude"):
             midpoint = [map_place_payload["longitude"], map_place_payload["latitude"]]
@@ -926,7 +959,7 @@ def map_view_page() -> None:
             st.caption(f"Map centered on: {map_place_payload['display_name']}")
 
         labels = {
-            f"{row.source}:{row.source_id}": f"{row.source} · {row.title} · {row.location}"
+            f"{row.source}:{row.source_id}": f"{row.source} | {row.title} | {row.location}"
             for row in visible.itertuples()
         }
         selected_record = st.selectbox(
@@ -939,7 +972,7 @@ def map_view_page() -> None:
         ].iloc[0]
         with st.container(border=True):
             st.subheader(selected_row["title"])
-            st.write(f"{selected_row['location']} · {selected_row['category']}")
+            st.write(f"{selected_row['location']} | {selected_row['category']}")
             st.write(selected_row["summary"])
             c1, c2 = st.columns(2)
             if c1.button("Create Public Version", key=f"map_public_{selected_record}"):
@@ -960,9 +993,51 @@ def map_view_page() -> None:
         st.dataframe(needs_location[["source", "title", "location", "category"]], width="stretch")
 
 
+def render_brief_map(visible: pd.DataFrame, map_place_payload: dict | None, map_place_label: str) -> None:
+    if visible.empty:
+        st.info("No saved briefs with map coordinates yet. Generate and save a brief from Ask About This Place.")
+        return
+    if map_place_payload and map_place_payload.get("latitude") and map_place_payload.get("longitude"):
+        midpoint = [map_place_payload["longitude"], map_place_payload["latitude"]]
+        zoom = 8.4
+    else:
+        midpoint = [visible["longitude"].mean(), visible["latitude"].mean()]
+        zoom = 4.2
+    layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=visible,
+        get_position="[longitude, latitude]",
+        get_fill_color="color",
+        get_radius=12000,
+        pickable=True,
+        opacity=0.88,
+    )
+    st.pydeck_chart(
+        pdk.Deck(
+            layers=[layer],
+            initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=zoom),
+            tooltip={
+                "html": "<b>{title}</b><br/>{location}<br/><br/>{summary}<br/><em>Open Ask About This Place to generate a new brief.</em>",
+                "style": {"backgroundColor": "#3a2c19", "color": "white"},
+            },
+        ),
+        use_container_width=True,
+    )
+    labels = {
+        f"{row.source_id}": f"{row.title} | {row.location}"
+        for row in visible.itertuples()
+    }
+    selected_brief = st.selectbox("Open saved brief", list(labels.keys()), format_func=lambda value: labels[value])
+    selected_row = visible[visible["source_id"].astype(str) == selected_brief].iloc[0]
+    with st.container(border=True):
+        st.subheader(selected_row["title"])
+        st.write(selected_row["location"])
+        st.write(selected_row["summary"])
+
+
 def ai_companion_page() -> None:
-    st.title("AI Brief")
-    st.caption("Start typing a destination. Suggestions come from OpenStreetMap, so small cities, national parks, historical parks, landmarks, and rural places are searchable.")
+    st.title("Ask About This Place")
+    st.caption("Output mode: enter a U.S. destination, then get a spacious sourced brief with map context, field prompts, and native English audio.")
 
     st.markdown("**Destination**")
     selected_label = st_searchbox(
@@ -1001,21 +1076,27 @@ def ai_companion_page() -> None:
             if corrected != destination.strip():
                 st.caption(f"Autocorrected destination: {corrected}")
     trip_purpose = st.selectbox(
-        "Trip purpose",
-        ["General field observation", "Road trip stop", "Community visit", "Food research", "Essay/podcast research", "Public field note"],
+        "What are you trying to understand?",
+        ["General field observation", "Road trip stop", "Walk or commute", "Study abroad memory", "Community visit", "Food research", "Essay/podcast research", "Public field note"],
     )
     interests = st.multiselect(
         "Optional interests",
         ["history", "food", "race/community", "agriculture", "music", "religion", "economy", "small-town life", "nature", "sports"],
         default=["history", "food", "economy"],
     )
-    generate = st.button("Generate Before You Arrive Brief", width="stretch")
+    custom_question = st.text_input(
+        "Optional question",
+        placeholder="What should I notice here? Why does this town feel this way? What industries dominate this region?",
+    )
+    generate = st.button("Generate Place Brief", width="stretch")
 
     if generate:
         if not (corrected or destination).strip():
             st.error("Please enter a destination first.")
         else:
             brief = generate_destination_brief(corrected or destination, suggested_state, trip_purpose, interests)
+            if custom_question:
+                brief["questions_to_ask"] = f"{custom_question} Start by asking locals what has changed, what outsiders miss, and which institutions still shape daily life."
             if selected_payload and not brief.get("latitude"):
                 brief.update(
                     {
@@ -1077,12 +1158,25 @@ def ai_companion_page() -> None:
             brief.get(key, "")
             for key in ["brief_15_sec", "historical_background", "cultural_signals", "local_food", "questions_to_ask", "safety_etiquette"]
         )
-        escaped_speech = speech_text.replace("\\", "\\\\").replace("`", "\\`")
+        speech_json = json.dumps(speech_text)
         components.html(
             f"""
             <button
               style="border:0;border-radius:999px;padding:12px 18px;background:#17211c;color:white;font-weight:800;cursor:pointer;"
-              onclick="window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(`{escaped_speech}`));">
+              onclick='
+                const text = {speech_json};
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = "en-US";
+                utterance.rate = 0.92;
+                utterance.pitch = 1.0;
+                const voices = window.speechSynthesis.getVoices();
+                const nativeVoice = voices.find(v => v.lang === "en-US" && /Samantha|Alex|Google US English|Microsoft.*English/i.test(v.name))
+                  || voices.find(v => v.lang === "en-US")
+                  || voices.find(v => v.lang && v.lang.startsWith("en"));
+                if (nativeVoice) utterance.voice = nativeVoice;
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utterance);
+              '>
               Listen to brief
             </button>
             <button
@@ -1122,7 +1216,7 @@ def ai_companion_page() -> None:
             with st.container(border=True):
                 st.markdown("**Reference snapshots**")
                 for item in brief["source_summaries"]:
-                    st.markdown(f"- [{item.get('title')}]({item.get('url')}) — {item.get('description') or 'public reference'}")
+                    st.markdown(f"- [{item.get('title')}]({item.get('url')}) - {item.get('description') or 'public reference'}")
         if brief.get("sources"):
             st.markdown("**Sources**")
             for source in brief["sources"]:
@@ -1242,7 +1336,7 @@ def note_library_page() -> None:
             cols = st.columns([3, 1])
             cols[0].subheader(item.get("display_title") or "Untitled")
             cols[1].markdown(f"**{item.get('source_type')}**")
-            st.write(f"{item.get('date', '')} · {item.get('display_location', '')} · {item.get('display_category', '')}")
+            st.write(f"{item.get('date', '')} | {item.get('display_location', '')} | {item.get('display_category', '')}")
             st.caption(f"Privacy: {item.get('privacy_level', 'private')}")
             st.markdown("**Field review**")
             st.write(render_review_text(item))
@@ -1278,6 +1372,67 @@ def note_library_page() -> None:
                     st.write(value)
 
 
+def journey_review_page() -> None:
+    st.title("Journey Review")
+    st.caption("Turn saved movement notes into a calm review: what you noticed, places that mattered, recurring themes, and a public-ready draft.")
+    items = fetch_all_library_items()
+    if items.empty:
+        st.info("Capture a note first, then come back here to review the journey.")
+        return
+
+    c1, c2, c3 = st.columns(3)
+    places = sorted({str(value) for value in items["display_location"].dropna() if str(value)})
+    themes = sorted({str(value) for value in items["display_category"].dropna() if str(value)})
+    selected_place = c1.selectbox("Place", ["All"] + places)
+    selected_theme = c2.selectbox("Theme", ["All"] + themes)
+    max_items = c3.slider("Notes to include", 1, min(12, len(items)), min(5, len(items)))
+
+    filtered = items.copy()
+    if selected_place != "All":
+        filtered = filtered[filtered["display_location"].astype(str) == selected_place]
+    if selected_theme != "All":
+        filtered = filtered[filtered["display_category"].astype(str) == selected_theme]
+    filtered = filtered.head(max_items)
+    if filtered.empty:
+        st.info("No notes match this review filter.")
+        return
+
+    notice_lines = []
+    for _, row in filtered.iterrows():
+        text = render_review_text(row)
+        notice_lines.append(f"{row.get('display_location')}: {text}")
+    place_counts = filtered["display_location"].fillna("Unknown place").value_counts()
+    theme_counts = filtered["display_category"].fillna("personal reflection").value_counts()
+
+    st.markdown("### What I Noticed")
+    for line in notice_lines[:5]:
+        st.markdown(f"- {line}")
+
+    st.markdown("### Places That Mattered")
+    st.write(", ".join(place_counts.index[:6]))
+
+    st.markdown("### Recurring Themes")
+    st.write(", ".join(f"{theme} ({count})" for theme, count in theme_counts.items()))
+
+    st.markdown("### Questions To Explore Later")
+    for question in [
+        "What did I keep noticing without planning to notice it?",
+        "Which local institutions made the place legible?",
+        "Where did the public-facing story differ from everyday life?",
+        "Which details should remain private before any public draft?",
+    ]:
+        st.markdown(f"- {question}")
+
+    public_draft = (
+        "I moved through a set of U.S. places with a notebook mindset rather than a checklist. "
+        f"The strongest memories clustered around {', '.join(place_counts.index[:3])}. "
+        f"Recurring themes included {', '.join(theme_counts.index[:4])}. "
+        "The public version should keep the feeling of movement and observation while removing exact addresses, private names, raw transcripts, and real-time details."
+    )
+    st.markdown("### Public-Ready Travel Reflection Draft")
+    st.text_area("Draft", public_draft, height=220)
+
+
 def get_selected_items(selection: list[str], items: pd.DataFrame) -> list[dict]:
     selected: list[dict] = []
     for token in selection:
@@ -1299,7 +1454,7 @@ def export_center_page() -> None:
         return
 
     options = [f"{row.source_type}:{row.source_id}" for row in items.itertuples()]
-    labels = {f"{row.source_type}:{row.source_id}": f"{row.source_type} · {row.display_title} · {row.display_location}" for row in items.itertuples()}
+    labels = {f"{row.source_type}:{row.source_id}": f"{row.source_type} | {row.display_title} | {row.display_location}" for row in items.itertuples()}
     default = st.session_state.pop("export_selection", [])
     selection = st.multiselect("Select one or more notes", options, default=default, format_func=lambda value: labels.get(value, value))
     export_type = st.selectbox("Export format", EXPORT_TYPES)
@@ -1353,7 +1508,7 @@ def privacy_page() -> None:
         return
 
     options = notes["id"].astype(str).tolist()
-    labels = {str(row.id): f"{row.title} · {row.location_name} · {row.date}" for row in notes.itertuples()}
+    labels = {str(row.id): f"{row.title} | {row.location_name} | {row.date}" for row in notes.itertuples()}
     default_id = None
     if st.session_state.get("selected_public") and st.session_state.selected_public[0] == "Field note":
         default_id = str(st.session_state.selected_public[1])
@@ -1383,12 +1538,13 @@ def main() -> None:
     apply_style()
     pages = [
         "Home",
-        "Explore Map",
+        "Memory Map",
         "Read Reviews",
-        "Search & Map",
+        "Search My Notes",
         "Capture Note",
-        "AI Brief",
+        "Ask About This Place",
         "Community Log",
+        "Journey Review",
         "Library",
         "Export",
         "Publish Safely",
@@ -1402,18 +1558,20 @@ def main() -> None:
 
     if page == "Home":
         home_page()
-    elif page == "Explore Map":
+    elif page == "Memory Map":
         map_view_page()
     elif page == "Read Reviews":
         note_library_page()
     elif page == "Capture Note":
         add_field_note_page()
-    elif page == "Search & Map":
-        map_view_page()
-    elif page == "AI Brief":
+    elif page == "Search My Notes":
+        note_library_page()
+    elif page == "Ask About This Place":
         ai_companion_page()
     elif page == "Community Log":
         farmstay_log_page()
+    elif page == "Journey Review":
+        journey_review_page()
     elif page == "Library":
         note_library_page()
     elif page == "Export":
