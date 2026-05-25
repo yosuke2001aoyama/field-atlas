@@ -134,12 +134,12 @@ def create_public_version_for_farmstay(log: dict) -> str:
     )
     redacted, _ = anonymize_text(source)
     public_date = generalize_date(log.get("date", ""))
-    location = "a farmstay in the United States"
+    location = "a community encounter in the United States"
     if log.get("location_name"):
-        location = f"a farmstay near {log.get('location_name')}"
+        location = f"a community encounter near {log.get('location_name')}"
 
     return (
-        f"During {public_date}, I spent time at {location}. The exact farm name and private identities are withheld.\n\n"
+        f"During {public_date}, I spent time at {location}. The exact host, organization, and private identities are withheld.\n\n"
         f"{redacted}\n\n"
         "This version is written as an anonymous travel reflection rather than a real-time report."
     )
