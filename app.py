@@ -490,16 +490,24 @@ def apply_style() -> None:
 
             .brief-icon {
                 display: inline-flex;
-                width: 2.1rem;
-                height: 2.1rem;
+                width: 2.45rem;
+                height: 2.45rem;
                 align-items: center;
                 justify-content: center;
                 margin-bottom: 0.75rem;
                 border-radius: 999px;
                 color: #fff;
                 background: #17211c;
-                font-weight: 900;
-                font-size: 0.78rem;
+            }
+
+            .brief-icon svg {
+                width: 1.28rem;
+                height: 1.28rem;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 1.9;
+                stroke-linecap: round;
+                stroke-linejoin: round;
             }
 
             .voice-dock {
@@ -711,9 +719,6 @@ def render_sidebar(pages: list[str]) -> str:
     st.sidebar.markdown('<div class="nav-section">Capture</div>', unsafe_allow_html=True)
     nav_button("Capture Note")
     nav_button("Community Log")
-    st.sidebar.markdown('<div class="nav-section">Revisit & Share</div>', unsafe_allow_html=True)
-    nav_button("Journey Review")
-    nav_button("Publish Safely")
     return st.session_state.page
 
 
@@ -801,7 +806,7 @@ def render_compact_map(points: pd.DataFrame, target_payload: dict | None = None,
                 get_path="path",
                 get_color=[183, 150, 93, 130],
                 width_min_pixels=2,
-                pickable=True,
+                pickable=False,
             )
         )
     st.pydeck_chart(
@@ -828,6 +833,18 @@ def answer_home_question(question: str) -> str:
     if "notice" in q or "brief" in q or "place" in q:
         return "Use Ask About This Place. Enter a city, park, landmark, or small town, then generate a visual brief with prompts for what to notice."
     return "Capture the rough thought first. Waymark U.S. will attach place, theme, mood, and privacy status so scattered notes can become searchable memory later."
+
+
+def brief_icon_svg(key: str) -> str:
+    icons = {
+        "historical_background": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h10a3 3 0 0 1 3 3v12H8a3 3 0 0 0-3 0v-15z"></path><path d="M8 7h7M8 10h6"></path></svg>',
+        "cultural_signals": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"></path><circle cx="12" cy="12" r="2.5"></circle></svg>',
+        "local_food": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M10 3v8M7 11h3v10"></path><path d="M16 3c2 2.4 2 6.5 0 9v9"></path></svg>',
+        "questions_to_ask": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 9a3 3 0 1 1 4.7 2.5c-1.2.8-1.7 1.4-1.7 2.8"></path><path d="M12 18h.01"></path><circle cx="12" cy="12" r="9"></circle></svg>',
+        "field_note_prompts": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11a2.2 2.2 0 0 0-3-3L5 17l-1 3z"></path><path d="M14 7l3 3"></path></svg>',
+        "safety_etiquette": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3z"></path><path d="M9 12l2 2 4-5"></path></svg>',
+    }
+    return icons.get(key, '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle></svg>')
 
 
 def home_page() -> None:
@@ -1459,11 +1476,11 @@ def ai_companion_page() -> None:
             cols = st.columns(2)
             for col, (key, label) in zip(cols, section_labels[row_start : row_start + 2]):
                 with col:
-                    icon = label.split()[0][:2].upper()
+                    icon = brief_icon_svg(key)
                     st.markdown(
                         f"""
                         <div class="brief-section">
-                            <div class="brief-icon">{html.escape(icon)}</div>
+                            <div class="brief-icon">{icon}</div>
                             <h4>{html.escape(label)}</h4>
                             <p>{html.escape(str(brief.get(key, "")))}</p>
                         </div>
@@ -1490,36 +1507,31 @@ def ai_companion_page() -> None:
 def farmstay_log_page() -> None:
     st.title("Community Log")
     st.caption("A lightweight place-based memory for conversations, hospitality, local encounters, or community moments. Write freely; Waymark organizes later.")
-    selected_location_label = st_searchbox(
-        destination_search_options,
-        placeholder="Where did this happen?",
-        label=None,
-        default="",
-        default_use_searchterm=True,
-        clear_on_submit=False,
-        edit_after_submit="current",
-        debounce=450,
-        key="community_location_searchbox",
+    location_text = st.text_input("Place or town", placeholder="Asheville market, rural Kentucky, neighborhood diner...")
+    moment_type = st.selectbox(
+        "What kind of community moment was it?",
+        [
+            "Local conversation",
+            "Farmstay",
+            "Shared meal or hospitality",
+            "Market or small business visit",
+            "Community event",
+            "Religious or civic gathering",
+            "Volunteer or work exchange",
+            "Homestay",
+            "Other",
+        ],
     )
-    selected_location_payload = st.session_state.get("destination_payloads", {}).get(selected_location_label)
-    if selected_location_label and not selected_location_payload:
-        selected_location_payload = geocode_destination(selected_location_label)
-    default_location = selected_location_payload.get("destination", selected_location_label) if selected_location_payload else selected_location_label
-    default_latitude = selected_location_payload.get("latitude") if selected_location_payload else None
-    default_longitude = selected_location_payload.get("longitude") if selected_location_payload else None
 
     with st.form("farmstay_form"):
         farm_name = st.text_input("Optional title", placeholder="Market conversation, dinner with hosts, town meeting...")
-        farm_type = st.selectbox(
-            "Moment type",
-            ["local conversation", "community event", "farmstay", "market visit", "homestay", "volunteer day", "religious or civic gathering", "workshop", "other"],
-        )
         reflection = st.text_area("What happened?", height=220, placeholder="Write it messily. Who was there, what was said, what surprised you, what should stay private?")
         people_met = st.text_input("Private people note", placeholder="Optional. Roles are safer than names.")
         community_feeling = st.slider("How strong did the community feeling seem?", 1, 5, 3)
         submitted = st.form_submit_button("Save Community Log")
 
     if submitted:
+        selected_location_payload = geocode_destination(location_text) if location_text else {}
         work_done = reflection
         food_eaten = ""
         conversation_topics = reflection
@@ -1529,10 +1541,10 @@ def farmstay_log_page() -> None:
         payload = {
             "date": date.today().isoformat(),
             "farm_name": farm_name,
-            "location_name": default_location,
-            "latitude": default_latitude,
-            "longitude": default_longitude,
-            "farm_type": farm_type,
+            "location_name": location_text,
+            "latitude": selected_location_payload.get("latitude"),
+            "longitude": selected_location_payload.get("longitude"),
+            "farm_type": moment_type.lower(),
             "work_done": work_done,
             "people_met": people_met,
             "food_eaten": food_eaten,
