@@ -140,56 +140,6 @@ def apply_style() -> None:
                 margin-bottom: 0.1rem;
             }
 
-            [data-testid="stSidebar"] [role="radiogroup"] {
-                display: grid;
-                gap: 0.42rem;
-                margin-top: 1rem;
-            }
-
-            [data-testid="stSidebar"] label {
-                border: 1px solid rgba(23, 33, 28, 0.10);
-                border-radius: 999px;
-                padding: 0.62rem 0.82rem;
-                background: rgba(255, 255, 255, 0.58);
-                transition: all 160ms ease;
-            }
-
-            [data-testid="stSidebar"] label:hover {
-                border-color: rgba(47, 111, 88, 0.35);
-                background: rgba(255, 255, 255, 0.82);
-                transform: translateX(2px);
-            }
-
-            [data-testid="stSidebar"] label:has(input:checked) {
-                color: #ffffff;
-                border-color: rgba(23, 33, 28, 0.08);
-                background: linear-gradient(135deg, #17211c, #2f6f58);
-                box-shadow: 0 10px 26px rgba(23, 33, 28, 0.18);
-            }
-
-            [data-testid="stSidebar"] label:has(input:checked) p {
-                color: #ffffff;
-                font-weight: 700;
-            }
-
-            [data-testid="stSidebar"] input[type="radio"] {
-                appearance: none;
-                width: 0.58rem;
-                height: 0.58rem;
-                border-radius: 999px;
-                border: 1px solid rgba(23, 33, 28, 0.24);
-                background: rgba(255, 255, 255, 0.56);
-                margin: 0 0.52rem 0 0;
-                display: inline-block;
-                vertical-align: middle;
-            }
-
-            [data-testid="stSidebar"] input[type="radio"]:checked {
-                border-color: #ffffff;
-                background: var(--atlas-gold);
-                box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22);
-            }
-
             [data-testid="stSidebar"] p {
                 font-size: 0.95rem;
             }
@@ -203,8 +153,8 @@ def apply_style() -> None:
 
             .nav-active {
                 border-radius: 999px;
-                padding: 0.76rem 0.92rem;
-                margin: 0.35rem 0;
+                padding: 0.78rem 0.94rem;
+                margin: 0.22rem 0;
                 color: #ffffff;
                 background: linear-gradient(135deg, #17211c, #2f6f58);
                 box-shadow: 0 10px 26px rgba(23, 33, 28, 0.18);
@@ -232,11 +182,15 @@ def apply_style() -> None:
                 box-shadow: 0 14px 34px rgba(23, 33, 28, 0.06);
             }
 
+            [data-testid="stSidebar"] .stButton {
+                width: 100%;
+            }
+
             [data-testid="stSidebar"] .stButton > button {
                 width: 100%;
                 justify-content: flex-start;
                 border-radius: 999px;
-                padding: 0.72rem 0.92rem;
+                padding: 0.70rem 0.92rem;
                 margin: 0.08rem 0;
                 color: var(--atlas-ink);
                 background: rgba(255, 255, 255, 0.58);
@@ -253,13 +207,13 @@ def apply_style() -> None:
             }
 
             .atlas-hero {
-                min-height: 70vh;
+                min-height: 42vh;
                 display: grid;
                 align-items: end;
                 overflow: hidden;
                 border: 1px solid rgba(255, 255, 255, 0.46);
                 border-radius: 24px;
-                padding: clamp(1.25rem, 4vw, 3rem);
+                padding: clamp(1.15rem, 3vw, 2.45rem);
                 margin-bottom: 1.35rem;
                 color: #ffffff;
                 background:
@@ -273,7 +227,7 @@ def apply_style() -> None:
 
             .atlas-hero h1 {
                 color: #ffffff;
-                font-size: clamp(4.1rem, 10vw, 8.2rem);
+                font-size: clamp(3.2rem, 7vw, 5.8rem);
                 line-height: 0.9;
                 margin: 0.35rem 0 0.65rem;
                 max-width: 850px;
@@ -321,7 +275,7 @@ def apply_style() -> None:
             }
 
             .atlas-action-card {
-                min-height: 9.5rem;
+                min-height: 10.75rem;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
@@ -334,7 +288,7 @@ def apply_style() -> None:
 
             .atlas-action-card h4 {
                 margin: 0 0 0.35rem;
-                font-size: 1rem;
+                font-size: 1.08rem;
                 color: var(--atlas-ink);
             }
 
@@ -354,6 +308,42 @@ def apply_style() -> None:
                 background-size: cover;
                 background-position: center;
                 box-shadow: 0 18px 44px rgba(23, 33, 28, 0.12);
+            }
+
+            .atlas-route-card {
+                min-height: 13rem;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                border: 1px solid rgba(255, 255, 255, 0.54);
+                border-radius: 22px;
+                padding: 1.25rem;
+                color: #ffffff;
+                background:
+                    linear-gradient(180deg, rgba(9, 17, 12, 0.06), rgba(9, 17, 12, 0.72)),
+                    url("https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1400&q=80");
+                background-size: cover;
+                background-position: center;
+                box-shadow: 0 20px 52px rgba(23, 33, 28, 0.16);
+            }
+
+            .atlas-route-card h3, .atlas-route-card p {
+                color: #ffffff;
+                margin: 0;
+            }
+
+            .atlas-route-card p {
+                color: rgba(255, 255, 255, 0.82);
+                max-width: 44rem;
+            }
+
+            .atlas-choice-label {
+                color: var(--atlas-muted);
+                font-size: 0.82rem;
+                font-weight: 800;
+                letter-spacing: 0.08rem;
+                text-transform: uppercase;
+                margin-bottom: 0.5rem;
             }
 
             .atlas-pill-row {
@@ -455,38 +445,40 @@ def render_context_block(text: str) -> None:
 
 
 def render_sidebar(pages: list[str]) -> str:
+    nav_labels = {
+        "Home": "Home",
+        "Search & Map": "Search & Map",
+        "Capture Note": "Capture Note",
+        "AI Brief": "AI Brief",
+        "Farmstay Log": "Farmstay Log",
+        "Library": "Library",
+        "Export": "Export",
+        "Publish Safely": "Publish Safely",
+    }
     st.sidebar.title("Field Atlas")
     st.sidebar.markdown(
         '<div class="sidebar-tagline">Private road notes, maps, farmstay logs, and public-ready storytelling.</div>',
         unsafe_allow_html=True,
     )
-    return st.sidebar.radio(
-        "Navigate",
-        pages,
-        index=pages.index(st.session_state.page),
-        label_visibility="collapsed",
-    )
+    for page_name in pages:
+        label = nav_labels.get(page_name, page_name)
+        if page_name == st.session_state.page:
+            st.sidebar.markdown(f'<div class="nav-active">{label}</div>', unsafe_allow_html=True)
+        elif st.sidebar.button(label, key=f"side_nav_{page_name}"):
+            st.session_state.page = page_name
+            st.rerun()
+    return st.session_state.page
 
 
-def render_top_nav(pages: list[str]) -> None:
-    st.markdown('<div class="top-nav-wrap">', unsafe_allow_html=True)
-    for row_start in range(0, len(pages), 4):
-        cols = st.columns(4)
-        for col, page_name in zip(cols, pages[row_start : row_start + 4]):
-            with col:
-                if page_name == st.session_state.page:
-                    st.markdown(f'<div class="top-nav-active">{page_name}</div>', unsafe_allow_html=True)
-                elif st.button(page_name, key=f"top_nav_{page_name}", width="stretch"):
-                    st.session_state.page = page_name
-                    st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+def go_to(page_name: str) -> None:
+    st.session_state.page = page_name
+    st.rerun()
 
 
 def home_page() -> None:
     notes = fetch_field_notes()
     farms = fetch_farmstay_logs()
-    states = notes["state"].dropna()
-    states_count = len({state for state in states if str(state).strip()})
+    mapped, _ = build_map_points(notes, farms)
 
     st.markdown(
         """
@@ -508,33 +500,78 @@ def home_page() -> None:
         unsafe_allow_html=True,
     )
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total field notes", len(notes))
-    col2.metric("States visited", states_count)
-    col3.metric("Farmstay logs", len(farms))
-
-    st.markdown("### Start From The Field")
-    c1, c2, c3, c4 = st.columns(4)
+    st.markdown('<div class="atlas-choice-label">What do you want to do now?</div>', unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
     with c1:
-        st.markdown('<div class="atlas-action-card"><div><h4>Capture a place</h4><p>Save a raw note with location, media, tags, and privacy level.</p></div></div>', unsafe_allow_html=True)
-        if st.button("Add Field Note", width="stretch"):
-            st.session_state.page = "Add Field Note"
-            st.rerun()
+        st.markdown(
+            """
+            <div class="atlas-route-card">
+                <div>
+                    <h3>Search the atlas</h3>
+                    <p>Open the map first, search your field notes, and jump into the record that explains a place.</p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Search Notes on the Map", width="stretch"):
+            go_to("Search & Map")
     with c2:
-        st.markdown('<div class="atlas-action-card"><div><h4>Arrive prepared</h4><p>Generate a cultural and historical before-you-arrive brief.</p></div></div>', unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class="atlas-action-card">
+                <div>
+                    <h4>Capture or publish</h4>
+                    <p>Add a private note from the road, or turn selected material into a public-ready story after review.</p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        left_button, right_button = st.columns(2)
+        if left_button.button("Add a Note", width="stretch"):
+            go_to("Capture Note")
+        if right_button.button("Publish Safely", width="stretch"):
+            go_to("Publish Safely")
+
+    if not mapped.empty:
+        st.markdown("### Your Atlas Map")
+        midpoint = [mapped["longitude"].mean(), mapped["latitude"].mean()]
+        layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=mapped,
+            get_position="[longitude, latitude]",
+            get_fill_color="color",
+            get_radius=10500,
+            pickable=True,
+            opacity=0.8,
+        )
+        st.pydeck_chart(
+            pdk.Deck(
+                layers=[layer],
+                initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=3.6),
+                tooltip={
+                    "html": "<b>{title}</b><br/>{location}<br/>{category}<br/><br/>{summary}",
+                    "style": {"backgroundColor": "#17211c", "color": "white"},
+                },
+            ),
+            use_container_width=True,
+        )
+
+    st.markdown("### Next Actions")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown('<div class="atlas-action-card"><div><h4>Plan before arrival</h4><p>Enter a destination and get a sourced, photo-backed local brief.</p></div></div>', unsafe_allow_html=True)
         if st.button("Generate AI Brief", width="stretch"):
-            st.session_state.page = "AI Companion"
-            st.rerun()
-    with c3:
-        st.markdown('<div class="atlas-action-card"><div><h4>Log farm life</h4><p>Structure work, food, people, surprises, and reflection.</p></div></div>', unsafe_allow_html=True)
+            go_to("AI Brief")
+    with c2:
+        st.markdown('<div class="atlas-action-card"><div><h4>Log farm life</h4><p>Structure work, food, people, surprises, and reflection from a stay.</p></div></div>', unsafe_allow_html=True)
         if st.button("Add Farmstay Log", width="stretch"):
-            st.session_state.page = "Farmstay Log"
-            st.rerun()
-    with c4:
-        st.markdown('<div class="atlas-action-card"><div><h4>Make it public</h4><p>Turn selected notes into scripts, essays, captions, or public versions.</p></div></div>', unsafe_allow_html=True)
-        if st.button("Export Notes", width="stretch"):
-            st.session_state.page = "Export Center"
-            st.rerun()
+            go_to("Farmstay Log")
+    with c3:
+        st.markdown('<div class="atlas-action-card"><div><h4>Create from notes</h4><p>Export selected observations as a script, essay, caption, diary, or archive.</p></div></div>', unsafe_allow_html=True)
+        if st.button("Open Export", width="stretch"):
+            go_to("Export")
 
     left, right = st.columns([1.2, 0.8])
     with left:
@@ -552,8 +589,8 @@ def home_page() -> None:
 
 
 def add_field_note_page() -> None:
-    st.title("Add Field Note")
-    st.caption("Capture the raw material first. You can refine, anonymize, and export it later.")
+    st.title("Capture Note")
+    st.caption("Save the raw observation, then choose whether it stays private or becomes a public-ready draft.")
 
     with st.form("field_note_form", clear_on_submit=False):
         left, right = st.columns(2)
@@ -572,8 +609,16 @@ def add_field_note_page() -> None:
         audio = st.file_uploader("Audio upload", type=["mp3", "m4a", "wav", "aac"])
         audio_transcript = st.text_area("Audio transcript", height=120)
         tags = st.text_input("Tags", placeholder="comma-separated tags")
-        privacy_level = st.radio("Privacy level", PRIVACY_LEVELS, horizontal=True)
-        submitted = st.form_submit_button("Save Field Note")
+        publishing_choice = st.selectbox(
+            "Publishing choice",
+            [
+                "Keep private in my atlas",
+                "Save as semi-private working note",
+                "Prepare as public-ready draft",
+            ],
+            help="Private notes keep exact details for your own use. Public-ready drafts should still be reviewed before publishing.",
+        )
+        submitted = st.form_submit_button("Save Note")
 
     if submitted:
         if not title.strip() and not note_text.strip():
@@ -584,6 +629,11 @@ def add_field_note_page() -> None:
         location = location_name or city or state
         ai_summary = generate_ai_summary(note_text, category, location)
         ai_context = generate_ai_context(note_text, category, location)
+        privacy_level = {
+            "Keep private in my atlas": "private",
+            "Save as semi-private working note": "semi-private",
+            "Prepare as public-ready draft": "public-ready",
+        }[publishing_choice]
         note_id = insert_field_note(
             {
                 "title": title or "Untitled field note",
@@ -613,7 +663,7 @@ def add_field_note_page() -> None:
 
 
 def map_view_page() -> None:
-    st.title("Map View")
+    st.title("Search & Map")
     st.caption("Search your notes, see the matching places on the map, then open the record without leaving this page.")
     notes = fetch_field_notes()
     farms = fetch_farmstay_logs()
@@ -655,7 +705,7 @@ def map_view_page() -> None:
             opacity=0.82,
         )
         tooltip = {
-            "html": "<b>{title}</b><br/>{location}<br/>{category}<br/><br/>{summary}<br/><em>Open details in Note Library.</em>",
+            "html": "<b>{title}</b><br/>{location}<br/>{category}<br/><br/>{summary}<br/><em>Open details in Library.</em>",
             "style": {"backgroundColor": "#1f2a24", "color": "white"},
         }
         st.pydeck_chart(
@@ -664,7 +714,7 @@ def map_view_page() -> None:
                 initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=4.2),
                 tooltip=tooltip,
             ),
-            width="stretch",
+            use_container_width=True,
         )
 
         labels = {
@@ -689,12 +739,12 @@ def map_view_page() -> None:
                     "Field note" if selected_row["source"] == "Field note" else "Farmstay log",
                     int(selected_row["source_id"]),
                 )
-                st.session_state.page = "Privacy / Public Version"
+                st.session_state.page = "Publish Safely"
                 st.rerun()
             if c2.button("Export This Record", key=f"map_export_{selected_record}"):
                 source_type = "Field note" if selected_row["source"] == "Field note" else "Farmstay log"
                 st.session_state.export_selection = [f"{source_type}:{selected_row['source_id']}"]
-                st.session_state.page = "Export Center"
+                st.session_state.page = "Export"
                 st.rerun()
 
     if not needs_location.empty:
@@ -703,7 +753,7 @@ def map_view_page() -> None:
 
 
 def ai_companion_page() -> None:
-    st.title("AI Companion")
+    st.title("AI Brief")
     st.caption("Enter a destination. Field Atlas corrects light typos, suggests the state, then builds a sourced before-you-arrive brief.")
 
     destination = st.text_input("Destination", placeholder="Try: Louiville, Asheville, Chicago")
@@ -764,7 +814,7 @@ def ai_companion_page() -> None:
                     ),
                     tooltip={"text": "{label}"},
                 ),
-                width="stretch",
+                use_container_width=True,
             )
 
         speech_text = " ".join(
@@ -893,7 +943,7 @@ def filter_library(items: pd.DataFrame) -> pd.DataFrame:
 
 
 def note_library_page() -> None:
-    st.title("Note Library")
+    st.title("Library")
     items = fetch_all_library_items()
     if items.empty:
         st.info("No notes yet.")
@@ -916,11 +966,11 @@ def note_library_page() -> None:
                 st.session_state.selected_detail = (item.get("source_type"), int(item.get("source_id")))
             if b2.button("Create Public Version", key=public_key):
                 st.session_state.selected_public = (item.get("source_type"), int(item.get("source_id")))
-                st.session_state.page = "Privacy / Public Version"
+                st.session_state.page = "Publish Safely"
                 st.rerun()
             if b3.button("Export", key=f"export_{item.get('source_type')}_{item.get('source_id')}"):
                 st.session_state.export_selection = [f"{item.get('source_type')}:{item.get('source_id')}"]
-                st.session_state.page = "Export Center"
+                st.session_state.page = "Export"
                 st.rerun()
 
     if st.session_state.get("selected_detail"):
@@ -950,7 +1000,7 @@ def get_selected_items(selection: list[str], items: pd.DataFrame) -> list[dict]:
 
 
 def export_center_page() -> None:
-    st.title("Export Center")
+    st.title("Export")
     items = fetch_all_library_items()
     if items.empty:
         st.info("Add notes before exporting.")
@@ -980,13 +1030,12 @@ def export_center_page() -> None:
 
 
 def privacy_page() -> None:
-    st.title("Privacy / Public Version")
-    st.warning("Please manually review before publishing.")
+    st.title("Publish Safely")
+    st.warning("Public versions are drafts. Please manually review before publishing.")
     st.markdown(
         """
-        Privacy principles: exact location and exact date are private by default; raw voice transcripts are private by default;
-        names of private individuals are private by default; public output should be delayed and generalized; no affiliation disclosure;
-        no real-time posting recommendation.
+        Select a note, generate an anonymous public version, then review what was removed.
+        Exact place, exact date, raw transcript, names, affiliations, and real-time movement stay private by default.
         """
     )
 
@@ -1042,35 +1091,36 @@ def main() -> None:
     apply_style()
     pages = [
         "Home",
-        "Add Field Note",
-        "Map View",
-        "AI Companion",
+        "Search & Map",
+        "Capture Note",
+        "AI Brief",
         "Farmstay Log",
-        "Note Library",
-        "Export Center",
-        "Privacy / Public Version",
+        "Library",
+        "Export",
+        "Publish Safely",
     ]
     if "page" not in st.session_state:
         st.session_state.page = "Home"
+    if st.session_state.page not in pages:
+        st.session_state.page = "Home"
     page = render_sidebar(pages)
     st.session_state.page = page
-    render_top_nav(pages)
 
     if page == "Home":
         home_page()
-    elif page == "Add Field Note":
+    elif page == "Capture Note":
         add_field_note_page()
-    elif page == "Map View":
+    elif page == "Search & Map":
         map_view_page()
-    elif page == "AI Companion":
+    elif page == "AI Brief":
         ai_companion_page()
     elif page == "Farmstay Log":
         farmstay_log_page()
-    elif page == "Note Library":
+    elif page == "Library":
         note_library_page()
-    elif page == "Export Center":
+    elif page == "Export":
         export_center_page()
-    elif page == "Privacy / Public Version":
+    elif page == "Publish Safely":
         privacy_page()
 
 
