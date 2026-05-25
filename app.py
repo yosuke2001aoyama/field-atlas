@@ -37,7 +37,10 @@ from map_utils import build_map_points
 from privacy_utils import create_public_version_for_farmstay, create_public_version_for_note
 
 
-st.set_page_config(page_title="Field Atlas", page_icon="🗺️", layout="wide")
+APP_NAME = "Waymark Atlas"
+
+
+st.set_page_config(page_title=APP_NAME, page_icon="🗺️", layout="wide")
 initialize_app()
 
 
@@ -526,8 +529,8 @@ def render_context_block(text: str) -> None:
 def render_sidebar(pages: list[str]) -> str:
     nav_labels = {
         "Home": "Home",
-        "Before the Journey": "Before the Journey",
-        "After the Journey": "After the Journey",
+        "Explore Map": "Explore Map",
+        "Read Reviews": "Read Reviews",
         "Search & Map": "Search & Map",
         "Capture Note": "Capture Note",
         "AI Brief": "AI Brief",
@@ -536,28 +539,31 @@ def render_sidebar(pages: list[str]) -> str:
         "Export": "Export",
         "Publish Safely": "Publish Safely",
     }
-    st.sidebar.title("Field Atlas")
+    st.sidebar.title(APP_NAME)
     st.sidebar.markdown(
         '<div class="sidebar-tagline">Private road notes, maps, community logs, and public-ready storytelling.</div>',
         unsafe_allow_html=True,
     )
-    def nav_button(page_name: str, child: bool = False) -> None:
-        label = nav_labels.get(page_name, page_name)
-        display_label = f"  {label}" if child else label
+    def nav_button(page_name: str, label_override: str | None = None) -> None:
+        display_label = label_override or nav_labels.get(page_name, page_name)
         if page_name == st.session_state.page:
             st.sidebar.markdown(f'<div class="nav-active">{display_label}</div>', unsafe_allow_html=True)
-        elif st.sidebar.button(display_label, key=f"side_nav_{page_name}"):
+        elif st.sidebar.button(display_label, key=f"side_nav_{page_name}_{display_label}"):
             st.session_state.page = page_name
             st.rerun()
 
     nav_button("Home")
     st.sidebar.markdown('<div class="nav-section">Before</div>', unsafe_allow_html=True)
-    nav_button("Before the Journey")
-    nav_button("AI Brief", child=True)
+    nav_button("AI Brief", "Plan Brief")
+    nav_button("Explore Map")
+    nav_button("Read Reviews")
     st.sidebar.markdown('<div class="nav-section">After</div>', unsafe_allow_html=True)
-    nav_button("After the Journey")
-    for page_name in ["Search & Map", "Capture Note", "Community Log", "Library", "Export", "Publish Safely"]:
-        nav_button(page_name, child=True)
+    nav_button("Capture Note")
+    nav_button("Community Log")
+    nav_button("Search & Map", "Search My Atlas")
+    nav_button("Library")
+    nav_button("Export")
+    nav_button("Publish Safely")
     return st.session_state.page
 
 
@@ -588,7 +594,7 @@ def home_page() -> None:
         <div class="atlas-hero">
             <div>
             <div class="atlas-kicker">Private field intelligence for the American road</div>
-            <h1>Field Atlas</h1>
+            <h1>Waymark Atlas</h1>
             <h3>An AI field companion for understanding America by road.</h3>
             <p>Collect roadtrip and community observations, map them, generate cultural context, and turn private notes into public-ready stories.</p>
             <div class="atlas-pill-row">
@@ -617,7 +623,7 @@ def home_page() -> None:
             unsafe_allow_html=True,
         )
         if st.button("Plan a Journey", width="stretch"):
-            go_to("Before the Journey")
+            go_to("AI Brief")
     with c2:
         st.markdown(
             """
@@ -630,7 +636,7 @@ def home_page() -> None:
             unsafe_allow_html=True,
         )
         if st.button("Reflect on a Journey", width="stretch"):
-            go_to("After the Journey")
+            go_to("Search & Map")
 
     if not mapped.empty:
         st.markdown("### Your Atlas Map")
@@ -662,7 +668,7 @@ def home_page() -> None:
             """
             <div class="atlas-panel">
                 <h3>Designed for the private-to-public workflow</h3>
-                <p class="small-muted">Field Atlas keeps raw observations separate from organized knowledge and public storytelling. Exact places, raw transcripts, personal names, and real-time movement stay private unless you deliberately transform them.</p>
+                <p class="small-muted">Waymark Atlas keeps raw observations separate from organized knowledge and public storytelling. Exact places, raw transcripts, personal names, and real-time movement stay private unless you deliberately transform them.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -821,12 +827,28 @@ def add_field_note_page() -> None:
 
 def map_view_page() -> None:
     st.title("Search & Map")
-    st.caption("Search your notes, see the matching places on the map, then open the record without leaving this page.")
+    st.caption("Search any destination to orient the map, or search your saved reviews and notes.")
     notes = fetch_field_notes()
     farms = fetch_farmstay_logs()
     mapped, needs_location = build_map_points(notes, farms)
 
-    search = st.text_input("Search mapped notes", placeholder="Try: market, Knoxville, farm, church")
+    st.markdown("**Search a place**")
+    map_place_label = st_searchbox(
+        destination_search_options,
+        placeholder="City, park, landmark...",
+        label=None,
+        default="",
+        default_use_searchterm=True,
+        clear_on_submit=False,
+        edit_after_submit="current",
+        debounce=450,
+        key="map_place_searchbox",
+    )
+    map_place_payload = st.session_state.get("destination_payloads", {}).get(map_place_label)
+    if map_place_label and not map_place_payload:
+        map_place_payload = geocode_destination(map_place_label)
+
+    search = st.text_input("Search saved notes and reviews", placeholder="Try: market, Knoxville, farm, church")
     category_options = ["All"]
     if not mapped.empty:
         category_options += sorted({str(value) for value in mapped["category"].dropna() if str(value)})
@@ -851,7 +873,12 @@ def map_view_page() -> None:
     elif visible.empty:
         st.info("No mapped records match the current search.")
     else:
-        midpoint = [visible["longitude"].mean(), visible["latitude"].mean()]
+        if map_place_payload and map_place_payload.get("latitude") and map_place_payload.get("longitude"):
+            midpoint = [map_place_payload["longitude"], map_place_payload["latitude"]]
+            zoom = 8.4
+        else:
+            midpoint = [visible["longitude"].mean(), visible["latitude"].mean()]
+            zoom = 4.2
         layer = pdk.Layer(
             "ScatterplotLayer",
             data=visible,
@@ -861,18 +888,42 @@ def map_view_page() -> None:
             pickable=True,
             opacity=0.82,
         )
+        layers = [layer]
+        if map_place_payload and map_place_payload.get("latitude") and map_place_payload.get("longitude"):
+            target_df = pd.DataFrame(
+                [
+                    {
+                        "latitude": map_place_payload["latitude"],
+                        "longitude": map_place_payload["longitude"],
+                        "label": map_place_payload.get("display_name") or map_place_label,
+                    }
+                ]
+            )
+            layers.append(
+                pdk.Layer(
+                    "ScatterplotLayer",
+                    data=target_df,
+                    get_position="[longitude, latitude]",
+                    get_fill_color=[183, 150, 93, 240],
+                    get_radius=14000,
+                    pickable=True,
+                    opacity=0.92,
+                )
+            )
         tooltip = {
             "html": "<b>{title}</b><br/>{location}<br/>{category}<br/><br/>{summary}<br/><em>Open details in Library.</em>",
             "style": {"backgroundColor": "#1f2a24", "color": "white"},
         }
         st.pydeck_chart(
             pdk.Deck(
-                layers=[layer],
-                initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=4.2),
+                layers=layers,
+                initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=zoom),
                 tooltip=tooltip,
             ),
             use_container_width=True,
         )
+        if map_place_payload and map_place_payload.get("display_name"):
+            st.caption(f"Map centered on: {map_place_payload['display_name']}")
 
         labels = {
             f"{row.source}:{row.source_id}": f"{row.source} · {row.title} · {row.location}"
@@ -913,18 +964,19 @@ def ai_companion_page() -> None:
     st.title("AI Brief")
     st.caption("Start typing a destination. Suggestions come from OpenStreetMap, so small cities, national parks, historical parks, landmarks, and rural places are searchable.")
 
+    st.markdown("**Destination**")
     selected_label = st_searchbox(
         destination_search_options,
-        placeholder="Try: Shelbyville Indiana, New Orleans, Yellowstone, Independence National Historical Park",
-        label="Destination",
+        placeholder="City, park, landmark...",
+        label=None,
         default="",
         default_use_searchterm=True,
         clear_on_submit=False,
         edit_after_submit="current",
         debounce=450,
         key="destination_searchbox",
-        help="Suggestions appear as you type. If you press enter without selecting one, Field Atlas will still try to geocode your text.",
     )
+    st.caption("Examples: Shelbyville Indiana, New Orleans, Yellowstone, Independence National Historical Park.")
     selected_payload = st.session_state.get("destination_payloads", {}).get(selected_label)
     destination = ""
 
@@ -1331,8 +1383,8 @@ def main() -> None:
     apply_style()
     pages = [
         "Home",
-        "Before the Journey",
-        "After the Journey",
+        "Explore Map",
+        "Read Reviews",
         "Search & Map",
         "Capture Note",
         "AI Brief",
@@ -1350,10 +1402,10 @@ def main() -> None:
 
     if page == "Home":
         home_page()
-    elif page == "Before the Journey":
-        before_journey_page()
-    elif page == "After the Journey":
-        after_journey_page()
+    elif page == "Explore Map":
+        map_view_page()
+    elif page == "Read Reviews":
+        note_library_page()
     elif page == "Capture Note":
         add_field_note_page()
     elif page == "Search & Map":
