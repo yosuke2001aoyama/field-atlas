@@ -166,8 +166,6 @@ def init_db() -> None:
 def seed_sample_data() -> None:
     with get_connection() as conn:
         count = conn.execute("SELECT COUNT(*) FROM field_notes").fetchone()[0]
-        if count:
-            return
 
         samples = [
             {
@@ -180,8 +178,8 @@ def seed_sample_data() -> None:
                 "city": "Louisville",
                 "state": "Kentucky",
                 "category": "landscape",
-                "note_text": "The riverfront felt like a meeting point between older industrial memory and newer civic recreation. People were walking after work, and the bridges made the city feel oriented around movement.",
-                "tags": "river,city,evening",
+                "note_text": "At the Louisville riverfront, the Ohio River made the city feel less like a single downtown and more like a crossing point. The bridges, walking paths, and older industrial edges sat beside families, runners, and visitors taking photos near the water. The useful observation was the overlap: infrastructure as scenery, leisure beside logistics, and a regional identity shaped by movement across the river.",
+                "tags": "public sample,river,city,evening,infrastructure",
             },
             {
                 "title": "Knoxville diner counter",
@@ -193,8 +191,8 @@ def seed_sample_data() -> None:
                 "city": "Knoxville",
                 "state": "Tennessee",
                 "category": "food",
-                "note_text": "Breakfast at a small counter showed how quickly regulars and staff form a tiny morning community. The conversation moved from weather to road construction to college sports.",
-                "tags": "breakfast,conversation,sports",
+                "note_text": "A Knoxville breakfast counter showed how quickly an everyday food place becomes a civic room. The scene was ordinary: coffee refills, talk about weather and road work, orange sports references, and people moving in and out before work. It felt like a useful place to study how a university town, Appalachian proximity, and downtown redevelopment meet in daily routine.",
+                "tags": "public sample,breakfast,conversation,sports,downtown",
             },
             {
                 "title": "Asheville market morning",
@@ -206,8 +204,8 @@ def seed_sample_data() -> None:
                 "city": "Asheville",
                 "state": "North Carolina",
                 "category": "farm",
-                "note_text": "The market mixed tourism, regional craft, and practical food shopping. Vendors talked about weather, soil, and the difficulty of keeping local food affordable.",
-                "tags": "market,local food,craft",
+                "note_text": "In Asheville, the farmers market mixed practical food shopping with the region's strong visitor economy. The stalls made local agriculture visible, but also raised questions about affordability, land pressure, climate, and the line between regional culture and curated lifestyle. The best detail was how vendors talked about weather and soil as casually as others talk about traffic.",
+                "tags": "public sample,market,local food,craft,agriculture",
             },
             {
                 "title": "Raleigh neighborhood walk",
@@ -219,8 +217,8 @@ def seed_sample_data() -> None:
                 "city": "Raleigh",
                 "state": "North Carolina",
                 "category": "neighborhood",
-                "note_text": "A quiet residential walk showed the edge between fast growth and older Southern urban patterns: new apartments, shaded streets, and small churches within a few blocks.",
-                "tags": "growth,churches,city",
+                "note_text": "A Raleigh neighborhood walk showed the layered feel of a fast-growing Southern city: new apartments, shaded older streets, small churches, research-economy confidence, and signs of rising housing pressure. The place did not read as simply old or new. It felt like a city negotiating how much of its older civic texture can remain visible during rapid growth.",
+                "tags": "public sample,growth,churches,city,housing",
             },
             {
                 "title": "Chicago station arrival",
@@ -232,8 +230,8 @@ def seed_sample_data() -> None:
                 "city": "Chicago",
                 "state": "Illinois",
                 "category": "road",
-                "note_text": "Arriving by train made the city feel dense before it felt tall. The station, commuters, and food halls created a first impression of scale and routine.",
-                "tags": "arrival,transit,city",
+                "note_text": "Arriving near Chicago Union Station made the city feel dense before it felt tall. The first impression was not the skyline, but rhythm: commuters, luggage, food halls, office workers, and the choreography of trains and streets. The station area worked as a compressed field note on scale, migration, labor, and the everyday machinery of a major American city.",
+                "tags": "public sample,arrival,transit,city,station",
             },
         ]
 
@@ -244,22 +242,72 @@ def seed_sample_data() -> None:
             sample.setdefault("audio_transcript", "")
             sample.setdefault(
                 "ai_summary",
-                f"This note captures an observation about {sample['category']} in {sample['location_name']}. It may be useful for later reflection on local culture, everyday life, and regional identity.",
+                f"This note captures a public-ready field observation about {sample['category']} in {sample['location_name']}. It is useful for reflection on local culture, everyday life, infrastructure, and regional identity.",
             )
             sample.setdefault(
                 "ai_context",
                 "Historical angle: Look for how older infrastructure shapes the present.\n"
-                "Cultural signals: Notice routines, gathering places, and local speech.\n"
-                "Economic/lifestyle angle: Compare visitor-facing spaces with everyday services.\n"
+                "Cultural signals: Notice routines, gathering places, local speech, signs, and public institutions.\n"
+                "Economic/lifestyle angle: Compare visitor-facing spaces with everyday services, housing, work, and mobility.\n"
                 "Questions to revisit: What does this place make easy, and what does it make difficult?",
             )
-            sample.setdefault("privacy_level", "private")
-            values = [sample.get(column, "") for column in FIELD_NOTE_COLUMNS]
-            placeholders = ", ".join(["?"] * (len(FIELD_NOTE_COLUMNS) + 2))
+            sample.setdefault("privacy_level", "public-ready")
+
+            if count:
+                conn.execute(
+                    """
+                    UPDATE field_notes
+                    SET note_text = ?, tags = ?, privacy_level = ?, ai_summary = ?, ai_context = ?, updated_at = ?
+                    WHERE title = ?
+                    """,
+                    (
+                        sample["note_text"],
+                        sample["tags"],
+                        sample["privacy_level"],
+                        sample["ai_summary"],
+                        sample["ai_context"],
+                        timestamp,
+                        sample["title"],
+                    ),
+                )
+            else:
+                values = [sample.get(column, "") for column in FIELD_NOTE_COLUMNS]
+                placeholders = ", ".join(["?"] * (len(FIELD_NOTE_COLUMNS) + 2))
+                conn.execute(
+                    f"""
+                    INSERT INTO field_notes ({", ".join(FIELD_NOTE_COLUMNS)}, created_at, updated_at)
+                    VALUES ({placeholders})
+                    """,
+                    [*values, timestamp, timestamp],
+                )
+
+        farm_count = conn.execute("SELECT COUNT(*) FROM farmstay_logs").fetchone()[0]
+        if not farm_count:
+            timestamp = now_iso()
+            farm_sample = {
+                "date": "2026-04-10",
+                "farm_name": "Public sample vegetable farm",
+                "location_name": "Blue Ridge foothills",
+                "latitude": 35.5951,
+                "longitude": -82.5515,
+                "farm_type": "vegetable",
+                "work_done": "Washed greens, helped sort seedlings, and observed how weather shaped the day's work plan.",
+                "people_met": "Public sample only: no private names recorded.",
+                "food_eaten": "Simple lunch with seasonal vegetables, bread, and coffee.",
+                "conversation_topics": "Soil, labor, market prices, rainfall, tourism, and the challenge of keeping local food accessible.",
+                "lifestyle_observations": "The day moved by weather, light, tools, shared meals, and practical cooperation rather than by a fixed office rhythm.",
+                "labor_intensity": 4,
+                "community_feeling": 4,
+                "surprises": "The amount of invisible planning behind a small market table.",
+                "reflection": "The farmstay made agriculture feel less like scenery and more like a daily negotiation among land, weather, bodies, money, and community.",
+                "ai_summary": "This public sample farmstay connects physical labor, food systems, rural routines, and the social texture of farm life.",
+                "public_version": "During spring 2026, I spent time at a generalized vegetable farm in the Blue Ridge foothills. The exact farm name and private identities are withheld. The public lesson was about how much planning, weather awareness, and cooperation sit behind local food.",
+            }
+            values = [farm_sample.get(column, "") for column in FARMSTAY_COLUMNS]
             conn.execute(
                 f"""
-                INSERT INTO field_notes ({", ".join(FIELD_NOTE_COLUMNS)}, created_at, updated_at)
-                VALUES ({placeholders})
+                INSERT INTO farmstay_logs ({", ".join(FARMSTAY_COLUMNS)}, created_at, updated_at)
+                VALUES ({", ".join(["?"] * (len(FARMSTAY_COLUMNS) + 2))})
                 """,
                 [*values, timestamp, timestamp],
             )
