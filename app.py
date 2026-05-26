@@ -999,6 +999,32 @@ def guide_text_html(text: str) -> str:
 def render_browser_voice_helper(component_key: str) -> None:
     components.html(
         """
+        <style>
+          body { margin: 0; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: transparent; }
+          .browser-voice-box {
+            border: 1px solid rgba(62, 48, 33, 0.16);
+            background: rgba(255, 252, 246, 0.92);
+            padding: 14px;
+            color: #161411;
+            box-sizing: border-box;
+          }
+          #recordVoice {
+            border: 0;
+            border-radius: 999px;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #17211c, #2f6f58);
+            color: #fff;
+            font-weight: 850;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 12px 24px rgba(23,33,28,.18);
+          }
+          #recordVoice[disabled] { opacity: .55; cursor: not-allowed; }
+          #voiceStatus { margin-left: 12px; color: #746d62; font-size: 15px; }
+          #voicePlayback { width: 100%; margin-top: 12px; }
+          #downloadWrap { margin-top: 10px; color: #746d62; font-size: 14px; }
+          #downloadAudio { font-weight: 850; color: #17211c; }
+        </style>
         <div class="browser-voice-box">
           <button id="recordVoice">Start recording</button>
           <span id="voiceStatus" style="margin-left:10px;color:#746d62;">Ready. Your browser will ask for microphone permission.</span>
