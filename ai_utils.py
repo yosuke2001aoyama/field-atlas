@@ -68,11 +68,11 @@ INTEREST_PROMPTS = {
 
 CURATED_PLACE_GUIDES = {
     "Boston": {
-        "population": "City population is about 675,000, with a metro area near five million. Read it as a dense university, hospital, finance, biotech, and port city rather than only a colonial-history destination.",
-        "industries": "Higher education, hospitals, biotech, finance, software, tourism, maritime trade, and public-sector work shape daily rhythms.",
-        "sports": "Red Sox at Fenway Park, Celtics, Bruins, Patriots regional fandom, college rowing, marathon culture, and neighborhood bar rituals are visible civic signals.",
-        "food": "Look for clam chowder, lobster rolls, roast beef sandwiches, cannoli in the North End, Irish pubs, seafood markets, and newer immigrant food corridors.",
-        "politics": "Boston and Suffolk County are strongly Democratic in recent presidential voting, while Massachusetts is also a Democratic-leaning state. Treat this as a baseline, then check precinct-level or state election sources for current detail.",
+        "population": "City population is about **675,000**, with a metro area near **five million**. Read **Boston** as a university, hospital, finance, biotech, and port city rather than only a colonial-history destination.",
+        "industries": "**Higher education**, **Mass General Brigham**, **biotech**, **finance**, **software**, tourism, maritime trade, and public-sector work shape daily rhythms.",
+        "sports": "**Red Sox** at **Fenway Park**, **Celtics**, **Bruins**, **Patriots** regional fandom, the **Boston Marathon**, college rowing, and neighborhood sports bars are core civic signals.",
+        "food": "**Clam chowder**, **lobster rolls**, **roast beef sandwiches**, **North End cannoli**, Irish pubs, seafood markets, and newer immigrant food corridors are the first food map.",
+        "politics": "**Boston/Suffolk County** is strongly Democratic in recent presidential voting, while **Massachusetts** is also Democratic-leaning statewide. Use this as a baseline, then check precinct-level sources for current detail.",
         "must_visit": [
             {
                 "name": "Freedom Trail",
@@ -87,11 +87,11 @@ CURATED_PLACE_GUIDES = {
         ],
     },
     "New Orleans": {
-        "population": "City population is under 400,000, while the metro area is around one million. The city is best read through port geography, Black culture, tourism, music, food, water, and recovery politics.",
-        "industries": "Tourism, hospitality, port logistics, energy services, healthcare, universities, music and cultural production, and public works around water define the economy.",
-        "sports": "Saints football and Pelicans basketball matter, but second lines, school bands, Mardi Gras Indians, and festival calendars are just as important to local rhythm.",
-        "food": "Gumbo, po'boys, red beans and rice, beignets, crawfish, oysters, sno-balls, Creole and Cajun traditions, and neighborhood corner stores are core signals.",
-        "politics": "Orleans Parish is strongly Democratic in recent presidential voting, while Louisiana statewide has leaned Republican. That city-state contrast is central context.",
+        "population": "City population is under **400,000**, while the metro area is around **one million**. **New Orleans** is best read through port geography, Black culture, tourism, music, food, water, and recovery politics.",
+        "industries": "**Tourism**, hospitality, **Port of New Orleans** logistics, energy services, healthcare, universities, music/cultural production, and water infrastructure define the economy.",
+        "sports": "**New Orleans Saints** football and **Pelicans** basketball matter, but **second lines**, school bands, **Mardi Gras Indians**, and festival calendars are just as important.",
+        "food": "**Gumbo**, **po'boys**, **red beans and rice**, **beignets**, **crawfish**, **oysters**, **sno-balls**, Creole/Cajun traditions, and corner stores are core signals.",
+        "politics": "**Orleans Parish** is strongly Democratic in recent presidential voting, while **Louisiana** statewide has leaned Republican. That city-state contrast is central context.",
         "must_visit": [
             {
                 "name": "Treme and Congo Square",
@@ -106,11 +106,11 @@ CURATED_PLACE_GUIDES = {
         ],
     },
     "Chicago": {
-        "population": "City population is about 2.7 million, with a metro area near 9.5 million. It is a rail, lake, finance, logistics, food, sports, architecture, and neighborhood city.",
-        "industries": "Finance, logistics, rail and freight, healthcare, universities, food processing, manufacturing legacy, media, conventions, and professional services drive the region.",
-        "sports": "Cubs, White Sox, Bulls, Bears, Blackhawks, college sports, lakefront running, and neighborhood bar loyalties make sports a geography lesson.",
-        "food": "Deep-dish and tavern-style pizza, Italian beef, Chicago dogs, Polish and Mexican foodways, barbecue, and neighborhood bakeries reveal migration layers.",
-        "politics": "Chicago and Cook County are strongly Democratic in recent presidential voting, while Illinois statewide also leans Democratic. City machine politics and ward-level power remain useful context.",
+        "population": "City population is about **2.7 million**, with a metro area near **9.5 million**. **Chicago** is a rail, lake, finance, logistics, food, sports, architecture, and neighborhood city.",
+        "industries": "**Finance**, **rail/freight logistics**, healthcare, universities, food processing, manufacturing legacy, media, conventions, and professional services drive the region.",
+        "sports": "**Cubs**, **White Sox**, **Bulls**, **Bears**, **Blackhawks**, college sports, lakefront running, and neighborhood bar loyalties make sports a geography lesson.",
+        "food": "**Deep-dish pizza**, **tavern-style pizza**, **Italian beef**, **Chicago dogs**, Polish and Mexican foodways, barbecue, and neighborhood bakeries reveal migration layers.",
+        "politics": "**Chicago/Cook County** is strongly Democratic in recent presidential voting, while **Illinois** statewide also leans Democratic. Ward-level power remains useful context.",
         "must_visit": [
             {
                 "name": "Chicago River architecture corridor",
@@ -125,11 +125,11 @@ CURATED_PLACE_GUIDES = {
         ],
     },
     "Louisville": {
-        "population": "Louisville/Jefferson County is a large consolidated metro government of roughly 780,000 people, linking river logistics, bourbon tourism, healthcare, manufacturing, and neighborhoods.",
-        "industries": "UPS air logistics, bourbon and hospitality, healthcare, auto manufacturing, food and beverage, universities, and river commerce are key anchors.",
-        "sports": "University of Louisville, Kentucky Derby culture, minor-league baseball, high-school sports, and horse racing shape local attention.",
-        "food": "Hot Brown, bourbon bars, barbecue, Southern breakfasts, immigrant restaurants, and Derby-season hospitality are worth reading.",
-        "politics": "Jefferson County is Democratic-leaning in recent presidential voting, while Kentucky statewide is strongly Republican. That county-state split is important context.",
+        "population": "**Louisville/Jefferson County** is a consolidated metro government of roughly **780,000** people, linking river logistics, bourbon tourism, healthcare, manufacturing, and neighborhoods.",
+        "industries": "**UPS Worldport**, **bourbon**, hospitality, healthcare, auto manufacturing, food and beverage, universities, and Ohio River commerce are key anchors.",
+        "sports": "**University of Louisville Cardinals**, **Kentucky Derby**, **Louisville Bats**, high-school sports, and horse racing shape local attention.",
+        "food": "**Hot Brown**, bourbon bars, barbecue, Southern breakfasts, immigrant restaurants, and Derby-season hospitality are worth reading.",
+        "politics": "**Jefferson County** is Democratic-leaning in recent presidential voting, while **Kentucky** statewide is strongly Republican. That county-state split is important context.",
         "must_visit": [
             {
                 "name": "Muhammad Ali Center and riverfront",
@@ -144,11 +144,11 @@ CURATED_PLACE_GUIDES = {
         ],
     },
     "Knoxville": {
-        "population": "Knoxville has roughly 190,000 city residents and sits in a larger East Tennessee metro. Read it through the University of Tennessee, the Tennessee River, Appalachia, logistics, and outdoor access.",
-        "industries": "University and medical employment, logistics, manufacturing, tourism, Oak Ridge science links, retail, and outdoor recreation shape the region.",
-        "sports": "Tennessee Volunteers football is a major civic rhythm; high-school sports and outdoor recreation also mark weekends.",
-        "food": "Barbecue, meat-and-three plates, biscuits, breweries, Appalachian ingredients, farmers markets, and game-day food are useful signals.",
-        "politics": "Knox County and East Tennessee lean Republican in recent presidential voting, while Knoxville itself contains more mixed urban and university politics.",
+        "population": "**Knoxville** has roughly **190,000** city residents and sits in a larger East Tennessee metro. Read it through **University of Tennessee**, the **Tennessee River**, Appalachia, logistics, and outdoor access.",
+        "industries": "**University of Tennessee**, medical employment, logistics, manufacturing, tourism, **Oak Ridge** science links, retail, and outdoor recreation shape the region.",
+        "sports": "**Tennessee Volunteers** football is the major civic rhythm; high-school sports and outdoor recreation also mark weekends.",
+        "food": "**Barbecue**, **meat-and-three plates**, biscuits, breweries, Appalachian ingredients, farmers markets, and game-day food are useful signals.",
+        "politics": "**Knox County** and East Tennessee lean Republican in recent presidential voting, while Knoxville itself contains more mixed urban and university politics.",
         "must_visit": [
             {
                 "name": "Market Square",
@@ -163,11 +163,11 @@ CURATED_PLACE_GUIDES = {
         ],
     },
     "Asheville": {
-        "population": "Asheville has under 100,000 city residents but functions as a major western North Carolina tourism, arts, healthcare, and mountain gateway.",
-        "industries": "Tourism, hospitality, healthcare, craft beer, arts, outdoor recreation, retirement migration, and regional services shape the economy.",
-        "sports": "Minor-league baseball, outdoor endurance culture, high-school sports, and regional college sports matter more than major pro teams.",
-        "food": "Craft beer, farm-to-table restaurants, biscuits, barbecue, Appalachian ingredients, bakeries, and farmers markets are central.",
-        "politics": "Buncombe County and Asheville lean Democratic in recent presidential voting, while surrounding mountain counties are often more Republican. The urban-rural contrast is visible.",
+        "population": "**Asheville** has under **100,000** city residents but functions as western North Carolina's tourism, arts, healthcare, and mountain gateway.",
+        "industries": "**Tourism**, hospitality, healthcare, **craft beer**, arts, outdoor recreation, retirement migration, and regional services shape the economy.",
+        "sports": "**Asheville Tourists** baseball, outdoor endurance culture, high-school sports, and regional college sports matter more than major pro teams.",
+        "food": "**Craft beer**, farm-to-table restaurants, biscuits, barbecue, Appalachian ingredients, bakeries, and farmers markets are central.",
+        "politics": "**Buncombe County/Asheville** lean Democratic in recent presidential voting, while surrounding mountain counties are often more Republican. The urban-rural contrast is visible.",
         "must_visit": [
             {
                 "name": "River Arts District",
@@ -182,11 +182,11 @@ CURATED_PLACE_GUIDES = {
         ],
     },
     "Raleigh": {
-        "population": "Raleigh has nearly half a million city residents and anchors a fast-growing Research Triangle region with universities, state government, tech, healthcare, and suburban growth.",
-        "industries": "State government, universities, tech, life sciences, healthcare, education, real estate, and services define the region.",
-        "sports": "Carolina Hurricanes, NC State, college basketball rivalries, youth sports, and greenway recreation are strong signals.",
-        "food": "Eastern and Lexington-style barbecue debates, biscuits, breweries, food halls, immigrant restaurants, and farmers markets are good entry points.",
-        "politics": "Wake County leans Democratic in recent presidential voting, while North Carolina statewide is competitive and often Republican-leaning at the presidential level. Growth politics matter.",
+        "population": "**Raleigh** has nearly **half a million** city residents and anchors the fast-growing **Research Triangle** with universities, state government, tech, healthcare, and suburban growth.",
+        "industries": "**State government**, universities, **Research Triangle** tech, life sciences, healthcare, education, real estate, and services define the region.",
+        "sports": "**Carolina Hurricanes**, **NC State Wolfpack**, college basketball rivalries, youth sports, and greenway recreation are strong signals.",
+        "food": "**Eastern vs. Lexington-style barbecue** debates, biscuits, breweries, food halls, immigrant restaurants, and farmers markets are good entry points.",
+        "politics": "**Wake County** leans Democratic in recent presidential voting, while **North Carolina** statewide is competitive. Growth politics matter.",
         "must_visit": [
             {
                 "name": "North Carolina State Capitol area",
@@ -205,8 +205,8 @@ CURATED_PLACE_GUIDES = {
 DEFAULT_PLACE_GUIDE = {
     "population": "Use Census QuickFacts or ACS tables for city, county, and metro population before you arrive. Compare city population with the surrounding county to understand whether the place is urban core, suburb, resort town, college town, or rural service center.",
     "industries": "Start with hospitals, universities, logistics, tourism, agriculture, energy, manufacturing, military, state government, and retail. The largest employers often explain traffic, restaurants, housing pressure, and who is visible during the day.",
-    "sports": "Check school colors, high-school fields, college teams, minor-league teams, sports bars, running trails, and weekend event calendars. Sports often reveal regional identity faster than monuments do.",
-    "food": "Look for regional dishes, immigrant corridors, diners, markets, bakeries, barbecue styles, seafood, produce stands, and where workers eat at lunch.",
+    "sports": "Sports guide: identify the local college team, high-school rivalry, minor-league club, sports bar strip, running trail, and weekend event calendar. These names often reveal regional identity faster than monuments do.",
+    "food": "Food guide: name the regional dish, immigrant corridor, best-known diner or market, bakery, barbecue or seafood style, produce stand, and the lunch place workers actually use.",
     "politics": "Use county-level presidential results, state election returns, local newspapers, and civic institutions as a starting baseline. Avoid treating one yard sign or one conversation as the whole place.",
     "must_visit": [
         {
@@ -220,6 +220,42 @@ DEFAULT_PLACE_GUIDE = {
             "image_url": "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=80",
         },
     ],
+}
+
+PLACE_GUIDE_DETAILS = {
+    "Boston": {
+        "history": "**Freedom Trail**, **Old North Church**, **Faneuil Hall**, **Beacon Hill**, and the **Black Heritage Trail** make the city readable as revolution, abolition, immigration, universities, and medicine layered into one compact core.",
+        "culture": "Names to know before arrival: **Harvard**, **MIT**, **Mass General Brigham**, **Fenway Park**, **MBTA/T**, **North End**, **South Boston**, **Cambridge**, and **Dorchester**.",
+        "community": "For neighborhood texture, compare **North End** Italian food tourism, **Chinatown**, **Roxbury** Black Boston history, **Cambridge/Somerville** student and tech life, and **Seaport** redevelopment.",
+        "nature": "**Boston Harbor**, the **Charles River Esplanade**, **Boston Common**, and the **Emerald Necklace** explain why the city feels maritime, walkable, and park-threaded.",
+        "music": "**Boston Symphony Orchestra**, **Berklee College of Music**, Irish pub sessions, college radio, and Fenway concert nights are the useful music anchors.",
+        "institutions": "**Boston Public Library**, **Museum of Fine Arts**, **Isabella Stewart Gardner Museum**, **Harvard**, **MIT**, **Massachusetts State House**, and **Fenway Park** are the first institution map.",
+    },
+    "New Orleans": {
+        "history": "**French Quarter**, **Treme**, **Congo Square**, **St. Louis Cathedral**, **Garden District**, and **Lower Ninth Ward** frame the city through colonial rule, Black culture, water, music, and disaster recovery.",
+        "culture": "Names to know: **Mardi Gras**, **second line**, **brass band**, **Mardi Gras Indians**, **Creole**, **Cajun**, **shotgun house**, **levee**, and **neutral ground**.",
+        "community": "**Treme**, **Bywater**, **Marigny**, **Central City**, **Uptown**, and **Algiers** give a better read than staying only on **Bourbon Street**.",
+        "nature": "**Mississippi River**, **Lake Pontchartrain**, levees, pumps, bayous, humidity, and hurricane memory are not background; they are the operating system.",
+        "music": "**Preservation Hall**, **Tipitina's**, **Frenchmen Street**, brass bands, bounce, gospel, and jazz funerals are core to the guidebook.",
+        "institutions": "**Preservation Hall**, **Backstreet Cultural Museum**, **New Orleans Jazz Museum**, **Cafe du Monde**, **Commander's Palace**, **Superdome**, and the **Port of New Orleans** are anchor points.",
+    },
+    "Chicago": {
+        "history": "**Chicago River**, **Pullman**, **Haymarket**, **Great Migration**, **Union Stock Yards**, and **Chicago Architecture Center** explain labor, race, rail, food, and skyscrapers.",
+        "culture": "Names to know: **L train**, **Loop**, **South Side**, **North Side**, **Lake Michigan**, **Wrigley Field**, **Guaranteed Rate Field**, **Second City**, and **blues**.",
+        "community": "Compare **Pilsen**, **Bronzeville**, **Hyde Park**, **Wicker Park**, **Chinatown**, and **West Loop** to see migration, universities, art, food, and redevelopment pressure.",
+        "nature": "**Lake Michigan**, the **Chicago Riverwalk**, **Lincoln Park**, and the lakefront trail make water and public space central to the city.",
+        "music": "**Chicago blues**, **house music**, **gospel**, **Second City**, **Green Mill**, and summer festivals are the core sound map.",
+        "institutions": "**Art Institute of Chicago**, **Field Museum**, **University of Chicago**, **Navy Pier**, **Wrigley Field**, **Chicago Board of Trade**, and **Union Station** are anchor points.",
+    },
+}
+
+DEFAULT_GUIDE_DETAILS = {
+    "history": "Start with the main museum, courthouse square, oldest neighborhood, rail or river corridor, and one local history site. These usually reveal settlement, labor, migration, and public memory.",
+    "culture": "Build a name map before arrival: local college, hospital system, newspaper, sports team, signature festival, best-known dish, and main street or waterfront.",
+    "community": "Compare downtown, one older residential neighborhood, one newer growth corridor, and one everyday shopping street. That gives a clearer guidebook read than a single attraction.",
+    "nature": "Use the river, ridge, coast, prairie, desert edge, lake, or weather pattern as a guidebook chapter; it usually explains settlement and recreation.",
+    "music": "Look up the best-known venue, festival, college radio station, church music tradition, and bar or dance scene before arrival.",
+    "institutions": "Anchor the visit with the public library, courthouse or city hall, main museum, college or hospital, sports field, market, and transit hub.",
 }
 
 NOTE_THEMES = [
@@ -517,6 +553,7 @@ def generate_destination_brief(
     summaries = fetch_related_wikipedia_topics(corrected_destination, suggested_state, interests)
     primary = summaries[0] if summaries else {}
     guide = CURATED_PLACE_GUIDES.get(corrected_destination, DEFAULT_PLACE_GUIDE)
+    guide_details = {**DEFAULT_GUIDE_DETAILS, **PLACE_GUIDE_DETAILS.get(corrected_destination, {})}
     interest_text = ", ".join(interests) if interests else "history, food, economy, and everyday life"
     interest_lenses = [
         f"{interest}: {INTEREST_PROMPTS[interest]}"
@@ -548,7 +585,7 @@ def generate_destination_brief(
         "sources": sources,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "brief_15_sec": (
-            f"Use {place or 'this destination'} as a compact guidebook case: population scale, major industries, sports loyalties, food habits, political baseline, and two must-visit places will tell you more than a generic sightseeing list."
+            f"**{place or 'This destination'}** guidebook: start with population scale, dominant industries, named sports teams, signature food, political baseline, and the must-visit places below."
         ),
         "population_snapshot": guide["population"],
         "industry_snapshot": guide["industries"],
@@ -557,37 +594,37 @@ def generate_destination_brief(
         "politics_snapshot": guide["politics"],
         "must_visit": guide["must_visit"],
         "historical_background": (
-            f"Public reference material frames {place or 'this place'} through these starting points: {source_notes[:900]}"
+            f"{guide_details['history']} Reference snapshot: {source_notes[:650]}"
         ),
         "cultural_signals": (
-            f"Read signs, school colors, local newspapers, murals, church boards, storefronts, accents, music, and the gap between visitor imagery and daily routine. Selected lenses: {interest_text}."
+            guide_details["culture"]
         ),
         "community_lens": (
-            f"Trace neighborhood boundaries, churches, schools, civic organizations, migration stories, and whose histories are visible or missing in public space around {place}."
+            guide_details["community"]
         ),
         "economy_lens": (
-            f"Look for the work that keeps {place} running: hospitals, universities, logistics, tourism, housing pressure, warehouses, main streets, and service labor."
+            f"Economy guide: {guide['industries']} For a quick read, connect the largest employers with commute patterns, lunch spots, housing prices, and who fills downtown during weekdays."
         ),
         "agriculture_lens": (
-            f"Notice soil, water, seasonality, farm supply stores, farmers markets, land prices, and how nearby agriculture reaches everyday food places around {place}."
+            f"Food-system guide: use farmers markets, regional produce, seafood or meat supply chains, farm stands, wholesale markets, and restaurant menus to connect **{place or 'the area'}** to nearby land and labor."
         ),
         "nature_lens": (
-            f"Read the rivers, ridgelines, weather, trails, vegetation, and ecological edges as part of local identity rather than scenery alone."
+            guide_details["nature"]
         ),
         "music_lens": (
-            f"Listen for venues, church music, street sound, radio, festivals, record shops, and the difference between tourist sound and everyday sound."
+            guide_details["music"]
         ),
         "local_food": (
             guide["food"]
         ),
         "local_institutions": (
-            "Notice libraries, courthouses, churches, extension offices, farm supply stores, union halls, colleges, sports fields, and community bulletin boards."
+            guide_details["institutions"]
         ),
         "questions_to_ask": (
-            f"What has changed here in the last ten years? What do outsiders misunderstand? Where do people gather? What work keeps this place running? How does {purpose} change what I notice?"
+            f"Guidebook questions for **{place or 'this place'}**: What changed after the last decade of growth or decline? Which neighborhood should a first-time visitor not skip? Which food is locally loved, not just marketed? Which employer or school quietly shapes daily life?"
         ),
         "field_note_prompts": (
-            "Record one sound, one sign, one overheard phrase, one meal, one texture of work, one public institution, and one contradiction. "
+            "Suggested field-note set: one named dish, one team or school logo, one major employer, one local institution, one neighborhood contrast, one transit or highway detail, and one phrase locals use. "
             + ("Selected lenses: " + "; ".join(interest_lenses) if interest_lenses else "")
         ),
         "safety_etiquette": (
