@@ -52,6 +52,59 @@ CURATED_US_DESTINATIONS = [
     {"destination": "Yellowstone National Park", "state": "Wyoming", "latitude": 44.4280, "longitude": -110.5885, "kind": "national park"},
 ]
 
+STATE_CITY_SUGGESTIONS = {
+    "Alabama": ["Birmingham", "Montgomery", "Mobile", "Huntsville", "Tuscaloosa"],
+    "Alaska": ["Anchorage", "Juneau", "Fairbanks"],
+    "Arizona": ["Phoenix", "Tucson", "Flagstaff", "Sedona"],
+    "Arkansas": ["Little Rock", "Fayetteville", "Hot Springs"],
+    "California": ["Los Angeles", "San Francisco", "San Diego", "Sacramento"],
+    "Colorado": ["Denver", "Colorado Springs", "Boulder", "Aspen"],
+    "Connecticut": ["Hartford", "New Haven", "Stamford"],
+    "Delaware": ["Wilmington", "Dover", "Newark"],
+    "Florida": ["Miami", "Orlando", "Tampa", "Jacksonville"],
+    "Georgia": ["Atlanta", "Savannah", "Augusta", "Athens"],
+    "Hawaii": ["Honolulu", "Hilo", "Kailua-Kona"],
+    "Idaho": ["Boise", "Idaho Falls", "Coeur d'Alene"],
+    "Illinois": ["Chicago", "Springfield", "Peoria"],
+    "Indiana": ["Indianapolis", "Fort Wayne", "Bloomington", "Shelbyville"],
+    "Iowa": ["Des Moines", "Cedar Rapids", "Iowa City"],
+    "Kansas": ["Wichita", "Topeka", "Lawrence"],
+    "Kentucky": ["Louisville", "Lexington", "Bowling Green"],
+    "Louisiana": ["New Orleans", "Baton Rouge", "Lafayette"],
+    "Maine": ["Portland", "Augusta", "Bangor"],
+    "Maryland": ["Baltimore", "Annapolis", "Frederick"],
+    "Massachusetts": ["Boston", "Cambridge", "Worcester"],
+    "Michigan": ["Detroit", "Grand Rapids", "Ann Arbor"],
+    "Minnesota": ["Minneapolis", "Saint Paul", "Duluth"],
+    "Mississippi": ["Jackson", "Biloxi", "Oxford"],
+    "Missouri": ["Kansas City", "St. Louis", "Columbia"],
+    "Montana": ["Billings", "Missoula", "Bozeman"],
+    "Nebraska": ["Omaha", "Lincoln", "Kearney"],
+    "Nevada": ["Las Vegas", "Reno", "Carson City"],
+    "New Hampshire": ["Manchester", "Concord", "Portsmouth"],
+    "New Jersey": ["Newark", "Jersey City", "Princeton"],
+    "New Mexico": ["Albuquerque", "Santa Fe", "Las Cruces"],
+    "New York": ["New York", "Buffalo", "Albany", "Rochester"],
+    "North Carolina": ["Charlotte", "Raleigh", "Asheville", "Durham"],
+    "North Dakota": ["Fargo", "Bismarck", "Grand Forks"],
+    "Ohio": ["Columbus", "Cleveland", "Cincinnati"],
+    "Oklahoma": ["Oklahoma City", "Tulsa", "Norman"],
+    "Oregon": ["Portland", "Eugene", "Bend"],
+    "Pennsylvania": ["Philadelphia", "Pittsburgh", "Harrisburg"],
+    "Rhode Island": ["Providence", "Newport", "Warwick"],
+    "South Carolina": ["Charleston", "Columbia", "Greenville"],
+    "South Dakota": ["Sioux Falls", "Rapid City", "Pierre"],
+    "Tennessee": ["Nashville", "Memphis", "Knoxville", "Chattanooga"],
+    "Texas": ["Houston", "Dallas", "Austin", "San Antonio"],
+    "Utah": ["Salt Lake City", "Moab", "Provo"],
+    "Vermont": ["Burlington", "Montpelier", "Brattleboro"],
+    "Virginia": ["Richmond", "Virginia Beach", "Charlottesville"],
+    "Washington": ["Seattle", "Spokane", "Tacoma"],
+    "West Virginia": ["Charleston", "Morgantown", "Harpers Ferry"],
+    "Wisconsin": ["Milwaukee", "Madison", "Green Bay"],
+    "Wyoming": ["Cheyenne", "Jackson", "Casper"],
+}
+
 INTEREST_PROMPTS = {
     "history": "older settlement patterns, public memory, preserved buildings, and what local museums choose to emphasize",
     "food": "markets, diners, regional ingredients, farm stands, bakeries, and who gathers around food",
@@ -387,6 +440,30 @@ def search_destination_suggestions(query: str, limit: int = 8) -> list[dict]:
             seen.add((item["destination"], item["state"], round(item["latitude"], 3), round(item["longitude"], 3)))
             seen_names.add((item["destination"].lower(), item["state"].lower()))
             seen_labels.add(label_key)
+    matching_states = [
+        state_name
+        for state_name in STATE_CITY_SUGGESTIONS
+        if cleaned.lower() == state_name.lower() or state_name.lower().startswith(cleaned.lower())
+    ]
+    for state_name in matching_states[:3]:
+        for city in STATE_CITY_SUGGESTIONS[state_name]:
+            label = f"{city} - {state_name} | city"
+            label_key = label.lower()
+            if label_key in seen_labels:
+                continue
+            suggestions.append(
+                {
+                    "label": label,
+                    "destination": city,
+                    "state": state_name,
+                    "display_name": f"{city}, {state_name}, United States",
+                    "latitude": None,
+                    "longitude": None,
+                    "source_url": "curated:state-city-suggestions",
+                }
+            )
+            seen_names.add((city.lower(), state_name.lower()))
+            seen_labels.add(label_key)
     try:
         response = requests.get(
             "https://nominatim.openstreetmap.org/search",
@@ -424,6 +501,8 @@ def search_destination_suggestions(query: str, limit: int = 8) -> list[dict]:
         place_type = raw_type or raw_class or "place"
         name_state_key = (str(name).lower(), str(state).lower())
         if raw_class == "boundary" and raw_type == "administrative" and name_state_key in seen_names:
+            continue
+        if raw_class == "boundary" and raw_type == "administrative" and str(name).lower() == str(state).lower():
             continue
         if address.get("city") or address.get("town") or address.get("village") or raw_type in {"city", "town", "village", "hamlet"}:
             place_type = "city"
