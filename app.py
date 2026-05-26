@@ -1116,11 +1116,11 @@ def handle_voice_query_params() -> None:
     cleaned = clean_voice_text(text)
     if action == "auto":
         action = "ask" if is_voice_question(cleaned) else "log"
-    st.query_params.clear()
     if action == "log":
         note_id = save_text_log_from_voice(cleaned)
         st.session_state.voice_result = f"Saved private voice log #{note_id}: {cleaned}"
         st.session_state.page = "Home"
+        st.query_params.clear()
         st.rerun()
         return
     if action == "ask":
@@ -1132,6 +1132,7 @@ def handle_voice_query_params() -> None:
             st.session_state.page = "Ask About This Place"
         else:
             st.session_state.page = "Home"
+        st.query_params.clear()
         st.rerun()
 
 
