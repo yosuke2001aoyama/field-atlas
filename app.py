@@ -1409,7 +1409,7 @@ def home_page() -> None:
                 <div>
                     <div class="atlas-choice-label">Driving mode</div>
                     <h3>Record the thought before it disappears.</h3>
-                    <p>One tap starts a private voice note. Save the file, then attach it to a note when you stop.</p>
+                    <p>One tap starts live dictation. Review the transcript here, then use it as a question or save it as a private log.</p>
                 </div>
             </div>
             """,
