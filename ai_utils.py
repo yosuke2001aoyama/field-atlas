@@ -256,11 +256,11 @@ CURATED_PLACE_GUIDES = {
 }
 
 DEFAULT_PLACE_GUIDE = {
-    "population": "Use Census QuickFacts or ACS tables for city, county, and metro population before you arrive. Compare city population with the surrounding county to understand whether the place is urban core, suburb, resort town, college town, or rural service center.",
-    "industries": "Start with hospitals, universities, logistics, tourism, agriculture, energy, manufacturing, military, state government, and retail. The largest employers often explain traffic, restaurants, housing pressure, and who is visible during the day.",
-    "sports": "Sports guide: identify the local college team, high-school rivalry, minor-league club, sports bar strip, running trail, and weekend event calendar. These names often reveal regional identity faster than monuments do.",
-    "food": "Food guide: name the regional dish, immigrant corridor, best-known diner or market, bakery, barbecue or seafood style, produce stand, and the lunch place workers actually use.",
-    "politics": "Use county-level presidential results, state election returns, local newspapers, and civic institutions as a starting baseline. Avoid treating one yard sign or one conversation as the whole place.",
+    "population": "**Population guide:** compare the **city**, **county**, and **metro area** before arrival. That tells you whether this is an urban core, suburb, college town, resort town, rural service center, or regional capital.",
+    "industries": "**Industry guide:** check for **hospitals**, **universities**, **logistics**, **tourism**, **agriculture**, **energy**, **manufacturing**, **military**, and **state government**. The biggest employer often explains traffic, lunch spots, housing pressure, and weekday crowds.",
+    "sports": "**Sports guide:** identify the **local college team**, **high-school rivalry**, **minor-league club**, **stadium**, sports bar strip, running trail, and weekend event calendar. Sports names often reveal regional identity faster than monuments do.",
+    "food": "**Food guide:** name the **regional dish**, immigrant corridor, best-known diner or market, bakery, barbecue or seafood style, produce stand, and the lunch place workers actually use.",
+    "politics": "**Politics guide:** read **county-level presidential results**, state election returns, local newspapers, city council debates, and campaign-sign geography. Treat this as a baseline, not a stereotype.",
     "must_visit": [
         {
             "name": "Downtown or courthouse square",
@@ -303,12 +303,12 @@ PLACE_GUIDE_DETAILS = {
 }
 
 DEFAULT_GUIDE_DETAILS = {
-    "history": "Start with the main museum, courthouse square, oldest neighborhood, rail or river corridor, and one local history site. These usually reveal settlement, labor, migration, and public memory.",
-    "culture": "Build a name map before arrival: local college, hospital system, newspaper, sports team, signature festival, best-known dish, and main street or waterfront.",
-    "community": "Compare downtown, one older residential neighborhood, one newer growth corridor, and one everyday shopping street. That gives a clearer guidebook read than a single attraction.",
-    "nature": "Use the river, ridge, coast, prairie, desert edge, lake, or weather pattern as a guidebook chapter; it usually explains settlement and recreation.",
-    "music": "Look up the best-known venue, festival, college radio station, church music tradition, and bar or dance scene before arrival.",
-    "institutions": "Anchor the visit with the public library, courthouse or city hall, main museum, college or hospital, sports field, market, and transit hub.",
+    "history": "**History guide:** visit the **main museum**, **courthouse square**, oldest neighborhood, rail or river corridor, and one local history site. These reveal settlement, labor, migration, and public memory.",
+    "culture": "**Culture guide:** build a name map: local college, hospital system, newspaper, sports team, signature festival, best-known dish, main street, waterfront, and neighborhood names.",
+    "community": "**Community guide:** compare downtown, one older residential neighborhood, one newer growth corridor, and one everyday shopping street. That gives a clearer read than a single attraction.",
+    "nature": "**Nature guide:** use the river, ridge, coast, prairie, desert edge, lake, or weather pattern as a chapter; it usually explains settlement and recreation.",
+    "music": "**Music guide:** check the best-known venue, festival, college radio station, church music tradition, and bar or dance scene before arrival.",
+    "institutions": "**Institution map:** public library, courthouse or city hall, main museum, college or hospital, sports field, market, transit hub, and local newspaper.",
 }
 
 NOTE_THEMES = [
@@ -611,6 +611,14 @@ def build_source_list(*source_groups: list[dict]) -> list[dict]:
     return sources
 
 
+def guidebook_fact_from_summary(primary: dict, place: str) -> str:
+    extract = " ".join(str(primary.get("extract", "")).split())
+    title = primary.get("title") or place or "the place"
+    if not extract:
+        return f"**{place or 'This place'}**: use the guidebook sections below as the first reading list, then confirm current details with local sources."
+    return f"**{title}**: {extract[:520]}"
+
+
 def generate_ai_summary(note_text: str, category: str, location: str) -> str:
     location_label = location or "this place"
     category_label = category or "local life"
@@ -665,6 +673,7 @@ def generate_destination_brief(
     source_notes = " ".join(item.get("extract", "") for item in summaries[:3])
     if not source_notes:
         source_notes = f"{place} should be approached through public institutions, roads, foodways, work routines, and local memory."
+    primary_fact = guidebook_fact_from_summary(primary, place)
     image_url = next((item.get("image_url") for item in summaries if item.get("image_url")), "")
     sources = build_source_list(
         summaries,
@@ -696,7 +705,7 @@ def generate_destination_brief(
         "politics_snapshot": guide["politics"],
         "must_visit": guide["must_visit"],
         "historical_background": (
-            f"{guide_details['history']} Reference snapshot: {source_notes[:650]}"
+            f"{guide_details['history']} Reference snapshot: {primary_fact}"
         ),
         "cultural_signals": (
             guide_details["culture"]
@@ -705,10 +714,10 @@ def generate_destination_brief(
             guide_details["community"]
         ),
         "economy_lens": (
-            f"Economy guide: {guide['industries']} For a quick read, connect the largest employers with commute patterns, lunch spots, housing prices, and who fills downtown during weekdays."
+            f"**Economy lens:** {guide['industries']} Connect the biggest employers with commute patterns, lunch spots, housing prices, downtown foot traffic, and who is visible during weekdays."
         ),
         "agriculture_lens": (
-            f"Food-system guide: use farmers markets, regional produce, seafood or meat supply chains, farm stands, wholesale markets, and restaurant menus to connect **{place or 'the area'}** to nearby land and labor."
+            f"**Food-system lens:** use farmers markets, regional produce, seafood or meat supply chains, farm stands, wholesale markets, and restaurant menus to connect **{place or 'the area'}** to nearby land and labor."
         ),
         "nature_lens": (
             guide_details["nature"]
@@ -723,10 +732,10 @@ def generate_destination_brief(
             guide_details["institutions"]
         ),
         "questions_to_ask": (
-            f"Guidebook questions for **{place or 'this place'}**: What changed after the last decade of growth or decline? Which neighborhood should a first-time visitor not skip? Which food is locally loved, not just marketed? Which employer or school quietly shapes daily life?"
+            f"**Guidebook questions for {place or 'this place'}:** Which neighborhood should a first-time visitor not skip? Which food is locally loved, not just marketed? Which employer, college, port, hospital, or military base quietly shapes daily life? What changed after the last decade of growth or decline?"
         ),
         "field_note_prompts": (
-            "Suggested field-note set: one named dish, one team or school logo, one major employer, one local institution, one neighborhood contrast, one transit or highway detail, and one phrase locals use. "
+            "**Field-note set:** capture one named dish, one team or school logo, one major employer, one local institution, one neighborhood contrast, one transit or highway detail, and one phrase locals use. "
             + ("Selected lenses: " + "; ".join(interest_lenses) if interest_lenses else "")
         ),
         "safety_etiquette": (
