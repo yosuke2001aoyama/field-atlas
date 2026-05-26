@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import shutil
 import sqlite3
 from datetime import date, datetime
@@ -538,6 +539,42 @@ def apply_style() -> None:
                 font-size: 1.02rem;
             }
 
+            .brief-section strong,
+            .guide-strong {
+                color: #8d5d3e;
+                font-weight: 900;
+                background: rgba(183, 150, 93, 0.14);
+                padding: 0.02rem 0.22rem;
+                border-radius: 0.2rem;
+            }
+
+            .browser-voice-box {
+                border: 1px solid rgba(62, 48, 33, 0.16);
+                background: rgba(255, 252, 246, 0.82);
+                padding: 1rem;
+                margin: 0.4rem 0 0.8rem;
+            }
+
+            .browser-voice-box button {
+                border: 0;
+                border-radius: 999px;
+                padding: 0.72rem 1rem;
+                background: #17211c;
+                color: #fff;
+                font-weight: 800;
+                cursor: pointer;
+            }
+
+            .browser-voice-box textarea {
+                width: 100%;
+                min-height: 7rem;
+                margin-top: 0.8rem;
+                border: 1px solid rgba(62, 48, 33, 0.16);
+                border-radius: 0.8rem;
+                padding: 0.8rem;
+                font: inherit;
+            }
+
             .brief-icon {
                 display: inline-flex;
                 width: 2.45rem;
@@ -876,6 +913,68 @@ def go_to(page_name: str) -> None:
     st.rerun()
 
 
+def guide_text_html(text: str) -> str:
+    safe = html.escape(str(text or ""))
+    return re.sub(r"\*\*(.+?)\*\*", r'<strong class="guide-strong">\1</strong>', safe)
+
+
+def render_browser_voice_helper(component_key: str) -> None:
+    components.html(
+        """
+        <div class="browser-voice-box">
+          <button id="startVoice">Start browser dictation</button>
+          <span id="voiceStatus" style="margin-left:10px;color:#746d62;">Works in Chrome/Safari when microphone permission is allowed.</span>
+          <textarea id="voiceText" placeholder="Dictated text will appear here. Paste it into the transcript field below before saving."></textarea>
+        </div>
+        <script>
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          const button = document.getElementById("startVoice");
+          const status = document.getElementById("voiceStatus");
+          const output = document.getElementById("voiceText");
+          if (!SpeechRecognition) {
+            status.textContent = "Browser dictation is not available here. Upload audio or type a transcript below.";
+            button.disabled = true;
+            button.style.opacity = 0.55;
+          } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = "en-US";
+            recognition.interimResults = true;
+            recognition.continuous = true;
+            let listening = false;
+            recognition.onresult = event => {
+              let text = "";
+              for (let i = 0; i < event.results.length; i++) {
+                text += event.results[i][0].transcript;
+              }
+              output.value = text;
+            };
+            recognition.onerror = event => {
+              status.textContent = "Dictation stopped: " + event.error + ". You can still upload audio or paste a transcript.";
+              listening = false;
+              button.textContent = "Start browser dictation";
+            };
+            recognition.onend = () => {
+              listening = false;
+              button.textContent = "Start browser dictation";
+            };
+            button.addEventListener("click", () => {
+              if (listening) {
+                recognition.stop();
+                return;
+              }
+              output.value = "";
+              recognition.start();
+              listening = true;
+              button.textContent = "Stop dictation";
+              status.textContent = "Listening...";
+            });
+          }
+        </script>
+        """,
+        height=210,
+    )
+
+
 def open_place_brief(destination: str, state: str = "", display_name: str = "") -> None:
     brief = generate_destination_brief(destination, state, "Map exploration", GUIDEBOOK_INTERESTS)
     if display_name:
@@ -1107,9 +1206,8 @@ def home_page() -> None:
     )
     question_cols = st.columns([0.7, 1.3])
     with question_cols[0]:
-        if hasattr(st, "audio_input"):
-            st.audio_input("Ask by voice")
-        st.caption("Voice capture is stored only when you save it as a note. For now, type the question below to get a local response.")
+        render_browser_voice_helper("home_voice_helper")
+        st.caption("If browser dictation is blocked, type the question on the right. Nothing is saved unless you save a note.")
     with question_cols[1]:
         home_question = st.text_input("Ask a question", placeholder="What should I notice in New Orleans? How do I publish safely?")
         if home_question:
@@ -1215,12 +1313,9 @@ def add_field_note_page() -> None:
             ],
             help="Private is the default. Public-ready drafts should still be reviewed before publishing.",
         )
-        if hasattr(st, "audio_input"):
-            audio = st.audio_input("Record voice memo")
-            backup_audio = st.file_uploader("Or upload audio", type=["mp3", "m4a", "wav", "aac", "webm"])
-            audio = audio or backup_audio
-        else:
-            audio = st.file_uploader("Voice memo upload", type=["mp3", "m4a", "wav", "aac", "webm"])
+        st.markdown("**Voice memo**")
+        render_browser_voice_helper("capture_voice_helper")
+        audio = st.file_uploader("Upload recorded audio", type=["mp3", "m4a", "wav", "aac", "webm"])
         photo = st.file_uploader("Optional photo", type=["png", "jpg", "jpeg", "webp"])
         audio_transcript = st.text_area(
             "Voice transcript / dictated text",
@@ -1760,7 +1855,7 @@ def ai_companion_page() -> None:
             for col, spot in zip(spot_cols, brief["must_visit"]):
                 with col:
                     spot_name = html.escape(str(spot.get("name", "Place to visit")))
-                    spot_why = html.escape(str(spot.get("why", "")))
+                    spot_why = guide_text_html(str(spot.get("why", "")))
                     spot_image = html.escape(str(spot.get("image_url", HERO_IMAGE_URL)))
                     st.markdown(
                         f"""
@@ -1784,14 +1879,14 @@ def ai_companion_page() -> None:
                         <div class="brief-section">
                             <div class="brief-icon">{icon}</div>
                             <h4>{html.escape(label)}</h4>
-                            <p>{html.escape(str(brief.get(key, "")))}</p>
+                            <p>{guide_text_html(str(brief.get(key, "")))}</p>
                         </div>
                         """,
                         unsafe_allow_html=True,
                     )
         with st.container(border=True):
             st.markdown("**Local institutions**")
-            st.write(brief["local_institutions"])
+            st.markdown(guide_text_html(brief["local_institutions"]), unsafe_allow_html=True)
         if brief.get("safety_etiquette"):
             st.caption(f"Privacy and courtesy note: {brief['safety_etiquette']}")
         if brief.get("source_summaries"):
