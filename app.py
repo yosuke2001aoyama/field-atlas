@@ -993,6 +993,98 @@ def guide_text_html(text: str) -> str:
     return re.sub(r"\*\*(.+?)\*\*", r'<strong class="guide-strong">\1</strong>', safe)
 
 
+def clean_voice_text(text: str) -> str:
+    cleaned = re.sub(r"\s+", " ", (text or "").strip())
+    replacements = {
+        "way mark": "Waymark",
+        "waymarks": "Waymark",
+        "new orleans": "New Orleans",
+        "chicargo": "Chicago",
+        "chicago illinois": "Chicago, Illinois",
+        "boston massachusetts": "Boston, Massachusetts",
+        "grand canyon": "Grand Canyon",
+    }
+    lowered = cleaned.lower()
+    for wrong, right in replacements.items():
+        lowered = re.sub(rf"\b{re.escape(wrong)}\b", right, lowered, flags=re.IGNORECASE)
+    if lowered:
+        lowered = lowered[0].upper() + lowered[1:]
+    return lowered
+
+
+def infer_destination_from_text(text: str) -> tuple[str, str]:
+    cleaned = clean_voice_text(text)
+    lowered = cleaned.lower()
+    for item in CURATED_US_DESTINATIONS:
+        if item["destination"].lower() in lowered:
+            return item["destination"], item["state"]
+    match = re.search(r"\b(?:in|about|for|near|to)\s+([A-Z][A-Za-z .'-]+?)(?:\?|$|,|\.| please| today| tomorrow)", cleaned)
+    if match:
+        destination = normalize_destination(match.group(1).strip())
+        geo = geocode_destination(destination)
+        return destination, geo.get("state", "")
+    return "", ""
+
+
+def save_text_log_from_voice(text: str) -> int:
+    cleaned = clean_voice_text(text)
+    destination, state = infer_destination_from_text(cleaned)
+    geo = geocode_destination(destination, state) if destination else {}
+    category = classify_note_theme(cleaned, "voice", "curious")
+    location = destination or geo.get("city") or ""
+    ai_summary = generate_public_ready_summary(cleaned, location, category)
+    ai_context = generate_ai_context(cleaned, category, location)
+    return insert_field_note(
+        {
+            "title": "Voice field note",
+            "date": datetime.now().isoformat(timespec="minutes"),
+            "location_name": location,
+            "address": "",
+            "latitude": geo.get("latitude"),
+            "longitude": geo.get("longitude"),
+            "city": geo.get("city", destination),
+            "state": geo.get("state", state),
+            "category": category,
+            "note_text": cleaned,
+            "photo_path": "",
+            "audio_path": "",
+            "audio_transcript": cleaned,
+            "mood": "curious",
+            "ai_summary": ai_summary,
+            "ai_context": ai_context,
+            "tags": "voice",
+            "privacy_level": "private",
+        }
+    )
+
+
+def handle_voice_query_params() -> None:
+    action = st.query_params.get("voice_action", "")
+    text = st.query_params.get("voice_text", "")
+    if isinstance(action, list):
+        action = action[0] if action else ""
+    if isinstance(text, list):
+        text = text[0] if text else ""
+    if not action or not text:
+        return
+    cleaned = clean_voice_text(text)
+    st.query_params.clear()
+    if action == "log":
+        note_id = save_text_log_from_voice(cleaned)
+        st.session_state.voice_result = f"Saved private voice log #{note_id}: {cleaned}"
+        st.session_state.page = "Home"
+        return
+    if action == "ask":
+        destination, state = infer_destination_from_text(cleaned)
+        st.session_state.voice_result = f"Transcript: {cleaned}"
+        st.session_state.voice_answer = answer_home_question(cleaned)
+        if destination:
+            st.session_state.current_brief = generate_destination_brief(destination, state, "Voice question", GUIDEBOOK_INTERESTS)
+            st.session_state.page = "Ask About This Place"
+        else:
+            st.session_state.page = "Home"
+
+
 def render_browser_voice_helper(component_key: str) -> None:
     components.html(
         """
@@ -1018,68 +1110,110 @@ def render_browser_voice_helper(component_key: str) -> None:
           }
           #recordVoice[disabled] { opacity: .55; cursor: not-allowed; }
           #voiceStatus { margin-left: 12px; color: #746d62; font-size: 15px; }
-          #voicePlayback { width: 100%; margin-top: 12px; }
-          #downloadWrap { margin-top: 10px; color: #746d62; font-size: 14px; }
-          #downloadAudio { font-weight: 850; color: #17211c; }
+          #voiceTranscript {
+            width: 100%;
+            min-height: 74px;
+            margin-top: 12px;
+            border: 1px solid rgba(62,48,33,.18);
+            border-radius: 12px;
+            padding: 10px;
+            box-sizing: border-box;
+            font: inherit;
+            color: #161411;
+            background: rgba(255,255,255,.76);
+          }
+          .voice-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+          .voice-actions button {
+            border: 1px solid rgba(23,33,28,.18);
+            border-radius: 999px;
+            padding: 10px 13px;
+            background: white;
+            color: #17211c;
+            font-weight: 800;
+            cursor: pointer;
+          }
         </style>
         <div class="browser-voice-box">
-          <button id="recordVoice">Start recording</button>
+          <button id="recordVoice">Start talking</button>
           <span id="voiceStatus" style="margin-left:10px;color:#746d62;">Ready. Your browser will ask for microphone permission.</span>
-          <audio id="voicePlayback" controls style="display:none;"></audio>
-          <div id="downloadWrap" style="display:none;margin-top:10px;">
-            <a id="downloadAudio" download="waymark-voice-note.webm" style="font-weight:800;color:#17211c;">Download recording</a>
-            <span style="color:#746d62;margin-left:8px;">Upload it below when you want to save it with a note.</span>
+          <textarea id="voiceTranscript" placeholder="Your transcript appears here, without leaving the page."></textarea>
+          <div class="voice-actions">
+            <button id="askWaymark" type="button">Use as question</button>
+            <button id="saveLog" type="button">Save as private log</button>
           </div>
         </div>
         <script>
           const button = document.getElementById("recordVoice");
           const status = document.getElementById("voiceStatus");
-          const playback = document.getElementById("voicePlayback");
-          const downloadWrap = document.getElementById("downloadWrap");
-          const downloadAudio = document.getElementById("downloadAudio");
-          let recorder = null;
-          let chunks = [];
-          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-            status.textContent = "Browser recording is not available here. Use the upload field below.";
+          const transcript = document.getElementById("voiceTranscript");
+          const askWaymark = document.getElementById("askWaymark");
+          const saveLog = document.getElementById("saveLog");
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          let recognition = null;
+          let listening = false;
+          function submitVoice(action) {
+            const text = transcript.value.trim();
+            if (!text) {
+              status.textContent = "Say something first.";
+              return;
+            }
+            const params = new URLSearchParams(window.parent.location.search);
+            params.set("voice_action", action);
+            params.set("voice_text", text);
+            window.parent.location.search = params.toString();
+          }
+          askWaymark.addEventListener("click", () => submitVoice("ask"));
+          saveLog.addEventListener("click", () => submitVoice("log"));
+          if (!SpeechRecognition) {
+            status.textContent = "Speech recognition is not available here. Type into the box, then choose an action.";
             button.disabled = true;
             button.style.opacity = 0.55;
           } else {
-            button.addEventListener("click", async () => {
-              if (recorder && recorder.state === "recording") {
-                recorder.stop();
+            recognition = new SpeechRecognition();
+            recognition.lang = "en-US";
+            recognition.interimResults = true;
+            recognition.continuous = true;
+            recognition.onresult = event => {
+              let finalText = "";
+              let interimText = "";
+              for (let i = 0; i < event.results.length; i++) {
+                const chunk = event.results[i][0].transcript;
+                if (event.results[i].isFinal) finalText += chunk + " ";
+                else interimText += chunk;
+              }
+              transcript.value = (finalText + interimText).trim()
+                .replace(/\\bway mark\\b/ig, "Waymark")
+                .replace(/\\bchicargo\\b/ig, "Chicago")
+                .replace(/\\bnew orleans\\b/ig, "New Orleans");
+            };
+            recognition.onerror = event => {
+              status.textContent = "Speech stopped: " + event.error + ". You can type into the box.";
+              listening = false;
+              button.textContent = "Start talking";
+            };
+            recognition.onend = () => {
+              listening = false;
+              button.textContent = "Start talking";
+              if (transcript.value.trim()) status.textContent = "Transcript ready.";
+            };
+            button.addEventListener("click", () => {
+              if (listening) {
+                recognition.stop();
                 return;
               }
-              chunks = [];
-              downloadWrap.style.display = "none";
-              playback.style.display = "none";
               try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                recorder = new MediaRecorder(stream);
-                recorder.ondataavailable = event => {
-                  if (event.data.size > 0) chunks.push(event.data);
-                };
-                recorder.onstop = () => {
-                  stream.getTracks().forEach(track => track.stop());
-                  const blob = new Blob(chunks, { type: "audio/webm" });
-                  const url = URL.createObjectURL(blob);
-                  playback.src = url;
-                  playback.style.display = "block";
-                  downloadAudio.href = url;
-                  downloadWrap.style.display = "block";
-                  button.textContent = "Start recording";
-                  status.textContent = "Recording ready.";
-                };
-                recorder.start();
-                button.textContent = "Stop recording";
-                status.textContent = "Recording...";
+                recognition.start();
+                listening = true;
+                button.textContent = "Stop talking";
+                status.textContent = "Listening...";
               } catch (error) {
-                status.textContent = "Microphone access was blocked. Use the upload field below.";
+                status.textContent = "Speech recognition could not start. You can type into the box.";
               }
             });
           }
         </script>
         """,
-        height=165,
+        height=240,
     )
 
 
@@ -1283,6 +1417,10 @@ def home_page() -> None:
         )
     with quick_right:
         render_browser_voice_helper("home_quick_record")
+    if st.session_state.get("voice_result"):
+        st.success(st.session_state.pop("voice_result"))
+    if st.session_state.get("voice_answer"):
+        st.info(st.session_state.pop("voice_answer"))
 
     st.markdown('<div class="atlas-choice-label">Before or after?</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -1429,9 +1567,8 @@ def add_field_note_page() -> None:
             ],
             help="Private is the default. Public-ready drafts should still be reviewed before publishing.",
         )
-        st.markdown("**Voice memo**")
+        st.markdown("**Voice note**")
         render_browser_voice_helper("capture_voice_helper")
-        audio = st.file_uploader("Upload recorded audio", type=["mp3", "m4a", "wav", "aac", "webm"])
         photo = st.file_uploader("Optional photo", type=["png", "jpg", "jpeg", "webp"])
         audio_transcript = st.text_area(
             "Voice transcript / dictated text",
@@ -1454,11 +1591,11 @@ def add_field_note_page() -> None:
         latitude = default_latitude
         longitude = default_longitude
         captured_text = "\n\n".join(part for part in [note_text.strip(), audio_transcript.strip()] if part)
-        if not title.strip() and not captured_text.strip() and not audio:
-            st.error("Please add a title, note text, transcript, or voice memo.")
+        if not title.strip() and not captured_text.strip():
+            st.error("Please add a title, note text, or voice transcript.")
             return
         photo_path = save_upload(photo, "photos")
-        audio_path = save_upload(audio, "audio")
+        audio_path = ""
         location = location_name or city or state
         category = classify_note_theme(captured_text, tags, mood)
         ai_summary = generate_public_ready_summary(captured_text, location, category)
@@ -1780,6 +1917,10 @@ def ai_companion_page() -> None:
         """,
         unsafe_allow_html=True,
     )
+    if st.session_state.get("voice_result"):
+        st.success(st.session_state.pop("voice_result"))
+    if st.session_state.get("voice_answer"):
+        st.info(st.session_state.pop("voice_answer"))
 
     st.markdown("**Destination**")
     selected_label = st_searchbox(
@@ -2327,6 +2468,7 @@ def privacy_page() -> None:
 
 def main() -> None:
     apply_style()
+    handle_voice_query_params()
     pages = [
         "Home",
         "Memory Map",
