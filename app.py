@@ -1121,6 +1121,7 @@ def handle_voice_query_params() -> None:
         note_id = save_text_log_from_voice(cleaned)
         st.session_state.voice_result = f"Saved private voice log #{note_id}: {cleaned}"
         st.session_state.page = "Home"
+        st.rerun()
         return
     if action == "ask":
         destination, state = infer_destination_from_text(cleaned)
@@ -1131,6 +1132,7 @@ def handle_voice_query_params() -> None:
             st.session_state.page = "Ask About This Place"
         else:
             st.session_state.page = "Home"
+        st.rerun()
 
 
 def render_browser_voice_helper(component_key: str) -> None:
@@ -1441,6 +1443,8 @@ def answer_home_question(question: str) -> str:
     q = (question or "").lower()
     if not q.strip():
         return "Ask me what to notice in a place, where your memories cluster, or how to turn notes into a public-safe reflection."
+    if any(phrase in q for phrase in ["what do i need to do", "what should i do", "what should i visit", "where should i go"]):
+        return "I treated this as a place question and opened a guidebook-style brief with must-visit places, food, teams, industries, politics, and local context."
     if "public" in q or "publish" in q or "share" in q:
         return "Start private. When you are ready, use Publish Safely to remove exact addresses, private names, raw transcripts, and real-time details before sharing."
     if "map" in q or "where" in q:
