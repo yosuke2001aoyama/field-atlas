@@ -198,12 +198,24 @@ def apply_style() -> None:
                 background-size: 64px 100%, auto;
                 color: var(--atlas-ink);
                 font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                overflow-x: hidden;
             }
 
             .block-container {
-                max-width: 1220px;
+                width: min(1220px, calc(100vw - 2rem));
+                max-width: 100%;
                 padding-top: 1.6rem;
                 padding-bottom: 4rem;
+            }
+
+            #MainMenu, footer, header,
+            [data-testid="stToolbar"],
+            [data-testid="stDecoration"],
+            [data-testid="stStatusWidget"],
+            [data-testid="stHeader"],
+            .stDeployButton {
+                visibility: hidden;
+                height: 0;
             }
 
             h1, h2, h3 {
@@ -331,10 +343,13 @@ def apply_style() -> None:
             }
 
             .atlas-hero {
-                min-height: 50vh;
+                width: 100%;
+                max-width: 100%;
+                min-height: 46vh;
                 display: grid;
                 align-items: end;
                 overflow: hidden;
+                box-sizing: border-box;
                 border: 1px solid rgba(255, 252, 246, 0.54);
                 border-radius: 0;
                 padding: clamp(1.4rem, 4vw, 3.4rem);
@@ -351,10 +366,11 @@ def apply_style() -> None:
 
             .atlas-hero h1 {
                 color: #ffffff;
-                font-size: clamp(3.4rem, 7.4vw, 6.4rem);
+                font-size: clamp(3rem, 6.4vw, 5.8rem);
                 line-height: 0.9;
                 margin: 0.35rem 0 0.65rem;
                 max-width: 850px;
+                overflow-wrap: break-word;
             }
 
             .atlas-hero h3 {
@@ -471,11 +487,50 @@ def apply_style() -> None:
             }
 
             .journey-card {
-                min-height: 17rem;
+                min-height: 19rem;
                 padding: 1.55rem;
                 border: 1px solid rgba(62, 48, 33, 0.16);
                 background: rgba(255, 252, 246, 0.88);
+                background-size: cover;
+                background-position: center;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
                 box-shadow: 0 22px 60px rgba(35, 24, 13, 0.08);
+            }
+
+            .journey-card.before-card {
+                background:
+                    linear-gradient(180deg, rgba(255,252,246,0.90), rgba(255,252,246,0.96)),
+                    url("https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=1200&q=70");
+            }
+
+            .journey-card.after-card {
+                background:
+                    linear-gradient(180deg, rgba(255,252,246,0.88), rgba(255,252,246,0.96)),
+                    url("https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=70");
+            }
+
+            .journey-icon {
+                width: 3rem;
+                height: 3rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 1.1rem;
+                color: #ffffff;
+                background: #17211c;
+                border-radius: 999px;
+            }
+
+            .journey-icon svg {
+                width: 1.45rem;
+                height: 1.45rem;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 1.8;
+                stroke-linecap: round;
+                stroke-linejoin: round;
             }
 
             .journey-card h3 {
@@ -558,21 +613,38 @@ def apply_style() -> None:
             .browser-voice-box button {
                 border: 0;
                 border-radius: 999px;
-                padding: 0.72rem 1rem;
+                padding: 0.84rem 1.2rem;
                 background: #17211c;
                 color: #fff;
                 font-weight: 800;
                 cursor: pointer;
             }
 
-            .browser-voice-box textarea {
+            .browser-voice-box audio {
                 width: 100%;
-                min-height: 7rem;
-                margin-top: 0.8rem;
+                margin-top: 0.85rem;
+            }
+
+            .quick-record-panel {
+                display: grid;
+                grid-template-columns: 0.85fr 1.15fr;
+                gap: 1rem;
+                align-items: center;
+                margin: 0 0 1.25rem;
+                padding: 1.05rem;
                 border: 1px solid rgba(62, 48, 33, 0.16);
-                border-radius: 0.8rem;
-                padding: 0.8rem;
-                font: inherit;
+                background: rgba(255, 252, 246, 0.86);
+                box-shadow: 0 18px 46px rgba(35, 24, 13, 0.07);
+            }
+
+            .quick-record-panel h3 {
+                margin: 0 0 0.2rem;
+                font-size: 1.35rem;
+            }
+
+            .quick-record-panel p {
+                color: var(--atlas-muted);
+                margin: 0;
             }
 
             .brief-icon {
@@ -747,8 +819,9 @@ def apply_style() -> None:
 
             @media (max-width: 820px) {
                 .block-container {
-                    max-width: 100%;
-                    padding: 0.8rem 0.85rem 4.5rem;
+                    width: calc(100vw - 1.4rem);
+                    max-width: calc(100vw - 1.4rem);
+                    padding: 0.8rem 0.7rem 4.5rem;
                 }
 
                 [data-testid="stSidebar"]::before {
@@ -760,13 +833,13 @@ def apply_style() -> None:
                 }
 
                 .atlas-hero {
-                    min-height: 34rem;
+                    min-height: 31rem;
                     padding: 1.15rem;
                     margin: 0 0 1.1rem;
                 }
 
                 .atlas-hero h1 {
-                    font-size: 3.5rem;
+                    font-size: 3rem;
                     line-height: 0.95;
                 }
 
@@ -810,6 +883,11 @@ def apply_style() -> None:
                 .brief-section {
                     min-height: auto;
                     padding: 1rem;
+                }
+
+                .quick-record-panel {
+                    display: block;
+                    padding: 0.95rem;
                 }
             }
         </style>
@@ -898,11 +976,11 @@ def render_sidebar(pages: list[str]) -> str:
             st.rerun()
 
     nav_button("Home")
-    st.sidebar.markdown('<div class="nav-section">Understand</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="nav-section">Before</div>', unsafe_allow_html=True)
     nav_button("Ask About This Place")
     nav_button("Memory Map")
     nav_button("Read Reviews")
-    st.sidebar.markdown('<div class="nav-section">Capture</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="nav-section">After</div>', unsafe_allow_html=True)
     nav_button("Capture Note")
     nav_button("Community Log")
     return st.session_state.page
@@ -922,56 +1000,63 @@ def render_browser_voice_helper(component_key: str) -> None:
     components.html(
         """
         <div class="browser-voice-box">
-          <button id="startVoice">Start browser dictation</button>
-          <span id="voiceStatus" style="margin-left:10px;color:#746d62;">Works in Chrome/Safari when microphone permission is allowed.</span>
-          <textarea id="voiceText" placeholder="Dictated text will appear here. Paste it into the transcript field below before saving."></textarea>
+          <button id="recordVoice">Start recording</button>
+          <span id="voiceStatus" style="margin-left:10px;color:#746d62;">Ready. Your browser will ask for microphone permission.</span>
+          <audio id="voicePlayback" controls style="display:none;"></audio>
+          <div id="downloadWrap" style="display:none;margin-top:10px;">
+            <a id="downloadAudio" download="waymark-voice-note.webm" style="font-weight:800;color:#17211c;">Download recording</a>
+            <span style="color:#746d62;margin-left:8px;">Upload it below when you want to save it with a note.</span>
+          </div>
         </div>
         <script>
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          const button = document.getElementById("startVoice");
+          const button = document.getElementById("recordVoice");
           const status = document.getElementById("voiceStatus");
-          const output = document.getElementById("voiceText");
-          if (!SpeechRecognition) {
-            status.textContent = "Browser dictation is not available here. Upload audio or type a transcript below.";
+          const playback = document.getElementById("voicePlayback");
+          const downloadWrap = document.getElementById("downloadWrap");
+          const downloadAudio = document.getElementById("downloadAudio");
+          let recorder = null;
+          let chunks = [];
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+            status.textContent = "Browser recording is not available here. Use the upload field below.";
             button.disabled = true;
             button.style.opacity = 0.55;
           } else {
-            const recognition = new SpeechRecognition();
-            recognition.lang = "en-US";
-            recognition.interimResults = true;
-            recognition.continuous = true;
-            let listening = false;
-            recognition.onresult = event => {
-              let text = "";
-              for (let i = 0; i < event.results.length; i++) {
-                text += event.results[i][0].transcript;
-              }
-              output.value = text;
-            };
-            recognition.onerror = event => {
-              status.textContent = "Dictation stopped: " + event.error + ". You can still upload audio or paste a transcript.";
-              listening = false;
-              button.textContent = "Start browser dictation";
-            };
-            recognition.onend = () => {
-              listening = false;
-              button.textContent = "Start browser dictation";
-            };
-            button.addEventListener("click", () => {
-              if (listening) {
-                recognition.stop();
+            button.addEventListener("click", async () => {
+              if (recorder && recorder.state === "recording") {
+                recorder.stop();
                 return;
               }
-              output.value = "";
-              recognition.start();
-              listening = true;
-              button.textContent = "Stop dictation";
-              status.textContent = "Listening...";
+              chunks = [];
+              downloadWrap.style.display = "none";
+              playback.style.display = "none";
+              try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                recorder = new MediaRecorder(stream);
+                recorder.ondataavailable = event => {
+                  if (event.data.size > 0) chunks.push(event.data);
+                };
+                recorder.onstop = () => {
+                  stream.getTracks().forEach(track => track.stop());
+                  const blob = new Blob(chunks, { type: "audio/webm" });
+                  const url = URL.createObjectURL(blob);
+                  playback.src = url;
+                  playback.style.display = "block";
+                  downloadAudio.href = url;
+                  downloadWrap.style.display = "block";
+                  button.textContent = "Start recording";
+                  status.textContent = "Recording ready.";
+                };
+                recorder.start();
+                button.textContent = "Stop recording";
+                status.textContent = "Recording...";
+              } catch (error) {
+                status.textContent = "Microphone access was blocked. Use the upload field below.";
+              }
             });
           }
         </script>
         """,
-        height=210,
+        height=165,
     )
 
 
@@ -1153,27 +1238,36 @@ def home_page() -> None:
             <h1>Waymark U.S.</h1>
             <h3>Turn movement into memory and understanding.</h3>
             <p>Capture messy thoughts while moving, organize them by place and theme, ask what to notice nearby, and later turn private notes into careful public reflections.</p>
-            <div class="atlas-pill-row">
-                <span class="atlas-pill">Smart travel journal</span>
-                <span class="atlas-pill">Place intelligence</span>
-                <span class="atlas-pill">Community logs</span>
-                <span class="atlas-pill">Private by default</span>
-            </div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="atlas-choice-label">What do you want to do?</div>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="quick-record-panel">
+            <div>
+                <div class="atlas-choice-label">Driving mode</div>
+                <h3>Record the thought before it disappears.</h3>
+                <p>One tap starts a private voice note. Save the file, then attach it to a note when you stop.</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    render_browser_voice_helper("home_quick_record")
+
+    st.markdown('<div class="atlas-choice-label">Before or after?</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(
             """
-            <div class="journey-card">
-                <div class="atlas-choice-label">Understand</div>
-                <h3>Learn what to notice</h3>
-                <p>Search a city, park, landmark, or neighborhood. Get a sourced brief, map context, and prompts for what to watch as you move.</p>
+            <div class="journey-card before-card">
+                <div class="journey-icon"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"></path></svg></div>
+                <div class="atlas-choice-label">Before the trip</div>
+                <h3>Read a place brief</h3>
+                <p>Search a city, park, landmark, or corridor. Get a guidebook-style brief with food, teams, politics, industries, and must-visit places.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1183,10 +1277,11 @@ def home_page() -> None:
     with c2:
         st.markdown(
             """
-            <div class="journey-card">
-                <div class="atlas-choice-label">Capture</div>
-                <h3>Save a moving thought</h3>
-                <p>Speak in the car, type on a walk, or paste a rough impression. It stays private unless you choose to prepare it for public knowledge.</p>
+            <div class="journey-card after-card">
+                <div class="journey-icon"><svg viewBox="0 0 24 24"><path d="M12 3v18"></path><path d="M5 8h14"></path><path d="M7 21h10"></path><path d="M8 3h8"></path></svg></div>
+                <div class="atlas-choice-label">After the moment</div>
+                <h3>Save what happened</h3>
+                <p>Record a voice note, paste a rough impression, or save a community encounter. Everything starts private.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1194,24 +1289,19 @@ def home_page() -> None:
         if st.button("Record a Thought", width="stretch"):
             go_to("Capture Note")
 
-    st.markdown("### Ask Waymark")
+    st.markdown("### Ask or search")
     st.markdown(
         """
         <div class="voice-dock">
-            <h3>Talk to your travel memory</h3>
+            <h3>Need an answer instead of a recording?</h3>
             <p>Ask what to notice, where to look on the map, or how to make a note public-safe.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    question_cols = st.columns([0.7, 1.3])
-    with question_cols[0]:
-        render_browser_voice_helper("home_voice_helper")
-        st.caption("If browser dictation is blocked, type the question on the right. Nothing is saved unless you save a note.")
-    with question_cols[1]:
-        home_question = st.text_input("Ask a question", placeholder="What should I notice in New Orleans? How do I publish safely?")
-        if home_question:
-            st.info(answer_home_question(home_question))
+    home_question = st.text_input("Ask a question", placeholder="What should I notice in New Orleans? How do I publish safely?")
+    if home_question:
+        st.info(answer_home_question(home_question))
 
     st.markdown("### Explore the Map")
     home_place_label = st_searchbox(
