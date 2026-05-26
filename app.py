@@ -626,15 +626,12 @@ def apply_style() -> None:
             }
 
             .quick-record-panel {
-                display: grid;
-                grid-template-columns: 0.85fr 1.15fr;
-                gap: 1rem;
-                align-items: center;
                 margin: 0 0 1.25rem;
                 padding: 1.05rem;
                 border: 1px solid rgba(62, 48, 33, 0.16);
                 background: rgba(255, 252, 246, 0.86);
                 box-shadow: 0 18px 46px rgba(35, 24, 13, 0.07);
+                min-height: 10.4rem;
             }
 
             .quick-record-panel h3 {
@@ -1270,19 +1267,22 @@ def home_page() -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        """
-        <div class="quick-record-panel">
-            <div>
-                <div class="atlas-choice-label">Driving mode</div>
-                <h3>Record the thought before it disappears.</h3>
-                <p>One tap starts a private voice note. Save the file, then attach it to a note when you stop.</p>
+    quick_left, quick_right = st.columns([0.9, 1.1])
+    with quick_left:
+        st.markdown(
+            """
+            <div class="quick-record-panel">
+                <div>
+                    <div class="atlas-choice-label">Driving mode</div>
+                    <h3>Record the thought before it disappears.</h3>
+                    <p>One tap starts a private voice note. Save the file, then attach it to a note when you stop.</p>
+                </div>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    render_browser_voice_helper("home_quick_record")
+            """,
+            unsafe_allow_html=True,
+        )
+    with quick_right:
+        render_browser_voice_helper("home_quick_record")
 
     st.markdown('<div class="atlas-choice-label">Before or after?</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
