@@ -365,10 +365,14 @@ def search_destination_suggestions(query: str, limit: int = 8) -> list[dict]:
     suggestions: list[dict] = []
     seen = set()
     seen_names = set()
+    seen_labels = set()
     for item in CURATED_US_DESTINATIONS:
         haystack = f'{item["destination"]} {item["state"]}'.lower()
         if cleaned.lower() in haystack or item["destination"].lower().startswith(cleaned.lower()):
             label = f'{item["destination"]} - {item["state"]} | {item["kind"]}'
+            label_key = label.lower()
+            if label_key in seen_labels:
+                continue
             suggestions.append(
                 {
                     "label": label,
@@ -382,6 +386,7 @@ def search_destination_suggestions(query: str, limit: int = 8) -> list[dict]:
             )
             seen.add((item["destination"], item["state"], round(item["latitude"], 3), round(item["longitude"], 3)))
             seen_names.add((item["destination"].lower(), item["state"].lower()))
+            seen_labels.add(label_key)
     try:
         response = requests.get(
             "https://nominatim.openstreetmap.org/search",
@@ -427,13 +432,19 @@ def search_destination_suggestions(query: str, limit: int = 8) -> list[dict]:
         elif raw_class == "boundary" and raw_type == "administrative":
             place_type = "region"
         key = (name, state, round(float(result.get("lat", 0)), 3), round(float(result.get("lon", 0)), 3))
-        if key in seen or (place_type == "region" and name_state_key in seen_names):
-            continue
-        seen.add(key)
-        seen_names.add(name_state_key)
         label = " - ".join(part for part in [name, state] if part)
         if place_type:
             label = f"{label} | {place_type}"
+        label_key = label.lower()
+        if (
+            key in seen
+            or label_key in seen_labels
+            or (place_type in {"city", "region"} and name_state_key in seen_names)
+        ):
+            continue
+        seen.add(key)
+        seen_names.add(name_state_key)
+        seen_labels.add(label_key)
         suggestions.append(
             {
                 "label": label,
