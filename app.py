@@ -1104,6 +1104,18 @@ def save_text_log_from_voice(text: str) -> int:
     )
 
 
+def generate_note_title_from_text(text: str, fallback: str = "Moving thought") -> str:
+    cleaned = clean_voice_text(text)
+    if not cleaned:
+        return fallback
+    destination, _ = infer_destination_from_text(cleaned)
+    category = classify_note_theme(cleaned, "voice", "curious")
+    first_words = " ".join(cleaned.split()[:7]).strip("., ")
+    if destination:
+        return f"{category.title()} in {destination}"
+    return first_words or fallback
+
+
 def handle_voice_query_params() -> None:
     action = st.query_params.get("voice_action", "")
     text = st.query_params.get("voice_text", "")
@@ -1203,6 +1215,7 @@ def render_browser_voice_helper(component_key: str) -> None:
           let recognition = null;
           let listening = false;
           let autoSubmitted = false;
+          let silenceTimer = null;
           function looksLikeQuestion(text) {
             const cleaned = text.trim().toLowerCase();
             return cleaned.includes("?")
@@ -1251,6 +1264,16 @@ def render_browser_voice_helper(component_key: str) -> None:
           }
           askWaymark.addEventListener("click", () => submitVoice("ask"));
           saveLog.addEventListener("click", () => submitVoice("log"));
+          function resetSilenceTimer() {
+            if (silenceTimer) window.clearTimeout(silenceTimer);
+            if (!listening) return;
+            silenceTimer = window.setTimeout(() => {
+              if (listening && recognition) {
+                status.textContent = "Silence detected. Processing...";
+                recognition.stop();
+              }
+            }, 3000);
+          }
           if (!SpeechRecognition) {
             status.textContent = "Speech recognition is not available here. Type into the box, then choose an action.";
             button.disabled = true;
@@ -1261,6 +1284,7 @@ def render_browser_voice_helper(component_key: str) -> None:
             recognition.interimResults = true;
             recognition.continuous = true;
             recognition.onresult = event => {
+              resetSilenceTimer();
               let finalText = "";
               let interimText = "";
               for (let i = 0; i < event.results.length; i++) {
@@ -1276,11 +1300,13 @@ def render_browser_voice_helper(component_key: str) -> None:
                 .replace(/\\bnew orleans\\b/ig, "New Orleans");
             };
             recognition.onerror = event => {
+              if (silenceTimer) window.clearTimeout(silenceTimer);
               status.textContent = "Speech stopped: " + event.error + ". You can type into the box.";
               listening = false;
               button.textContent = "Start talking";
             };
             recognition.onend = () => {
+              if (silenceTimer) window.clearTimeout(silenceTimer);
               listening = false;
               button.textContent = "Start talking";
               if (transcript.value.trim()) {
@@ -1301,6 +1327,7 @@ def render_browser_voice_helper(component_key: str) -> None:
                 listening = true;
                 button.textContent = "Stop talking";
                 status.textContent = "Listening...";
+                resetSilenceTimer();
               } catch (error) {
                 status.textContent = "Speech recognition could not start. You can type into the box.";
               }
@@ -1688,9 +1715,8 @@ def add_field_note_page() -> None:
         latitude = default_latitude
         longitude = default_longitude
         captured_text = "\n\n".join(part for part in [note_text.strip(), audio_transcript.strip()] if part)
-        if not title.strip() and not captured_text.strip():
-            st.error("Please add a title, note text, or voice transcript.")
-            return
+        if not captured_text.strip():
+            captured_text = "Quick private marker saved without a transcript yet."
         photo_path = save_upload(photo, "photos")
         audio_path = ""
         location = location_name or city or state
@@ -1702,9 +1728,10 @@ def add_field_note_page() -> None:
             "Working note": "semi-private",
             "Public-ready draft": "public-ready",
         }[publishing_choice]
+        generated_title = title.strip() or generate_note_title_from_text(captured_text)
         note_id = insert_field_note(
             {
-                "title": title or "Untitled field note",
+                "title": generated_title,
                 "date": datetime.combine(note_date, note_time).isoformat(timespec="minutes"),
                 "location_name": location_name,
                 "address": address,
@@ -1726,7 +1753,7 @@ def add_field_note_page() -> None:
         )
         st.success(f"Saved field note #{note_id}.")
         with st.container(border=True):
-            st.subheader(title or "Untitled field note")
+            st.subheader(generated_title)
             st.caption(f"{location or 'No location'} | {category} | {mood} | {privacy_level}")
             st.write(captured_text or "Voice memo saved. Add a transcript later for search and summaries.")
             st.markdown("**Organized summary**")
