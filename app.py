@@ -16,6 +16,7 @@ from streamlit_searchbox import st_searchbox
 
 from ai_utils import (
     CURATED_US_DESTINATIONS,
+    STATE_CITY_SUGGESTIONS,
     generate_ai_context,
     generate_ai_summary,
     generate_destination_brief,
@@ -996,6 +997,9 @@ def guide_text_html(text: str) -> str:
 def clean_voice_text(text: str) -> str:
     cleaned = re.sub(r"\s+", " ", (text or "").strip())
     replacements = {
+        "why do i need to do": "what do I need to do",
+        "why do i need to see": "what do I need to see",
+        "why should i visit": "what should I visit",
         "way mark": "Waymark",
         "waymarks": "Waymark",
         "new orleans": "New Orleans",
@@ -1007,9 +1011,51 @@ def clean_voice_text(text: str) -> str:
     lowered = cleaned.lower()
     for wrong, right in replacements.items():
         lowered = re.sub(rf"\b{re.escape(wrong)}\b", right, lowered, flags=re.IGNORECASE)
+    for item in CURATED_US_DESTINATIONS:
+        lowered = re.sub(
+            rf"\b{re.escape(item['destination'])}\b",
+            item["destination"],
+            lowered,
+            flags=re.IGNORECASE,
+        )
+    for state_name, cities in STATE_CITY_SUGGESTIONS.items():
+        lowered = re.sub(rf"\b{re.escape(state_name)}\b", state_name, lowered, flags=re.IGNORECASE)
+        for city_name in cities:
+            lowered = re.sub(rf"\b{re.escape(city_name)}\b", city_name, lowered, flags=re.IGNORECASE)
     if lowered:
         lowered = lowered[0].upper() + lowered[1:]
     return lowered
+
+
+def is_voice_question(text: str) -> bool:
+    cleaned = clean_voice_text(text).lower()
+    if "?" in cleaned:
+        return True
+    question_starters = (
+        "what ",
+        "why ",
+        "how ",
+        "where ",
+        "when ",
+        "who ",
+        "which ",
+        "should i ",
+        "can you ",
+        "tell me ",
+        "do i ",
+        "is there ",
+        "are there ",
+    )
+    question_phrases = (
+        "what should i notice",
+        "what do i need to do",
+        "what should i do",
+        "what should i visit",
+        "what is important",
+        "where should i go",
+        "why does",
+    )
+    return cleaned.startswith(question_starters) or any(phrase in cleaned for phrase in question_phrases)
 
 
 def infer_destination_from_text(text: str) -> tuple[str, str]:
@@ -1068,6 +1114,8 @@ def handle_voice_query_params() -> None:
     if not action or not text:
         return
     cleaned = clean_voice_text(text)
+    if action == "auto":
+        action = "ask" if is_voice_question(cleaned) else "log"
     st.query_params.clear()
     if action == "log":
         note_id = save_text_log_from_voice(cleaned)
@@ -1151,16 +1199,52 @@ def render_browser_voice_helper(component_key: str) -> None:
           const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
           let recognition = null;
           let listening = false;
-          function submitVoice(action) {
+          let autoSubmitted = false;
+          function looksLikeQuestion(text) {
+            const cleaned = text.trim().toLowerCase();
+            return cleaned.includes("?")
+              || /^(what|why|how|where|when|who|which)\\b/.test(cleaned)
+              || /^(should i|can you|tell me|do i|is there|are there)\\b/.test(cleaned)
+              || cleaned.includes("what should i notice")
+              || cleaned.includes("what do i need to do")
+              || cleaned.includes("what should i visit")
+              || cleaned.includes("where should i go");
+          }
+          function cleanLocalText(text) {
+            return text.trim()
+              .replace(/\\bwhy do i need to do\\b/ig, "what do I need to do")
+              .replace(/\\bwhy do i need to see\\b/ig, "what do I need to see")
+              .replace(/\\bway mark\\b/ig, "Waymark")
+              .replace(/\\bchicargo\\b/ig, "Chicago")
+              .replace(/\\bnew orleans\\b/ig, "New Orleans");
+          }
+          function appBaseUrl() {
+            try {
+              const ref = document.referrer ? new URL(document.referrer) : new URL(window.top.location.href);
+              return ref.origin + ref.pathname;
+            } catch (error) {
+              return "/";
+            }
+          }
+          function submitVoice(action, automatic=false) {
             const text = transcript.value.trim();
             if (!text) {
               status.textContent = "Say something first.";
               return;
             }
-            const params = new URLSearchParams(window.parent.location.search);
-            params.set("voice_action", action);
-            params.set("voice_text", text);
-            window.parent.location.search = params.toString();
+            const corrected = cleanLocalText(text);
+            transcript.value = corrected;
+            const finalAction = action === "auto" ? (looksLikeQuestion(corrected) ? "ask" : "log") : action;
+            const params = new URLSearchParams();
+            params.set("voice_action", finalAction);
+            params.set("voice_text", corrected);
+            if (automatic) status.textContent = finalAction === "ask" ? "Question detected. Opening brief..." : "Saving private log...";
+            const nextUrl = appBaseUrl() + "?" + params.toString();
+            try {
+              window.top.location.assign(nextUrl);
+            } catch (error) {
+              window.open(nextUrl, "_top");
+            }
           }
           askWaymark.addEventListener("click", () => submitVoice("ask"));
           saveLog.addEventListener("click", () => submitVoice("log"));
@@ -1182,6 +1266,8 @@ def render_browser_voice_helper(component_key: str) -> None:
                 else interimText += chunk;
               }
               transcript.value = (finalText + interimText).trim()
+                .replace(/\\bwhy do i need to do\\b/ig, "what do I need to do")
+                .replace(/\\bwhy do i need to see\\b/ig, "what do I need to see")
                 .replace(/\\bway mark\\b/ig, "Waymark")
                 .replace(/\\bchicargo\\b/ig, "Chicago")
                 .replace(/\\bnew orleans\\b/ig, "New Orleans");
@@ -1194,7 +1280,13 @@ def render_browser_voice_helper(component_key: str) -> None:
             recognition.onend = () => {
               listening = false;
               button.textContent = "Start talking";
-              if (transcript.value.trim()) status.textContent = "Transcript ready.";
+              if (transcript.value.trim()) {
+                status.textContent = "Transcript ready. Processing automatically...";
+                if (!autoSubmitted) {
+                  autoSubmitted = true;
+                  window.setTimeout(() => submitVoice("auto", true), 1100);
+                }
+              }
             };
             button.addEventListener("click", () => {
               if (listening) {
@@ -1666,6 +1758,36 @@ def map_view_page() -> None:
         '<div class="map-legend"><span>Reviews: your lived notes</span><span>Briefs: place context you generated</span></div>',
         unsafe_allow_html=True,
     )
+
+    visited_states = []
+    visited_places = []
+    route_mentions = set()
+    if not notes.empty:
+        if "state" in notes:
+            visited_states.extend([str(x) for x in notes["state"].dropna().unique() if str(x).strip()])
+        if "location_name" in notes:
+            visited_places.extend([str(x) for x in notes["location_name"].dropna().unique() if str(x).strip()])
+        note_blob = " ".join(
+            str(value)
+            for column in ["title", "location_name", "note_text", "tags", "ai_summary"]
+            if column in notes
+            for value in notes[column].dropna().tolist()
+        )
+        route_mentions.update(re.findall(r"\b(?:I[-\s]?\d{1,3}|Interstate\s+\d{1,3}|US[-\s]?\d{1,3}|Route\s+\d{1,3})\b", note_blob, flags=re.IGNORECASE))
+    if not briefs.empty:
+        visited_places.extend([str(x) for x in briefs["destination"].dropna().unique() if str(x).strip()])
+
+    st.markdown("### Waymark Progress")
+    prog_a, prog_b, prog_c = st.columns(3)
+    prog_a.metric("Places marked", len(set(visited_places)))
+    prog_b.metric("States touched", len(set(visited_states)))
+    prog_c.metric("Road corridors noted", len(route_mentions))
+    if visited_places:
+        chips = "".join(f"<span>{html.escape(place)}</span>" for place in sorted(set(visited_places))[:14])
+        st.markdown(f'<div class="map-legend">{chips}</div>', unsafe_allow_html=True)
+    if route_mentions:
+        route_chips = "".join(f"<span>{html.escape(route.upper().replace('INTERSTATE ', 'I-'))}</span>" for route in sorted(route_mentions)[:12])
+        st.markdown(f'<div class="map-legend">{route_chips}</div>', unsafe_allow_html=True)
 
     review_tab, brief_tab = st.tabs(["Reviews & Notes", "Saved Briefs"])
 
