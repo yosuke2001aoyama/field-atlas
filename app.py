@@ -1114,14 +1114,16 @@ def handle_voice_query_params() -> None:
     if not action or not text:
         return
     cleaned = clean_voice_text(text)
+    voice_key = f"{action}:{cleaned}"
+    if st.session_state.get("last_voice_query") == voice_key:
+        return
+    st.session_state.last_voice_query = voice_key
     if action == "auto":
         action = "ask" if is_voice_question(cleaned) else "log"
     if action == "log":
         note_id = save_text_log_from_voice(cleaned)
         st.session_state.voice_result = f"Saved private voice log #{note_id}: {cleaned}"
         st.session_state.page = "Home"
-        st.query_params.clear()
-        st.rerun()
         return
     if action == "ask":
         destination, state = infer_destination_from_text(cleaned)
@@ -1132,8 +1134,6 @@ def handle_voice_query_params() -> None:
             st.session_state.page = "Ask About This Place"
         else:
             st.session_state.page = "Home"
-        st.query_params.clear()
-        st.rerun()
 
 
 def render_browser_voice_helper(component_key: str) -> None:
