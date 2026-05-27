@@ -36,6 +36,7 @@ from db import (
     insert_ai_brief,
     insert_farmstay_log,
     insert_field_note,
+    update_field_note_privacy,
 )
 from export_utils import generate_export, save_export
 from map_utils import build_map_points
@@ -75,7 +76,7 @@ NOTE_THEMES = [
 ]
 
 THEME_KEYWORDS = {
-    "food": ["food", "meal", "diner", "coffee", "market", "restaurant", "bread", "breakfast"],
+    "food": ["food", "meal", "diner", "coffee", "market", "restaurant", "bread", "breakfast", "pizza", "cuisine", "dish", "ate"],
     "people": ["people", "conversation", "met", "neighbor", "vendor", "host", "local"],
     "culture": ["music", "church", "festival", "museum", "accent", "school", "tradition"],
     "economy": ["industry", "work", "job", "housing", "price", "warehouse", "factory", "tourism", "labor"],
@@ -145,6 +146,26 @@ INTERSTATE_ROUTES = pd.DataFrame(
         {"name": "I-80", "path": [[-122.4194, 37.7749], [-104.9903, 39.7392], [-87.6298, 41.8781], [-74.0060, 40.7128]]},
     ]
 )
+
+STATE_CENTERS = {
+    "Alabama": (32.8067, -86.7911), "Alaska": (61.3707, -152.4044), "Arizona": (33.7298, -111.4312),
+    "Arkansas": (34.9697, -92.3731), "California": (36.1162, -119.6816), "Colorado": (39.0598, -105.3111),
+    "Connecticut": (41.5978, -72.7554), "Delaware": (39.3185, -75.5071), "Florida": (27.7663, -81.6868),
+    "Georgia": (33.0406, -83.6431), "Hawaii": (21.0943, -157.4983), "Idaho": (44.2405, -114.4788),
+    "Illinois": (40.3495, -88.9861), "Indiana": (39.8494, -86.2583), "Iowa": (42.0115, -93.2105),
+    "Kansas": (38.5266, -96.7265), "Kentucky": (37.6681, -84.6701), "Louisiana": (31.1695, -91.8678),
+    "Maine": (44.6939, -69.3819), "Maryland": (39.0639, -76.8021), "Massachusetts": (42.2302, -71.5301),
+    "Michigan": (43.3266, -84.5361), "Minnesota": (45.6945, -93.9002), "Mississippi": (32.7416, -89.6787),
+    "Missouri": (38.4561, -92.2884), "Montana": (46.9219, -110.4544), "Nebraska": (41.1254, -98.2681),
+    "Nevada": (38.3135, -117.0554), "New Hampshire": (43.4525, -71.5639), "New Jersey": (40.2989, -74.5210),
+    "New Mexico": (34.8405, -106.2485), "New York": (42.1657, -74.9481), "North Carolina": (35.6301, -79.8064),
+    "North Dakota": (47.5289, -99.7840), "Ohio": (40.3888, -82.7649), "Oklahoma": (35.5653, -96.9289),
+    "Oregon": (44.5720, -122.0709), "Pennsylvania": (40.5908, -77.2098), "Rhode Island": (41.6809, -71.5118),
+    "South Carolina": (33.8569, -80.9450), "South Dakota": (44.2998, -99.4388), "Tennessee": (35.7478, -86.6923),
+    "Texas": (31.0545, -97.5635), "Utah": (40.1500, -111.8624), "Vermont": (44.0459, -72.7107),
+    "Virginia": (37.7693, -78.1700), "Washington": (47.4009, -121.4905), "West Virginia": (38.4912, -80.9545),
+    "Wisconsin": (44.2685, -89.6165), "Wyoming": (42.7560, -107.3025),
+}
 
 PLACE_BRIEF_CANDIDATES = pd.DataFrame(
     [
@@ -955,6 +976,7 @@ def render_sidebar(pages: list[str]) -> str:
         "Capture Note": "Capture Note",
         "Ask About This Place": "Ask About This Place",
         "Community Log": "Community Log",
+        "Personal Log": "Personal Log",
         "Library": "Library",
         "Export": "Export",
         "Publish Safely": "Publish Safely",
@@ -980,8 +1002,30 @@ def render_sidebar(pages: list[str]) -> str:
     nav_button("Read Reviews")
     st.sidebar.markdown('<div class="nav-section">After</div>', unsafe_allow_html=True)
     nav_button("Capture Note")
+    nav_button("Personal Log")
     nav_button("Community Log")
+    nav_button("Journey Review")
     return st.session_state.page
+
+
+def render_top_nav(pages: list[str]) -> None:
+    with st.expander("Navigate Waymark U.S.", expanded=False):
+        st.markdown('<div class="top-nav-wrap">', unsafe_allow_html=True)
+        rows = [
+            [("Home", "Home"), ("Ask About This Place", "Read a Place Brief"), ("Memory Map", "Memory Map")],
+            [("Capture Note", "Mic / Capture"), ("Personal Log", "Personal Log"), ("Read Reviews", "Public Reviews")],
+            [("Community Log", "Community Log"), ("Journey Review", "Journey Review"), ("Publish Safely", "Publish Safely")],
+        ]
+        for row in rows:
+            cols = st.columns(len(row))
+            for col, (page, label) in zip(cols, row):
+                with col:
+                    if page == st.session_state.page:
+                        st.markdown(f'<div class="top-nav-active">{html.escape(label)}</div>', unsafe_allow_html=True)
+                    elif st.button(label, key=f"top_nav_{page}", width="stretch"):
+                        st.session_state.page = page
+                        st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def go_to(page_name: str) -> None:
@@ -1045,6 +1089,15 @@ def is_voice_question(text: str) -> bool:
         "do i ",
         "is there ",
         "are there ",
+        "i want to know",
+        "i'd like to know",
+        "i would like to know",
+        "i was wondering",
+        "i wonder",
+        "i am wondering",
+        "i'm wondering",
+        "i need to know",
+        "help me understand",
     )
     question_phrases = (
         "what should i notice",
@@ -1054,8 +1107,42 @@ def is_voice_question(text: str) -> bool:
         "what is important",
         "where should i go",
         "why does",
+        "want to know",
+        "was wondering if",
+        "was wondering whether",
+        "help me understand",
     )
     return cleaned.startswith(question_starters) or any(phrase in cleaned for phrase in question_phrases)
+
+
+def voice_question_topic(text: str) -> str:
+    q = clean_voice_text(text).lower()
+    topic_keywords = {
+        "sports_snapshot": ["sport", "team", "baseball", "football", "basketball", "hockey", "soccer", "stadium"],
+        "food_snapshot": ["food", "eat", "dish", "restaurant", "cuisine", "pizza", "barbecue", "breakfast"],
+        "politics_snapshot": ["politic", "election", "trump", "biden", "democrat", "republican", "vote"],
+        "industry_snapshot": ["industry", "economy", "job", "employer", "company", "work"],
+        "population_snapshot": ["population", "people", "how big", "metro"],
+        "historical_background": ["history", "historic", "historical", "past"],
+    }
+    for topic, keywords in topic_keywords.items():
+        if any(keyword in q for keyword in keywords):
+            return topic
+    return "general"
+
+
+def answer_voice_question(text: str, brief: dict | None = None) -> str:
+    topic = voice_question_topic(text)
+    if brief and topic != "general":
+        return str(brief.get(topic) or brief.get("brief_15_sec") or answer_home_question(text))
+    if brief:
+        destination = ", ".join(part for part in [brief.get("destination"), brief.get("state")] if part)
+        return (
+            f"I opened the full place brief for {destination}. "
+            f"{brief.get('brief_15_sec', '')} "
+            "Start with the Must Visit section, then scan population, industries, food, sports, and politics."
+        )
+    return answer_home_question(text)
 
 
 def infer_destination_from_text(text: str) -> tuple[str, str]:
@@ -1073,6 +1160,7 @@ def infer_destination_from_text(text: str) -> tuple[str, str]:
 
 
 def save_text_log_from_voice(text: str) -> int:
+    raw = text
     cleaned = clean_voice_text(text)
     destination, state = infer_destination_from_text(cleaned)
     geo = geocode_destination(destination, state) if destination else {}
@@ -1080,9 +1168,10 @@ def save_text_log_from_voice(text: str) -> int:
     location = destination or geo.get("city") or ""
     ai_summary = generate_public_ready_summary(cleaned, location, category)
     ai_context = generate_ai_context(cleaned, category, location)
+    title = generate_note_title_from_text(cleaned, "Voice field note")
     return insert_field_note(
         {
-            "title": "Voice field note",
+            "title": title,
             "date": datetime.now().isoformat(timespec="minutes"),
             "location_name": location,
             "address": "",
@@ -1094,7 +1183,7 @@ def save_text_log_from_voice(text: str) -> int:
             "note_text": cleaned,
             "photo_path": "",
             "audio_path": "",
-            "audio_transcript": cleaned,
+            "audio_transcript": raw,
             "mood": "curious",
             "ai_summary": ai_summary,
             "ai_context": ai_context,
@@ -1134,15 +1223,18 @@ def handle_voice_query_params() -> None:
         action = "ask" if is_voice_question(cleaned) else "log"
     if action == "log":
         note_id = save_text_log_from_voice(cleaned)
-        st.session_state.voice_result = f"Saved private voice log #{note_id}: {cleaned}"
-        st.session_state.page = "Home"
+        st.session_state.voice_result = f"Saved private voice log #{note_id}."
+        st.session_state.voice_spoken_answer = "Saved as a private personal log. I cleaned up the transcript and created a title for it."
+        st.session_state.page = "Personal Log"
         return
     if action == "ask":
         destination, state = infer_destination_from_text(cleaned)
         st.session_state.voice_result = f"Transcript: {cleaned}"
-        st.session_state.voice_answer = answer_home_question(cleaned)
+        brief = generate_destination_brief(destination, state, "Voice question", GUIDEBOOK_INTERESTS) if destination else None
+        st.session_state.voice_answer = answer_voice_question(cleaned, brief)
+        st.session_state.voice_spoken_answer = st.session_state.voice_answer
         if destination:
-            st.session_state.current_brief = generate_destination_brief(destination, state, "Voice question", GUIDEBOOK_INTERESTS)
+            st.session_state.current_brief = brief
             st.session_state.page = "Ask About This Place"
         else:
             st.session_state.page = "Home"
@@ -1195,10 +1287,11 @@ def render_browser_voice_helper(component_key: str) -> None:
             font-weight: 800;
             cursor: pointer;
           }
+          .mic-icon { font-size: 0.78rem; letter-spacing: 0.06rem; margin-right: 0.34rem; opacity: 0.86; }
         </style>
         <div class="browser-voice-box">
-          <button id="recordVoice">Start talking</button>
-          <span id="voiceStatus" style="margin-left:10px;color:#746d62;">Ready. Your browser will ask for microphone permission.</span>
+          <button id="recordVoice"><span class="mic-icon">MIC</span> Start</button>
+          <span id="voiceStatus" style="margin-left:10px;color:#746d62;">Ready for a walk, car, station, kitchen, or street note.</span>
           <textarea id="voiceTranscript" placeholder="Your transcript appears here, without leaving the page."></textarea>
           <div class="voice-actions">
             <button id="askWaymark" type="button">Use as question</button>
@@ -1221,10 +1314,13 @@ def render_browser_voice_helper(component_key: str) -> None:
             return cleaned.includes("?")
               || /^(what|why|how|where|when|who|which)\\b/.test(cleaned)
               || /^(should i|can you|tell me|do i|is there|are there)\\b/.test(cleaned)
+              || /^(i want to know|i'd like to know|i would like to know|i was wondering|i wonder|i need to know|help me understand)\\b/.test(cleaned)
               || cleaned.includes("what should i notice")
               || cleaned.includes("what do i need to do")
               || cleaned.includes("what should i visit")
-              || cleaned.includes("where should i go");
+              || cleaned.includes("where should i go")
+              || cleaned.includes("was wondering if")
+              || cleaned.includes("was wondering whether");
           }
           function cleanLocalText(text) {
             return text.trim()
@@ -1303,12 +1399,12 @@ def render_browser_voice_helper(component_key: str) -> None:
               if (silenceTimer) window.clearTimeout(silenceTimer);
               status.textContent = "Speech stopped: " + event.error + ". You can type into the box.";
               listening = false;
-              button.textContent = "Start talking";
+              button.innerHTML = '<span class="mic-icon">MIC</span> Start';
             };
             recognition.onend = () => {
               if (silenceTimer) window.clearTimeout(silenceTimer);
               listening = false;
-              button.textContent = "Start talking";
+              button.innerHTML = '<span class="mic-icon">MIC</span> Start';
               if (transcript.value.trim()) {
                 status.textContent = "Transcript ready. Processing automatically...";
                 if (!autoSubmitted) {
@@ -1325,8 +1421,8 @@ def render_browser_voice_helper(component_key: str) -> None:
               try {
                 recognition.start();
                 listening = true;
-                button.textContent = "Stop talking";
-                status.textContent = "Listening...";
+                button.textContent = "Stop";
+                status.textContent = "Listening... I will stop after 3 seconds of silence.";
                 resetSilenceTimer();
               } catch (error) {
                 status.textContent = "Speech recognition could not start. You can type into the box.";
@@ -1336,6 +1432,35 @@ def render_browser_voice_helper(component_key: str) -> None:
         </script>
         """,
         height=240,
+    )
+
+
+def render_voice_speaker(text: str, component_key: str = "voice_speaker") -> None:
+    if not text:
+        return
+    speech_json = json.dumps(re.sub(r"\*\*", "", str(text)))
+    components.html(
+        f"""
+        <script>
+          const spoken = {speech_json};
+          function speakWaymark() {{
+            if (!spoken || !window.speechSynthesis) return;
+            const utterance = new SpeechSynthesisUtterance(spoken);
+            utterance.lang = "en-US";
+            utterance.rate = 0.94;
+            utterance.pitch = 1.0;
+            const voices = window.speechSynthesis.getVoices();
+            const nativeVoice = voices.find(v => v.lang === "en-US" && /Samantha|Alex|Google US English|Microsoft.*English/i.test(v.name))
+              || voices.find(v => v.lang === "en-US")
+              || voices.find(v => v.lang && v.lang.startsWith("en"));
+            if (nativeVoice) utterance.voice = nativeVoice;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+          }}
+          window.setTimeout(speakWaymark, 450);
+        </script>
+        """,
+        height=0,
     )
 
 
@@ -1381,6 +1506,58 @@ def build_brief_map_points(briefs: pd.DataFrame) -> pd.DataFrame:
                 "color": [183, 150, 93],
             }
         )
+    return pd.DataFrame(rows)
+
+
+def build_review_brief_candidates(mapped: pd.DataFrame) -> pd.DataFrame:
+    if mapped.empty:
+        return pd.DataFrame()
+    rows = []
+    seen = set()
+    for row in mapped.itertuples():
+        title = str(getattr(row, "location", "") or getattr(row, "title", "") or "").strip()
+        if not title:
+            continue
+        key = (title.lower(), round(float(row.latitude), 3), round(float(row.longitude), 3))
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(
+            {
+                "source": "Review-backed place",
+                "source_id": f"review-{getattr(row, 'source_id', len(rows))}",
+                "title": title,
+                "location": title,
+                "state": "",
+                "category": "review-backed brief",
+                "latitude": float(row.latitude),
+                "longitude": float(row.longitude),
+                "summary": "This place has a saved review. Click to open a guidebook-style brief.",
+                "color": [47, 111, 88],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def build_state_zoom_points(states: list[str]) -> pd.DataFrame:
+    rows = []
+    for state in sorted(set(states)):
+        if state in STATE_CENTERS:
+            lat, lon = STATE_CENTERS[state]
+            rows.append(
+                {
+                    "source": "State zoom",
+                    "source_id": f"state-{state}",
+                    "title": state,
+                    "location": state,
+                    "state": state,
+                    "category": "state zoom",
+                    "latitude": lat,
+                    "longitude": lon,
+                    "summary": "Click to zoom into this state.",
+                    "color": [23, 33, 28, 55],
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -1531,9 +1708,9 @@ def home_page() -> None:
             """
             <div class="quick-record-panel">
                 <div>
-                    <div class="atlas-choice-label">Driving mode</div>
-                    <h3>Record the thought before it disappears.</h3>
-                    <p>One tap starts live dictation. Review the transcript here, then use it as a question or save it as a private log.</p>
+                    <div class="atlas-choice-label">Voice-first capture</div>
+                    <h3>Say the thought before it disappears.</h3>
+                    <p>Use it while walking, driving, waiting at a station, eating, or noticing a street scene. Questions become spoken answers; ordinary thoughts become private logs.</p>
                 </div>
             </div>
             """,
@@ -1545,6 +1722,8 @@ def home_page() -> None:
         st.success(st.session_state.pop("voice_result"))
     if st.session_state.get("voice_answer"):
         st.info(st.session_state.pop("voice_answer"))
+    if st.session_state.get("voice_spoken_answer"):
+        render_voice_speaker(st.session_state.pop("voice_spoken_answer"), "home_voice_speaker")
 
     st.markdown('<div class="atlas-choice-label">Before or after?</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -1858,7 +2037,8 @@ def map_view_page() -> None:
                 .str.lower()
                 .str.contains(query, na=False)
             ]
-        render_brief_map(visible_briefs, map_place_payload, map_place_label)
+        review_candidates = build_review_brief_candidates(mapped)
+        render_brief_map(visible_briefs, map_place_payload, map_place_label, review_candidates)
 
 
 def render_memory_map(visible: pd.DataFrame, map_place_payload: dict | None, map_place_label: str, needs_location: pd.DataFrame) -> None:
@@ -1952,8 +2132,18 @@ def render_memory_map(visible: pd.DataFrame, map_place_payload: dict | None, map
         st.dataframe(needs_location[["source", "title", "location", "category"]], width="stretch")
 
 
-def render_brief_map(visible: pd.DataFrame, map_place_payload: dict | None, map_place_label: str) -> None:
-    candidate_points = PLACE_BRIEF_CANDIDATES.copy()
+def render_brief_map(
+    visible: pd.DataFrame,
+    map_place_payload: dict | None,
+    map_place_label: str,
+    review_candidates: pd.DataFrame | None = None,
+) -> None:
+    candidate_points = pd.concat(
+        [PLACE_BRIEF_CANDIDATES.copy(), review_candidates if review_candidates is not None else pd.DataFrame()],
+        ignore_index=True,
+        sort=False,
+    )
+    state_points = build_state_zoom_points([str(x) for x in candidate_points.get("state", pd.Series(dtype=str)).dropna() if str(x)])
     if map_place_label:
         query = map_place_label.lower()
         filtered_candidates = candidate_points[
@@ -1969,6 +2159,10 @@ def render_brief_map(visible: pd.DataFrame, map_place_payload: dict | None, map_
     if map_place_payload and map_place_payload.get("latitude") and map_place_payload.get("longitude"):
         midpoint = [map_place_payload["longitude"], map_place_payload["latitude"]]
         zoom = 8.4
+    elif st.session_state.get("map_focus_state") in STATE_CENTERS:
+        lat, lon = STATE_CENTERS[st.session_state["map_focus_state"]]
+        midpoint = [lon, lat]
+        zoom = 5.7
     elif not visible.empty:
         midpoint = [visible["longitude"].mean(), visible["latitude"].mean()]
         zoom = 4.2
@@ -1976,6 +2170,17 @@ def render_brief_map(visible: pd.DataFrame, map_place_payload: dict | None, map_
         midpoint = [candidate_points["longitude"].mean(), candidate_points["latitude"].mean()]
         zoom = 3.5
     layers = [
+        pdk.Layer(
+            "ScatterplotLayer",
+            data=state_points,
+            id="state-zoom-points",
+            get_position="[longitude, latitude]",
+            get_fill_color="color",
+            get_radius=70000,
+            pickable=True,
+            auto_highlight=True,
+            opacity=0.24,
+        ),
         pdk.Layer(
             "ScatterplotLayer",
             data=candidate_points,
@@ -2028,18 +2233,22 @@ def render_brief_map(visible: pd.DataFrame, map_place_payload: dict | None, map_
     )
     selected_objects = getattr(event.selection, "objects", {}) if event else {}
     clicked = None
-    for layer_id in ("brief-candidates", "saved-brief-points"):
+    for layer_id in ("state-zoom-points", "brief-candidates", "saved-brief-points"):
         objects = selected_objects.get(layer_id, [])
         if objects:
             clicked = objects[0]
             break
     if clicked:
-        open_place_brief(
-            str(clicked.get("title", "")),
-            str(clicked.get("state", "")),
-            str(clicked.get("location", "")),
-        )
-    st.caption("Gold markers open a place brief. Saved briefs and suggested cities/parks live on this tab; reviews stay separate.")
+        if str(clicked.get("category", "")) == "state zoom":
+            st.session_state.map_focus_state = str(clicked.get("state") or clicked.get("title") or "")
+            st.rerun()
+        else:
+            open_place_brief(
+                str(clicked.get("title", "")),
+                str(clicked.get("state", "")),
+                str(clicked.get("location", "")),
+            )
+    st.caption("Gold markers open place briefs. Green markers are places with reviews. Large soft state markers zoom into that state.")
     if visible.empty:
         st.info("No saved briefs match yet. Click a suggested city or park on the map to generate one.")
         return
@@ -2075,6 +2284,8 @@ def ai_companion_page() -> None:
         st.success(st.session_state.pop("voice_result"))
     if st.session_state.get("voice_answer"):
         st.info(st.session_state.pop("voice_answer"))
+    if st.session_state.get("voice_spoken_answer"):
+        render_voice_speaker(st.session_state.pop("voice_spoken_answer"), "brief_voice_speaker")
 
     st.markdown("**Destination**")
     selected_label = st_searchbox(
@@ -2417,12 +2628,22 @@ def render_review_text(item: pd.Series) -> str:
 
 
 def note_library_page() -> None:
-    st.title("Search Notes")
-    st.caption("Find private notes, community logs, and public-ready reflections by place, theme, tag, or keyword.")
+    public_only = st.session_state.get("page") == "Read Reviews"
+    st.title("Read Reviews" if public_only else "Search Notes")
+    st.caption(
+        "Public-ready reviews from shared logs and notes."
+        if public_only
+        else "Find private notes, community logs, and public-ready reflections by place, theme, tag, or keyword."
+    )
     items = fetch_all_library_items()
     if items.empty:
         st.info("No notes yet.")
         return
+    if public_only:
+        items = items[items["privacy_level"].fillna("").astype(str) == "public-ready"]
+        if items.empty:
+            st.info("No public-ready reviews yet. Mark a personal log public-ready when you want it to appear here.")
+            return
     filtered = filter_library(items)
     st.caption(f"{len(filtered)} item(s)")
 
@@ -2465,6 +2686,96 @@ def note_library_page() -> None:
                 if value not in (None, ""):
                     st.markdown(f"**{label.replace('_', ' ').title()}**")
                     st.write(value)
+
+
+def personal_log_page() -> None:
+    st.title("Personal Log")
+    st.caption("Private voice notes and rough thoughts live here first. You can keep them private or mark selected notes as public-ready for reviews.")
+    if st.session_state.get("voice_result"):
+        st.success(st.session_state.pop("voice_result"))
+    if st.session_state.get("voice_spoken_answer"):
+        render_voice_speaker(st.session_state.pop("voice_spoken_answer"), "personal_log_voice_speaker")
+
+    notes = fetch_field_notes()
+    if notes.empty:
+        st.info("No personal logs yet. Use the mic on Home or Capture Note.")
+        return
+    logs = notes[
+        notes[["tags", "audio_transcript", "note_text"]]
+        .fillna("")
+        .astype(str)
+        .agg(" ".join, axis=1)
+        .str.lower()
+        .str.contains("voice|quick private marker", regex=True)
+    ].copy()
+    if logs.empty:
+        logs = notes.copy()
+    logs = logs.sort_values("created_at", ascending=False)
+
+    privacy_filter = st.segmented_control(
+        "Show",
+        ["All", "Private", "Public-ready"],
+        default="All",
+        key="personal_log_privacy_filter",
+    )
+    if privacy_filter == "Private":
+        logs = logs[logs["privacy_level"].fillna("private").astype(str) == "private"]
+    elif privacy_filter == "Public-ready":
+        logs = logs[logs["privacy_level"].fillna("").astype(str) == "public-ready"]
+
+    for _, note in logs.head(30).iterrows():
+        privacy = str(note.get("privacy_level") or "private")
+        raw_text = str(note.get("audio_transcript") or "")
+        clean_text = str(note.get("note_text") or "")
+        body = clean_text if len(clean_text) < 340 else f"{clean_text[:340]}..."
+        with st.container(border=True):
+            st.markdown(
+                f"""
+                <div class="memory-mode-card">
+                    <div class="atlas-choice-label">{html.escape(privacy)}</div>
+                    <h3>{html.escape(str(note.get("title") or "Untitled voice log"))}</h3>
+                    <p>{html.escape(body)}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            meta = " | ".join(
+                part
+                for part in [
+                    str(note.get("date") or ""),
+                    str(note.get("location_name") or note.get("city") or ""),
+                    str(note.get("category") or ""),
+                ]
+                if part
+            )
+            if meta:
+                st.caption(meta)
+            if note.get("ai_summary"):
+                st.markdown("**AI summary**")
+                st.write(note.get("ai_summary"))
+            if raw_text and raw_text != clean_text:
+                with st.expander("Raw transcript"):
+                    st.write(raw_text)
+            c1, c2, c3 = st.columns(3)
+            note_id = int(note["id"])
+            if privacy != "public-ready":
+                if c1.button("Mark public-ready", key=f"make_public_{note_id}"):
+                    update_field_note_privacy(note_id, "public-ready")
+                    st.success("Marked public-ready. It can now appear in Reviews.")
+                    st.rerun()
+            else:
+                if c1.button("Make private", key=f"make_private_{note_id}"):
+                    update_field_note_privacy(note_id, "private")
+                    st.success("Moved back to private.")
+                    st.rerun()
+            if c2.button("Create public version", key=f"log_public_version_{note_id}"):
+                st.session_state.selected_public = ("Field note", note_id)
+                st.session_state.page = "Publish Safely"
+                st.rerun()
+            if c3.button("Export", key=f"log_export_{note_id}"):
+                st.session_state.export_selection = [f"Field note:{note_id}"]
+                st.session_state.page = "Export"
+                st.rerun()
 
 
 def journey_review_page() -> None:
@@ -2631,6 +2942,7 @@ def main() -> None:
         "Capture Note",
         "Ask About This Place",
         "Community Log",
+        "Personal Log",
         "Journey Review",
         "Library",
         "Export",
@@ -2642,6 +2954,7 @@ def main() -> None:
         st.session_state.page = "Home"
     page = render_sidebar(pages)
     st.session_state.page = page
+    render_top_nav(pages)
 
     if page == "Home":
         home_page()
@@ -2657,6 +2970,8 @@ def main() -> None:
         ai_companion_page()
     elif page == "Community Log":
         farmstay_log_page()
+    elif page == "Personal Log":
+        personal_log_page()
     elif page == "Journey Review":
         journey_review_page()
     elif page == "Library":
