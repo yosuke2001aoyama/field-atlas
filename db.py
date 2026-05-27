@@ -459,6 +459,14 @@ def get_field_note(note_id: int) -> dict[str, Any] | None:
         return dict(row) if row else None
 
 
+def update_field_note_privacy(note_id: int, privacy_level: str) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE field_notes SET privacy_level = ?, updated_at = ? WHERE id = ?",
+            (privacy_level, now_iso(), note_id),
+        )
+
+
 def get_farmstay_log(log_id: int) -> dict[str, Any] | None:
     with get_connection() as conn:
         row = conn.execute("SELECT * FROM farmstay_logs WHERE id = ?", (log_id,)).fetchone()
