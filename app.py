@@ -36,7 +36,6 @@ from db import (
     insert_ai_brief,
     insert_farmstay_log,
     insert_field_note,
-    update_field_note_privacy,
 )
 from export_utils import generate_export, save_export
 from map_utils import build_map_points
@@ -965,6 +964,15 @@ def fetch_saved_briefs() -> pd.DataFrame:
             return pd.read_sql_query("SELECT * FROM ai_briefs ORDER BY id DESC", conn)
     except Exception:
         return pd.DataFrame()
+
+
+def update_field_note_privacy_local(note_id: int, privacy_level: str) -> None:
+    db_path = BASE_DIR / "data" / "field_atlas.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "UPDATE field_notes SET privacy_level = ?, updated_at = ? WHERE id = ?",
+            (privacy_level, datetime.now().isoformat(timespec="seconds"), note_id),
+        )
 
 
 def render_sidebar(pages: list[str]) -> str:
@@ -2760,12 +2768,12 @@ def personal_log_page() -> None:
             note_id = int(note["id"])
             if privacy != "public-ready":
                 if c1.button("Mark public-ready", key=f"make_public_{note_id}"):
-                    update_field_note_privacy(note_id, "public-ready")
+                    update_field_note_privacy_local(note_id, "public-ready")
                     st.success("Marked public-ready. It can now appear in Reviews.")
                     st.rerun()
             else:
                 if c1.button("Make private", key=f"make_private_{note_id}"):
-                    update_field_note_privacy(note_id, "private")
+                    update_field_note_privacy_local(note_id, "private")
                     st.success("Moved back to private.")
                     st.rerun()
             if c2.button("Create public version", key=f"log_public_version_{note_id}"):
