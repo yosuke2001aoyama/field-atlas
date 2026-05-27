@@ -324,7 +324,7 @@ NOTE_THEMES = [
 ]
 
 THEME_KEYWORDS = {
-    "food": ["food", "meal", "diner", "coffee", "market", "restaurant", "bread", "farmers", "breakfast"],
+    "food": ["food", "meal", "diner", "coffee", "market", "restaurant", "bread", "farmers", "breakfast", "pizza", "cuisine", "dish", "ate"],
     "people": ["people", "conversation", "met", "neighbor", "vendor", "friend", "host", "family", "local"],
     "culture": ["music", "church", "festival", "museum", "ritual", "accent", "school", "sign", "tradition"],
     "economy": ["industry", "work", "job", "housing", "price", "warehouse", "factory", "tourism", "labor"],
