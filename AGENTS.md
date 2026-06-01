@@ -1,46 +1,73 @@
 # AGENTS.md
 
 ## Project
-This repository contains Field Atlas, a Streamlit app for collecting, mapping, analyzing, and anonymizing roadtrip and farmstay field notes.
 
-## Product philosophy
-Field Atlas is not a social media app.
-It is a private field-note and knowledge system that helps the user understand places, preserve observations, and later create carefully anonymized public outputs.
+Waymark U.S. is a private AI field journal for curious travelers.
 
-Always preserve the distinction between:
-1. Private raw notes
-2. AI-organized personal knowledge
-3. Anonymized public storytelling
+## Product Rules
 
-## Privacy rules
-Never expose:
-- exact addresses
-- exact real-time location
-- precise future itinerary
-- private names
-- raw voice transcripts
-- employer, school, government, or diplomatic affiliation
-- sensitive personal or political comments
+- Private-first.
+- No public/community features in MVP.
+- No Google Form ingestion in MVP.
+- No public review functionality.
+- Do not drift into a GPS audio tour, trip planner, route tracker, photo journal, or generic AI diary.
+- Distinguish user notes from AI-generated briefs.
+- Distinguish private notes from public-safe drafts.
+- Do not add publishing functionality unless explicitly requested.
 
-When generating public versions:
-- generalize location
-- generalize date
-- remove names
-- remove affiliation
-- rewrite as anonymous travel reflection
-- include a manual review warning
+## Always Emphasize
 
-## Coding style
-- Use clear, modular Python
-- Keep Streamlit UI readable and simple
-- Prefer SQLite for MVP storage
-- Avoid external paid API requirements
-- Do not hardcode secrets
-- Do not commit uploads, local databases, or secrets
+- Understand what you see.
+- Remember what you notice.
+- Ask about what I’m seeing.
+- Field notes.
+- Memory map of observations.
+- Journey synthesis.
+- Compare places.
+- Export selected insights.
 
-## Required checks
-Before finishing a task:
-- Ensure the app can run with `streamlit run app.py`
-- Ensure imports are reflected in requirements.txt
-- Ensure new folders are created if missing
-- Summarize files changed and remaining TODOs
+## Tone
+
+- Curious.
+- Reflective.
+- Observational.
+- Practical.
+- Private-first.
+
+## Required Navigation
+
+- Home
+- Understand
+- Ask
+- Capture
+- Memory Map
+- Synthesize
+- Library
+- Export
+
+## Privacy Rules
+
+- Do not expose exact real-time location.
+- Do not expose future itinerary.
+- Do not expose private names.
+- Do not expose raw transcripts in public-safe drafts.
+- Do not expose employer, school, government, or diplomatic affiliation.
+- All public outputs are drafts requiring manual review.
+
+## Coding Rules
+
+- Keep Streamlit UI simple and readable.
+- Prefer reliable built-in Streamlit inputs over fragile custom components.
+- Ensure app runs with `streamlit run app.py`.
+- Update `requirements.txt` whenever imports change.
+- Avoid hardcoded secrets.
+- Do not require `data/` or `uploads/` to exist in GitHub.
+
+## Required Checks
+
+- App runs with `streamlit run app.py`.
+- No public/community features reintroduced.
+- No audio-tour framing.
+- No itinerary-planner framing.
+- No route-tracker framing.
+- Ask and Synthesize are visible core features.
