@@ -744,5 +744,59 @@ def generate_destination_brief(
     }
 
 
+def generate_place_brief(destination: str, lens: str = "General orientation") -> dict[str, str]:
+    """Future OpenAI hook: deterministic MVP wrapper for a place-reading brief."""
+    return generate_destination_brief(destination, "", lens, ["history", "food", "economy", "culture"])
+
+
+def generate_observation_response(place: str, observation: str, lens: str = "general") -> dict[str, object]:
+    """Future OpenAI hook: respond to an observation with cautious fieldwork hypotheses."""
+    place_label = place or "this place"
+    cleaned = _first_sentence(observation, "The observation is still rough.")
+    return {
+        "possible_explanations": [
+            f"One possible **{lens}** lens is that this scene reflects local institutions, work routines, public memory, or economic change.",
+            f"In **{place_label}**, treat the observation as a clue rather than a conclusion: {cleaned}",
+        ],
+        "what_to_notice_next": [
+            "Look for repeated signs, institutions, team logos, menus, storefronts, roads, and gathering places.",
+            "Compare who uses the space at different times of day.",
+        ],
+        "questions_to_ask": [
+            "What has changed here in the last decade?",
+            "What do outsiders usually misunderstand about this place?",
+        ],
+    }
+
+
+def generate_field_note_summary(note: dict) -> str:
+    """Future OpenAI hook: summarize a private field note without making it public."""
+    note_type = str(note.get("category") or note.get("record_type") or "field note").replace("_", " ")
+    place = note.get("location_name") or note.get("place_name") or "a place"
+    text = _first_sentence(note.get("note_text") or note.get("raw_text") or note.get("transcript") or "")
+    return f"Private **{note_type}** from **{place}**: {text}"
+
+
+def suggest_followup_questions(record: dict) -> list[str]:
+    place = record.get("location_name") or record.get("place_name") or "this place"
+    return [
+        f"What does this reveal about daily life in {place}?",
+        "Which local institution explains more of what I saw?",
+        "What should I compare with the next place?",
+    ]
+
+
+def generate_journey_synthesis(records: list[dict], synthesis_type: str = "Recurring themes") -> dict[str, object]:
+    themes = {}
+    for record in records:
+        theme = str(record.get("category") or record.get("record_type") or "field note")
+        themes[theme] = themes.get(theme, 0) + 1
+    return {
+        "synthesis_type": synthesis_type,
+        "recurring_themes": themes,
+        "questions": ["What kept repeating?", "Which places resisted comparison?", "What should I ask next time?"],
+    }
+
+
 # Future hook: replace deterministic templates with OpenAI API calls once credentials and model policy are configured.
 # Future hook: add Whisper or another transcription pipeline for uploaded audio.
