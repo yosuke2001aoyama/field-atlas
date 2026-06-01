@@ -1,12 +1,33 @@
 # Waymark U.S.
 
-Waymark U.S. is a Streamlit web app for movement-based notes, voice memos, place context, memory maps, and public-ready reflections in the United States.
+Waymark U.S. is a private AI field journal for curious travelers.
 
-It is designed around three layers:
+It is not a GPS audio tour, trip planner, route tracker, photo journal, public review app, or generic AI diary. Waymark helps you understand what you see, remember what you notice, and turn rough road notes into maps, comparisons, essays, scripts, diary entries, and field reports.
 
-1. Private raw field notes
-2. AI-organized personal knowledge
-3. Carefully anonymized public storytelling
+Core tagline:
+
+> Understand what you see. Remember what you notice.
+
+## Core Features
+
+- Understand a place with "How to read this place" briefs
+- Ask about what you are seeing
+- Capture private voice/text field notes
+- Map questions and observations
+- Synthesize recurring themes after a trip
+- Export selected insights as essays, scripts, diaries, or public-safe drafts
+
+## What This MVP Is Not
+
+- Not an audio tour
+- Not a route tracker
+- Not a trip planner
+- Not a public review app
+- Not a community submission platform
+- Not a generic AI diary
+- Does not publish content
+
+Public-safe drafts are for manual review and external use only.
 
 ## Setup
 
@@ -23,18 +44,18 @@ The app creates its local database and upload folders automatically on first run
 
 - `app.py` - Streamlit UI and page navigation
 - `db.py` - SQLite schema, sample data, and database helpers
-- `ai_utils.py` - deterministic mock AI summaries, context, and destination briefs
-- `privacy_utils.py` - rule-based redaction and public-version helpers
+- `ai_utils.py` - deterministic mock AI summaries, observation responses, synthesis hooks, and place briefs
+- `privacy_utils.py` - rule-based redaction and public-safe draft helpers
 - `export_utils.py` - template-based export generation
 - `map_utils.py` - map point preparation and category colors
-- `ios/WaymarkUS/` - SwiftUI iOS shell for TestFlight/App Store preparation
 - `data/` - local SQLite database directory
-- `uploads/photos/` - uploaded photos
-- `uploads/audio/` - uploaded audio
+- `uploads/` - local upload directories
 
 ## Privacy Warning
 
-This app stores notes, transcripts, photos, audio, and generated outputs locally. Local SQLite files and upload folders may contain private information. Review public versions manually before publishing.
+This app stores notes, transcripts, photos, audio, and generated outputs locally. Local SQLite files and upload folders may contain private information.
+
+Do not commit local databases, uploads, `.env` files, or secrets.
 
 Recommended `.gitignore` entries:
 
@@ -45,42 +66,12 @@ uploads/
 data/*.db
 ```
 
-## Current Features
+## Future Work
 
-- Add movement notes with place autocomplete, mood, auto theme, voice memo capture/upload, transcript, tags, and a publishing choice
-- Add structured community logs for farmstays, local conversations, shared meals, events, and meaningful encounters
-- Seed sample field notes for Louisville, Knoxville, Asheville, Raleigh, and Chicago
-- Start from user-facing paths: understand a place, capture a moving thought, and revisit or share later
-- Search reviews and saved place briefs directly from a map-first view
-- Generate sourced, high-resolution, photo-backed place briefs with live U.S. destination suggestions from OpenStreetMap
-- Build guidebook-style briefs with population scale, industry structure, sports signals, local food, must-visit places, and a politics baseline
-- Open guidebook briefs directly from map markers for major cities, parks, historical parks, and saved briefs
-- Use a native iOS release shell with web briefs, local quick capture, and privacy guidance
-- Search and filter field notes and community logs
-- Review a journey by recurring places, themes, and a public-ready reflection draft
-- Generate template exports: podcast script, Substack-style essay, Instagram caption, Japanese diary, English field note, and Markdown archive
-- Create rule-based anonymized public versions with a manual review warning
-
-## Future Hooks
-
-The code includes clear extension points for:
-
-- OpenAI API integration for real summaries and briefs
-- Whisper, browser speech recognition, or on-device transcription for voice memos
-- Address geocoding to latitude/longitude
-- Markdown file export
-- Publishing selected public notes to a website
-- Mobile shortcut capture for quick field notes
-
-## Implementation Roadmap
-
-1. Data foundation: connect Census/ACS population data, BEA/BLS regional economy data, NPS places, Wikivoyage/Wikipedia summaries, official state election results, and a lightweight sports/team dataset.
-2. AI brief composer: replace deterministic templates with a source-cited brief generator that stores retrieval date, source URL, and confidence notes for each section.
-3. Voice-first capture: add reliable mobile speech capture, transcription, background save, transcript privacy controls, and quick tagging from spoken notes.
-4. Memory graph: connect notes, briefs, routes, places, themes, and public-ready summaries so the map becomes a searchable second brain rather than only a pin board.
-5. Public knowledge layer: let users explicitly mark selected notes as public-ready, anonymize them, review changes, and publish only delayed/generalized versions.
-6. Mobile/PWA polish: improve small-screen navigation, offline note capture, route-aware prompts, and one-tap capture from the road.
-
-## iOS Release Notes
-
-The `ios/WaymarkUS` folder contains a SwiftUI project for TestFlight/App Store preparation. Apple requires a paid Apple Developer Program account for App Store Connect uploads, and final approval is subject to App Review Guidelines, including minimum functionality. The shell includes native quick capture and privacy screens in addition to the web brief/map experience.
+- Mobile-first capture
+- Real OpenAI integration
+- Offline note capture
+- Better map interactions
+- Compare places more deeply
+- Fieldwork templates
+- Public-safe export pipeline
