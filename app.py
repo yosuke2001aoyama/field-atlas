@@ -687,7 +687,7 @@ def apply_style() -> None:
                 stroke-linejoin: round;
             }
 
-            .must-visit-card {
+            .field-anchor-card {
                 overflow: hidden;
                 border: 1px solid rgba(62, 48, 33, 0.16);
                 background: rgba(255, 252, 246, 0.92);
@@ -695,24 +695,24 @@ def apply_style() -> None:
                 margin-bottom: 1.1rem;
             }
 
-            .must-visit-card img {
+            .field-anchor-card img {
                 width: 100%;
                 aspect-ratio: 16 / 9;
                 object-fit: cover;
                 display: block;
             }
 
-            .must-visit-card div {
+            .field-anchor-card div {
                 padding: 1.2rem;
             }
 
-            .must-visit-card h4 {
+            .field-anchor-card h4 {
                 font-family: Newsreader, Georgia, serif;
                 margin: 0 0 0.45rem;
                 font-size: 1.5rem;
             }
 
-            .must-visit-card p {
+            .field-anchor-card p {
                 color: var(--atlas-muted);
                 line-height: 1.62;
                 margin: 0;
@@ -979,15 +979,13 @@ def render_sidebar(pages: list[str]) -> str:
     nav_labels = {
         "Home": "Home",
         "Memory Map": "Memory Map",
-        "Read Reviews": "Read Reviews",
         "Search My Notes": "Search Notes",
         "Capture Note": "Capture Note",
         "Ask About This Place": "Ask About This Place",
-        "Community Log": "Community Log",
+        "Community Log": "Capture",
         "Personal Log": "Personal Log",
         "Library": "Library",
         "Export": "Export",
-        "Publish Safely": "Publish Safely",
         "Journey Review": "Journey Review",
     }
     st.sidebar.title(APP_NAME)
@@ -1007,11 +1005,9 @@ def render_sidebar(pages: list[str]) -> str:
     st.sidebar.markdown('<div class="nav-section">Before</div>', unsafe_allow_html=True)
     nav_button("Ask About This Place")
     nav_button("Memory Map")
-    nav_button("Read Reviews")
     st.sidebar.markdown('<div class="nav-section">After</div>', unsafe_allow_html=True)
     nav_button("Capture Note")
     nav_button("Personal Log")
-    nav_button("Community Log")
     nav_button("Journey Review")
     return st.session_state.page
 
@@ -1021,8 +1017,8 @@ def render_top_nav(pages: list[str]) -> None:
         st.markdown('<div class="top-nav-wrap">', unsafe_allow_html=True)
         rows = [
             [("Home", "Home"), ("Ask About This Place", "Read a Place Brief"), ("Memory Map", "Memory Map")],
-            [("Capture Note", "Mic / Capture"), ("Personal Log", "Personal Log"), ("Read Reviews", "Public Reviews")],
-            [("Community Log", "Community Log"), ("Journey Review", "Journey Review"), ("Publish Safely", "Publish Safely")],
+            [("Capture Note", "Mic / Capture"), ("Personal Log", "Personal Log"), ("Library", "Library")],
+            [("Journey Review", "Journey Review"), ("Export", "Export")],
         ]
         for row in rows:
             cols = st.columns(len(row))
@@ -1148,7 +1144,7 @@ def answer_voice_question(text: str, brief: dict | None = None) -> str:
         return (
             f"I opened the full place brief for {destination}. "
             f"{brief.get('brief_15_sec', '')} "
-            "Start with the Must Visit section, then scan population, industries, food, sports, and politics."
+            "Start with the Field Anchors section, then scan population, industries, food, sports, and politics."
         )
     return answer_home_question(text)
 
@@ -1233,7 +1229,7 @@ def handle_voice_query_params() -> None:
         note_id = save_text_log_from_voice(cleaned)
         st.session_state.voice_result = f"Saved private voice log #{note_id}."
         st.session_state.voice_spoken_answer = "Saved as a private personal log. I cleaned up the transcript and created a title for it."
-        st.session_state.page = "Personal Log"
+        st.session_state.page = "Library"
         return
     if action == "ask":
         destination, state = infer_destination_from_text(cleaned)
@@ -1241,11 +1237,14 @@ def handle_voice_query_params() -> None:
         brief = generate_destination_brief(destination, state, "Voice question", GUIDEBOOK_INTERESTS) if destination else None
         st.session_state.voice_answer = answer_voice_question(cleaned, brief)
         st.session_state.voice_spoken_answer = st.session_state.voice_answer
+        st.session_state.ask_prefill = cleaned
+        if destination:
+            st.session_state.ask_place_prefill = ", ".join(part for part in [destination, state] if part)
         if destination:
             st.session_state.current_brief = brief
-            st.session_state.page = "Ask About This Place"
+            st.session_state.page = "Understand"
         else:
-            st.session_state.page = "Home"
+            st.session_state.page = "Ask"
 
 
 def render_browser_voice_helper(component_key: str) -> None:
@@ -1302,8 +1301,8 @@ def render_browser_voice_helper(component_key: str) -> None:
           <span id="voiceStatus" style="margin-left:10px;color:#746d62;">Ready for a walk, car, station, kitchen, or street note.</span>
           <textarea id="voiceTranscript" placeholder="Your transcript appears here, without leaving the page."></textarea>
           <div class="voice-actions">
-            <button id="askWaymark" type="button">Use as question</button>
-            <button id="saveLog" type="button">Save as private log</button>
+            <button id="askWaymark" type="button">Ask Waymark</button>
+            <button id="saveLog" type="button">Save as Private Note</button>
           </div>
         </div>
         <script>
@@ -1430,7 +1429,7 @@ def render_browser_voice_helper(component_key: str) -> None:
                 recognition.start();
                 listening = true;
                 button.textContent = "Stop";
-                status.textContent = "Listening... I will stop after 3 seconds of silence.";
+                status.textContent = "Recording. Pause for 3 seconds to auto-stop, or tap Stop.";
                 resetSilenceTimer();
               } catch (error) {
                 status.textContent = "Speech recognition could not start. You can type into the box.";
@@ -1657,11 +1656,11 @@ def answer_home_question(question: str) -> str:
     if not q.strip():
         return "Ask me what to notice in a place, where your memories cluster, or how to turn notes into a public-safe reflection."
     if any(phrase in q for phrase in ["what do i need to do", "what should i do", "what should i visit", "where should i go"]):
-        return "I treated this as a place question and opened a guidebook-style brief with must-visit places, food, teams, industries, politics, and local context."
+        return "I treated this as a place question and opened a field brief with food, teams, industries, politics, local context, and good places to start observing."
     if "public" in q or "publish" in q or "share" in q:
-        return "Start private. When you are ready, use Publish Safely to remove exact addresses, private names, raw transcripts, and real-time details before sharing."
+        return "Start private. When you are ready, use Export to create a public-safe draft that removes exact addresses, private names, raw transcripts, and real-time details before you manually share it elsewhere."
     if "map" in q or "where" in q:
-        return "Use Memory Map. Reviews show lived notes; Briefs show context you generated before or during a trip. The two stay separate so memory and research do not blur."
+        return "Use Memory Map. Field notes show what you noticed; Place Briefs show context you generated before or during a trip. The two stay separate so memory and research do not blur."
     if "notice" in q or "brief" in q or "place" in q:
         return "Use Ask About This Place. Enter a city, park, landmark, or small town, then generate a visual brief with prompts for what to notice."
     return "Capture the rough thought first. Waymark U.S. will attach place, theme, mood, and privacy status so scattered notes can become searchable memory later."
@@ -1742,7 +1741,7 @@ def home_page() -> None:
                 <div class="journey-icon"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"></path></svg></div>
                 <div class="atlas-choice-label">Before the trip</div>
                 <h3>Read a place brief</h3>
-                <p>Search a city, park, landmark, or corridor. Get a guidebook-style brief with food, teams, politics, industries, and must-visit places.</p>
+                <p>Search a city, park, landmark, or corridor. Get a field brief with food, teams, politics, industries, and good places to start observing.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -2124,13 +2123,13 @@ def render_memory_map(visible: pd.DataFrame, map_place_payload: dict | None, map
             c1, c2 = st.columns(2)
             if c1.button("Create Public Version", key=f"map_public_{selected_record}"):
                 st.session_state.selected_public = (
-                    "Field note" if selected_row["source"] == "Field note" else "Community log",
+                    "Field note" if selected_row["source"] == "Field note" else "Farmstay note",
                     int(selected_row["source_id"]),
                 )
-                st.session_state.page = "Publish Safely"
+                st.session_state.page = "Export"
                 st.rerun()
             if c2.button("Export This Record", key=f"map_export_{selected_record}"):
-                source_type = "Field note" if selected_row["source"] == "Field note" else "Community log"
+                source_type = "Field note" if selected_row["source"] == "Field note" else "Farmstay note"
                 st.session_state.export_selection = [f"{source_type}:{selected_row['source_id']}"]
                 st.session_state.page = "Export"
                 st.rerun()
@@ -2336,7 +2335,7 @@ def ai_companion_page() -> None:
         ["General field observation", "Road trip stop", "Walk or commute", "Study abroad memory", "Community visit", "Food research", "Essay/podcast research", "Public field note"],
     )
     st.markdown(
-        '<div class="atlas-card"><strong>Guidebook mode</strong><br><span class="small-muted">Waymark now covers the full place brief by default: population, industries, sports, food, politics, history, community, nature, routes, and must-visit places.</span></div>',
+        '<div class="atlas-card"><strong>Field brief mode</strong><br><span class="small-muted">Waymark now covers the full place brief by default: population, industries, sports, food, politics, history, community, nature, routes, and good places to start observing.</span></div>',
         unsafe_allow_html=True,
     )
     interests = GUIDEBOOK_INTERESTS
@@ -2480,7 +2479,7 @@ def ai_companion_page() -> None:
             ]
         )
         if brief.get("must_visit"):
-            st.markdown("### Must Visit")
+            st.markdown("### Good Places To Start Observing")
             spot_cols = st.columns(min(2, len(brief["must_visit"])))
             for col, spot in zip(spot_cols, brief["must_visit"]):
                 with col:
@@ -2489,7 +2488,7 @@ def ai_companion_page() -> None:
                     spot_image = html.escape(str(spot.get("image_url", HERO_IMAGE_URL)))
                     st.markdown(
                         f"""
-                        <div class="must-visit-card">
+                        <div class="field-anchor-card">
                             <img src="{spot_image}" alt="{spot_name}">
                             <div>
                                 <h4>{spot_name}</h4>
@@ -2587,9 +2586,9 @@ def farmstay_log_page() -> None:
         payload["ai_summary"] = generate_farmstay_summary(payload)
         payload["public_version"] = create_public_version_for_farmstay(payload)
         log_id = insert_farmstay_log(payload)
-        st.success(f"Saved community log #{log_id}.")
+        st.success(f"Saved private farmstay note #{log_id}.")
         with st.container(border=True):
-            st.subheader(farm_name or "Community log")
+            st.subheader(farm_name or "Farmstay note")
             st.write(payload["ai_summary"])
             st.markdown("**Anonymized public version preview**")
             st.write(payload["public_version"])
@@ -2622,7 +2621,7 @@ def filter_library(items: pd.DataFrame) -> pd.DataFrame:
 
 def render_review_text(item: pd.Series) -> str:
     text = str(item.get("display_text") or item.get("note_text") or "").strip()
-    if not text and str(item.get("source_type")) == "Community log":
+    if not text and str(item.get("source_type")) == "Farmstay note":
         parts = [
             item.get("work_done", ""),
             item.get("conversation_topics", ""),
@@ -2636,12 +2635,10 @@ def render_review_text(item: pd.Series) -> str:
 
 
 def note_library_page() -> None:
-    public_only = st.session_state.get("page") == "Read Reviews"
-    st.title("Read Reviews" if public_only else "Search Notes")
+    public_only = False
+    st.title("Search Notes")
     st.caption(
-        "Public-ready reviews from shared logs and notes."
-        if public_only
-        else "Find private notes, community logs, and public-ready reflections by place, theme, tag, or keyword."
+        "Find private field notes, place questions, farmstay memories, and draft reflections by place, theme, tag, or keyword."
     )
     items = fetch_all_library_items()
     if items.empty:
@@ -2673,7 +2670,7 @@ def note_library_page() -> None:
                 st.session_state.selected_detail = (item.get("source_type"), int(item.get("source_id")))
             if b2.button("Create Public Version", key=public_key):
                 st.session_state.selected_public = (item.get("source_type"), int(item.get("source_id")))
-                st.session_state.page = "Publish Safely"
+                st.session_state.page = "Export"
                 st.rerun()
             if b3.button("Export", key=f"export_{item.get('source_type')}_{item.get('source_id')}"):
                 st.session_state.export_selection = [f"{item.get('source_type')}:{item.get('source_id')}"]
@@ -2685,7 +2682,7 @@ def note_library_page() -> None:
         st.divider()
         st.subheader("Readable Details")
         record = get_field_note(source_id) if source_type == "Field note" else None
-        if source_type == "Community log":
+        if source_type == "Farmstay note":
             farms = fetch_farmstay_logs()
             match = farms[farms["id"] == source_id]
             record = match.iloc[0].to_dict() if not match.empty else None
@@ -2698,7 +2695,7 @@ def note_library_page() -> None:
 
 def personal_log_page() -> None:
     st.title("Personal Log")
-    st.caption("Private voice notes and rough thoughts live here first. You can keep them private or mark selected notes as public-ready for reviews.")
+    st.caption("Private voice notes and rough thoughts live here first. You can keep them private or prepare selected notes as public-safe draft candidates.")
     if st.session_state.get("voice_result"):
         st.success(st.session_state.pop("voice_result"))
     if st.session_state.get("voice_spoken_answer"):
@@ -2769,7 +2766,7 @@ def personal_log_page() -> None:
             if privacy != "public-ready":
                 if c1.button("Mark public-ready", key=f"make_public_{note_id}"):
                     update_field_note_privacy_local(note_id, "public-ready")
-                    st.success("Marked public-ready. It can now appear in Reviews.")
+                    st.success("Marked as a public-safe draft candidate.")
                     st.rerun()
             else:
                 if c1.button("Make private", key=f"make_private_{note_id}"):
@@ -2778,7 +2775,7 @@ def personal_log_page() -> None:
                     st.rerun()
             if c2.button("Create public version", key=f"log_public_version_{note_id}"):
                 st.session_state.selected_public = ("Field note", note_id)
-                st.session_state.page = "Publish Safely"
+                st.session_state.page = "Export"
                 st.rerun()
             if c3.button("Export", key=f"log_export_{note_id}"):
                 st.session_state.export_selection = [f"Field note:{note_id}"]
@@ -2882,7 +2879,7 @@ def export_center_page() -> None:
 
 
 def privacy_page() -> None:
-    st.title("Publish Safely")
+    st.title("Create Public-Safe Draft")
     st.warning("Public versions are drafts. Please manually review before publishing.")
     st.markdown(
         """
@@ -2891,10 +2888,10 @@ def privacy_page() -> None:
         """
     )
 
-    if st.session_state.get("selected_public") and st.session_state.selected_public[0] == "Community log":
+    if st.session_state.get("selected_public") and st.session_state.selected_public[0] == "Farmstay note":
         log = get_farmstay_log(int(st.session_state.selected_public[1]))
         if log:
-            st.subheader("Community public version")
+            st.subheader("Farmstay public-safe draft")
             st.text_area("Public text", create_public_version_for_farmstay(log), height=320)
             st.markdown("**Removed/private details checklist**")
             for item in [
@@ -2939,22 +2936,597 @@ def privacy_page() -> None:
             st.checkbox(item, value=True, disabled=True)
 
 
+FIELDWORK_TYPES = [
+    "Question",
+    "Observation",
+    "Conversation",
+    "Food",
+    "Farmstay",
+    "Local institution",
+    "Economic signal",
+    "Cultural signal",
+    "Reflection",
+    "Road scene",
+    "Other",
+]
+
+
+FIELDWORK_FILTERS = [
+    "All",
+    "Questions",
+    "Observations",
+    "Food",
+    "Farmstay",
+    "Conversations",
+    "Local institutions",
+    "Economic signals",
+    "Cultural signals",
+    "Reflections",
+    "Place Briefs",
+    "Export-ready",
+]
+
+
+def fieldwork_slug(label: str) -> str:
+    return (label or "Other").strip().lower().replace(" ", "_")
+
+
+def privacy_copy() -> None:
+    st.info("Nothing is published from Waymark. Public-safe drafts are only copyable drafts for manual review.")
+
+
+def infer_location_from_place(place: str) -> dict:
+    if not place:
+        return {}
+    parts = [part.strip() for part in place.split(",")]
+    destination = parts[0] if parts else place
+    state = parts[1] if len(parts) > 1 else ""
+    return geocode_destination(destination, state)
+
+
+def make_private_summary(text: str, note_type: str, place: str = "") -> str:
+    cleaned = clean_voice_text(text)
+    seed = cleaned[:260] if cleaned else "No raw note text was provided."
+    label = note_type.lower()
+    place_text = f" in {place}" if place else ""
+    if label == "question":
+        return f"You asked a place question{place_text}: {seed} Treat this as something for Ask/Understand, not as a public reflection by default."
+    if label == "conversation":
+        return f"Conversation note{place_text}: {seed} Remove names and identifying details before any export."
+    if label == "food":
+        return f"Food field note{place_text}: {seed} Useful for reading local institutions, migration, work rhythms, and everyday culture."
+    if label == "farmstay":
+        return f"Farmstay note{place_text}: {seed} Exact farm location, host names, and private routines should stay sensitive."
+    if label in {"economic signal", "local institution", "cultural signal"}:
+        return f"{note_type} note{place_text}: {seed} This may help compare how places organize daily life."
+    return f"{note_type} note{place_text}: {seed}"
+
+
+def ask_waymark_response(place: str, observation: str, lens: str) -> dict[str, object]:
+    place_label = place or "this place"
+    lens_label = lens or "general"
+    obs = clean_voice_text(observation)
+    tags = [fieldwork_slug(lens_label), "question", "field_prompt"]
+    return {
+        "possible_explanations": [
+            f"One possible lens is **{lens_label}**: the scene may reflect older institutions, current economics, local identity, or who uses public space at different times of day.",
+            f"In **{place_label}**, avoid treating one scene as proof. Use it as a clue and compare it with streets, signs, food places, churches, schools, employers, and local media.",
+            f"The observation may reveal a gap between visitor-facing imagery and everyday routines. Check what feels designed for outsiders versus what locals actually use.",
+        ],
+        "what_to_notice_next": [
+            "Which institutions repeat: churches, schools, hospitals, courthouses, universities, farm supply stores, warehouses, stadiums, diners?",
+            "Who is present at different times of day, and who seems absent?",
+            "Which signs, team logos, menus, storefronts, or road patterns keep showing up?",
+        ],
+        "questions_to_ask": [
+            "What has changed here in the last ten years?",
+            "Which place would locals send a visitor to if they wanted to understand the town?",
+            "What do outsiders usually misunderstand about this place?",
+        ],
+        "tags": tags,
+        "followups": [
+            f"What would a {lens_label} reading of this scene miss?",
+            f"How does {place_label} compare with the last place I visited?",
+            "What should I notice next if I only have 30 minutes here?",
+        ],
+        "summary": f"Question about {place_label}: {obs[:180]}",
+    }
+
+
+def save_question_record(place: str, question: str, response: dict[str, object], lens: str) -> int:
+    geo = infer_location_from_place(place)
+    title = generate_note_title_from_text(question, "Question about a place")
+    return insert_field_note(
+        {
+            "title": title,
+            "date": datetime.now().isoformat(timespec="minutes"),
+            "location_name": place,
+            "address": "",
+            "latitude": geo.get("latitude"),
+            "longitude": geo.get("longitude"),
+            "city": geo.get("city", ""),
+            "state": geo.get("state", ""),
+            "category": "question",
+            "note_text": question,
+            "audio_transcript": "",
+            "mood": "curious",
+            "ai_summary": str(response.get("summary", "")),
+            "ai_context": json.dumps(response, ensure_ascii=False),
+            "tags": ", ".join(response.get("tags", [fieldwork_slug(lens), "question"])),
+            "privacy_level": "private",
+        }
+    )
+
+
+def get_private_records() -> pd.DataFrame:
+    notes = fetch_field_notes()
+    if notes.empty:
+        return pd.DataFrame()
+    records = notes.copy()
+    records["record_kind"] = records["category"].fillna("field_note").astype(str).str.lower()
+    records["cleaned_title"] = records["title"].fillna("").replace("", "Untitled field note")
+    records["private_summary"] = records["ai_summary"].fillna("")
+    records["visibility"] = records["privacy_level"].fillna("private").replace({"public-ready": "Public-safe draft candidate", "semi-private": "Private", "private": "Private"})
+    return records
+
+
+def filter_records(records: pd.DataFrame, selected_filter: str) -> pd.DataFrame:
+    if records.empty or selected_filter == "All":
+        return records
+    category_map = {
+        "Questions": ["question"],
+        "Observations": ["observation", "road scene", "road_scene", "travel"],
+        "Food": ["food"],
+        "Farmstay": ["farmstay", "farm"],
+        "Conversations": ["conversation", "people"],
+        "Local institutions": ["local institution", "local_institution"],
+        "Economic signals": ["economic signal", "economic_signal", "economy"],
+        "Cultural signals": ["cultural signal", "cultural_signal", "culture"],
+        "Reflections": ["reflection", "personal reflection", "personal_reflection"],
+        "Export-ready": ["public-ready"],
+    }
+    if selected_filter == "Export-ready":
+        return records[records["privacy_level"].fillna("").astype(str).isin(category_map[selected_filter])]
+    values = category_map.get(selected_filter, [])
+    return records[records["record_kind"].isin(values)]
+
+
+def get_place_brief_records() -> pd.DataFrame:
+    briefs = fetch_saved_briefs()
+    if briefs.empty:
+        return pd.DataFrame()
+    rows = []
+    for brief in briefs.itertuples():
+        geo = geocode_destination(str(brief.destination or ""), str(brief.state or ""))
+        rows.append(
+            {
+                "id": f"brief-{brief.id}",
+                "record_kind": "place_brief",
+                "cleaned_title": f"{brief.destination}, {brief.state}".strip(", "),
+                "location_name": ", ".join(part for part in [brief.destination, brief.state] if part),
+                "date": getattr(brief, "generated_at", ""),
+                "private_summary": getattr(brief, "brief_15_sec", ""),
+                "tags": "place_brief, understand",
+                "latitude": geo.get("latitude"),
+                "longitude": geo.get("longitude"),
+                "city": geo.get("city", ""),
+                "state": geo.get("state", getattr(brief, "state", "")),
+                "visibility": "Private",
+                "source_id": getattr(brief, "id", ""),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def render_sidebar(pages: list[str]) -> str:
+    nav_labels = {
+        "Home": "Home",
+        "Understand": "Understand",
+        "Ask": "Ask",
+        "Capture": "Capture",
+        "Memory Map": "Memory Map",
+        "Synthesize": "Synthesize",
+        "Library": "Library",
+        "Export": "Export",
+    }
+    st.sidebar.title(APP_NAME)
+    st.sidebar.markdown(
+        '<div class="sidebar-tagline">Private AI field journal. Understand what you see. Remember what you notice.</div>',
+        unsafe_allow_html=True,
+    )
+    for page in pages:
+        label = nav_labels.get(page, page)
+        if page == st.session_state.page:
+            st.sidebar.markdown(f'<div class="nav-active">{label}</div>', unsafe_allow_html=True)
+        elif st.sidebar.button(label, key=f"mvp_side_nav_{page}"):
+            st.session_state.page = page
+            st.rerun()
+    return st.session_state.page
+
+
+def render_top_nav(pages: list[str]) -> None:
+    with st.expander("Navigate Waymark U.S.", expanded=False):
+        cols = st.columns(4)
+        for idx, page in enumerate(pages):
+            with cols[idx % 4]:
+                if page == st.session_state.page:
+                    st.markdown(f'<div class="top-nav-active">{html.escape(page)}</div>', unsafe_allow_html=True)
+                elif st.button(page, key=f"mvp_top_nav_{page}", width="stretch"):
+                    st.session_state.page = page
+                    st.rerun()
+
+
+def home_page() -> None:
+    st.markdown(
+        f"""
+        <div class="atlas-hero">
+            <div>
+                <div class="atlas-kicker">A private AI field journal</div>
+                <h1>Waymark U.S.</h1>
+                <h3>Understand what you see.<br>Remember what you notice.</h3>
+                <p>Waymark is a private AI field journal for curious travelers. It helps you read a place before you arrive, ask better questions while you're there, and turn rough road notes into maps, comparisons, essays, and reflections after the trip.</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    cols = st.columns(3)
+    cards = [
+        ("Understand a Place", "Get a short “How to read this place” brief before you arrive.", "Generate Place Brief", "Understand"),
+        ("Ask About What I’m Seeing", "Turn a confusing or interesting scene into a better question.", "Ask Waymark", "Ask"),
+        ("Capture a Field Note", "Say the thought before it disappears.", "Capture Note", "Capture"),
+    ]
+    for col, (title, body, button, page) in zip(cols, cards):
+        with col:
+            st.markdown(
+                f"""
+                <div class="journey-card">
+                    <div class="atlas-choice-label">Fieldwork</div>
+                    <h3>{html.escape(title)}</h3>
+                    <p>{html.escape(body)}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button(button, key=f"home_card_{page}", width="stretch"):
+                go_to(page)
+    st.markdown(
+        """
+        <div class="atlas-panel">
+            <h3>Synthesize My Journey</h3>
+            <p class="small-muted">Compare places, find recurring themes, and turn observations into essays or scripts.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("Synthesize Notes", width="stretch"):
+        go_to("Synthesize")
+    st.markdown(
+        """
+        <div class="atlas-panel">
+            <h3>Not an audio tour. Not a trip planner. Not just a travel diary.</h3>
+            <p class="small-muted">Audio tour apps tell you stories about places. Trip planners tell you where to go. Photo journals show where you went. Waymark helps you notice, ask, compare, and remember.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    privacy_copy()
+
+
+def ai_companion_page() -> None:
+    st.title("Understand a Place")
+    st.caption('Get oriented before you arrive. Waymark gives you a compact “How to read this place” brief — not a tourist checklist.')
+    destination = st.text_input("Destination", placeholder="Boston, MA or Nashville, TN", key="understand_destination")
+    state = st.text_input("State / region (optional)", placeholder="MA, Tennessee, Appalachia", key="understand_state")
+    lens = st.selectbox(
+        "What lens do you want?",
+        [
+            "General orientation",
+            "Local history",
+            "Food and local institutions",
+            "Farm / rural life",
+            "Race and community",
+            "Economy and industries",
+            "Religion and civic life",
+            "Sports and local identity",
+            "Nature and landscape",
+            "Small-town life",
+        ],
+    )
+    question = st.text_input("Optional question", placeholder="What should I notice here? Why does this town feel this way?")
+    if st.button('Generate “How to Read This Place” Brief', width="stretch"):
+        if not destination.strip():
+            st.error("We could not lock this destination. Please type the city and state manually.")
+        else:
+            brief = generate_destination_brief(destination, state, lens, GUIDEBOOK_INTERESTS)
+            if question:
+                brief["field_note_prompts"] = f"**Your question:** {question} " + str(brief.get("field_note_prompts", ""))
+            st.session_state.current_brief = brief
+
+    brief = st.session_state.get("current_brief")
+    if not brief:
+        return
+    title = ", ".join(part for part in [brief.get("destination"), brief.get("state")] if part)
+    st.markdown(f"## {title} in 15 seconds")
+    st.markdown(guide_text_html(brief.get("brief_15_sec", "")), unsafe_allow_html=True)
+    sections = [
+        ("How to read this place", "cultural_signals"),
+        ("What to notice", "field_note_prompts"),
+        ("Local signals", "community_lens"),
+        ("Food and institutions", "local_food"),
+        ("Economy / industries", "industry_snapshot"),
+        ("History underneath the surface", "historical_background"),
+        ("Questions to ask locals", "questions_to_ask"),
+    ]
+    if brief.get("sports_snapshot"):
+        sections.insert(5, ("Sports and local identity", "sports_snapshot"))
+    for label, key in sections:
+        with st.container(border=True):
+            st.markdown(f"### {label}")
+            st.markdown(guide_text_html(brief.get(key, "")), unsafe_allow_html=True)
+    if brief.get("must_visit"):
+        st.markdown("### Good places to start observing")
+        cols = st.columns(min(2, len(brief["must_visit"])))
+        for col, spot in zip(cols, brief["must_visit"]):
+            with col:
+                st.markdown(f"**{spot.get('name', 'Field anchor')}**")
+                st.write(spot.get("why", "A useful starting point for observing the place."))
+    c1, c2 = st.columns(2)
+    if c1.button("Save Private Place Brief", width="stretch"):
+        insert_ai_brief(brief)
+        st.success("Saved as a private place brief. It will appear in Memory Map and Library.")
+    if c2.button("Read Aloud", width="stretch"):
+        render_voice_speaker(f"{title}. {brief.get('brief_15_sec', '')}", "brief_read_aloud")
+
+
+def ask_page() -> None:
+    st.title("Ask About What I’m Seeing")
+    st.caption("Turn a confusing or interesting scene into better questions. Waymark answers with possible lenses, not definitive claims.")
+    place = st.text_input("Current place / destination", value=st.session_state.pop("ask_place_prefill", ""), placeholder="Chicago, IL")
+    seeing = st.text_area("What are you seeing?", value=st.session_state.pop("ask_prefill", ""), height=170, placeholder="I’m seeing a lot of churches and empty storefronts. What might explain that?")
+    lens = st.selectbox("Optional lens", ["history", "economy", "religion", "race/community", "food", "agriculture", "sports", "urban design", "other"])
+    if st.button("Ask Waymark", width="stretch"):
+        if not seeing.strip():
+            st.error("Type or dictate what you are seeing first.")
+            return
+        response = ask_waymark_response(place, seeing, lens)
+        st.session_state.ask_response = {"place": place, "seeing": seeing, "lens": lens, "response": response}
+
+    payload = st.session_state.get("ask_response")
+    if payload:
+        response = payload["response"]
+        for label, key in [
+            ("Possible explanations", "possible_explanations"),
+            ("What to notice next", "what_to_notice_next"),
+            ("Questions to ask locals", "questions_to_ask"),
+            ("Suggested follow-up questions", "followups"),
+        ]:
+            with st.container(border=True):
+                st.markdown(f"### {label}")
+                for item in response[key]:
+                    st.markdown(f"- {guide_text_html(item)}", unsafe_allow_html=True)
+        st.caption("Related tags: " + ", ".join(response["tags"]))
+        if st.button("Save as Question", width="stretch"):
+            note_id = save_question_record(payload["place"], payload["seeing"], response, payload["lens"])
+            st.success(f"Saved question #{note_id} to Library and Memory Map.")
+
+
+def add_field_note_page() -> None:
+    st.title("Capture a Field Note")
+    st.caption("Say the thought before it disappears. Capture a question, observation, conversation, food memory, farmstay moment, or reflection. Everything is private by default.")
+    render_browser_voice_helper("capture_voice_mvp")
+    st.divider()
+    place = st.text_input("Location / Place", placeholder="Chicago, IL or Blue Ridge foothills")
+    title = st.text_input("Optional title")
+    raw_note = st.text_area("Raw note", height=180, placeholder="Write or paste the field note here.")
+    note_type = st.selectbox("Note type", FIELDWORK_TYPES, index=1)
+    visibility = st.selectbox("Visibility", ["Private", "Public-safe draft candidate"], index=0)
+    extra = {}
+    if note_type == "Farmstay":
+        c1, c2 = st.columns(2)
+        extra["farm_type"] = c1.text_input("Farm type")
+        extra["work_done"] = c2.text_input("Work done")
+        extra["food_eaten"] = st.text_input("Food eaten")
+        extra["people_met"] = st.text_input("People met")
+        extra["surprises"] = st.text_input("What surprised me")
+        extra["rural_life"] = st.text_area("What this reveals about rural life", height=100)
+    if st.button("Save as Field Note", width="stretch"):
+        text_parts = [raw_note, *[value for value in extra.values() if value]]
+        full_text = "\n".join(part for part in text_parts if part).strip()
+        if not full_text:
+            st.error("Add a note or transcript first.")
+            return
+        geo = infer_location_from_place(place)
+        cleaned_title = title.strip() or generate_note_title_from_text(full_text, "Untitled field note")
+        summary = make_private_summary(full_text, note_type, place)
+        note_id = insert_field_note(
+            {
+                "title": cleaned_title,
+                "date": datetime.now().isoformat(timespec="minutes"),
+                "location_name": place,
+                "latitude": geo.get("latitude"),
+                "longitude": geo.get("longitude"),
+                "city": geo.get("city", ""),
+                "state": geo.get("state", ""),
+                "category": fieldwork_slug(note_type),
+                "note_text": clean_voice_text(full_text),
+                "audio_transcript": raw_note,
+                "mood": "curious",
+                "ai_summary": summary,
+                "ai_context": "User original words are stored separately from this private summary.",
+                "tags": fieldwork_slug(note_type),
+                "privacy_level": "public-ready" if visibility == "Public-safe draft candidate" else "private",
+            }
+        )
+        st.success(f"Saved private field note #{note_id}.")
+    privacy_copy()
+
+
+def map_view_page() -> None:
+    st.title("Memory Map")
+    st.caption("Map what you noticed, not just where you went. Your map collects questions, observations, conversations, food signals, farmstay notes, and reflections.")
+    records = get_private_records()
+    briefs = get_place_brief_records()
+    selected = st.selectbox("Filter", FIELDWORK_FILTERS, index=0)
+    visible_records = filter_records(records, selected)
+    if selected == "Place Briefs":
+        visible_records = pd.DataFrame()
+    layers = []
+    needs_location = []
+    point_rows = []
+    if not visible_records.empty:
+        for row in visible_records.itertuples():
+            lat = pd.to_numeric(getattr(row, "latitude", None), errors="coerce")
+            lon = pd.to_numeric(getattr(row, "longitude", None), errors="coerce")
+            if pd.isna(lat) or pd.isna(lon):
+                needs_location.append({"title": row.cleaned_title, "location": getattr(row, "location_name", ""), "type": row.record_kind})
+                continue
+            point_rows.append({"title": row.cleaned_title, "location": getattr(row, "location_name", ""), "record_type": row.record_kind, "summary": str(getattr(row, "private_summary", ""))[:120], "latitude": lat, "longitude": lon, "color": [47, 111, 88]})
+    if selected in {"All", "Place Briefs"} and not briefs.empty:
+        for row in briefs.itertuples():
+            if pd.notna(row.latitude) and pd.notna(row.longitude):
+                point_rows.append({"title": row.cleaned_title, "location": row.location_name, "record_type": "place_brief", "summary": str(row.private_summary)[:120], "latitude": row.latitude, "longitude": row.longitude, "color": [183, 150, 93]})
+            else:
+                needs_location.append({"title": row.cleaned_title, "location": row.location_name, "type": "place_brief"})
+    points = pd.DataFrame(point_rows)
+    if points.empty:
+        st.info("No mapped private records yet. Notes without coordinates appear below.")
+    else:
+        midpoint = [points["longitude"].mean(), points["latitude"].mean()]
+        st.pydeck_chart(
+            pdk.Deck(
+                layers=[pdk.Layer("ScatterplotLayer", data=points, get_position="[longitude, latitude]", get_fill_color="color", get_radius=10000, pickable=True, opacity=0.84)],
+                initial_view_state=pdk.ViewState(latitude=midpoint[1], longitude=midpoint[0], zoom=4.2),
+                tooltip={"html": "<b>{title}</b><br/>{record_type}<br/>{location}<br/>{summary}<br/><em>Open in Library</em>", "style": {"backgroundColor": "#17211c", "color": "white"}},
+            ),
+            use_container_width=True,
+        )
+    if needs_location:
+        st.subheader("Needs location")
+        st.dataframe(pd.DataFrame(needs_location), width="stretch")
+
+
+def journey_review_page() -> None:
+    st.title("Synthesize My Journey")
+    st.caption("Turn scattered road notes into patterns.")
+    records = get_private_records()
+    if records.empty:
+        st.info("Capture notes first, then synthesize patterns here.")
+        return
+    synthesis_type = st.selectbox("Synthesis type", ["Recurring themes", "Compare places", "What surprised me", "Questions I kept asking", "What I learned about America", "Essay outline", "Podcast outline", "Field report"])
+    places = sorted({str(value) for value in records["location_name"].dropna() if str(value)})
+    selected_places = st.multiselect("Places to compare", places, default=places[:3])
+    filtered = records[records["location_name"].isin(selected_places)] if selected_places else records
+    if st.button("Generate Synthesis", width="stretch"):
+        themes = filtered["record_kind"].value_counts().head(6)
+        strongest = filtered["note_text"].fillna("").astype(str).head(5).tolist()
+        st.session_state.synthesis = {"type": synthesis_type, "themes": themes, "strongest": strongest, "places": selected_places}
+    synth = st.session_state.get("synthesis")
+    if synth:
+        st.markdown("### Recurring themes")
+        st.write(", ".join(f"{k} ({v})" for k, v in synth["themes"].items()))
+        st.markdown("### Places that felt similar")
+        st.write(", ".join(synth["places"][:3]) or "Add places to compare.")
+        st.markdown("### Questions that remain unanswered")
+        st.write("What institutions shape daily life here? What changed recently? What did I assume too quickly?")
+        st.markdown("### Strongest observations")
+        for item in synth["strongest"]:
+            st.markdown(f"- {item[:240]}")
+        st.markdown("### Possible essay / podcast angles")
+        st.write("A strong draft can compare what repeated across places and what resisted easy explanation.")
+        st.markdown("### Next trip prompts")
+        st.write("Ask one local institution question, one food question, one work/economy question, and one memory/history question.")
+
+
+def note_library_page() -> None:
+    st.title("Library")
+    st.caption("Your private field notes, questions, place briefs, and reflections.")
+    records = get_private_records()
+    briefs = get_place_brief_records()
+    selected = st.selectbox("Filter", FIELDWORK_FILTERS, index=0, key="library_filter")
+    show_briefs = selected in {"All", "Place Briefs"}
+    visible = filter_records(records, selected)
+    if visible.empty and (not show_briefs or briefs.empty):
+        st.info("No private records match this filter.")
+        return
+    if show_briefs and not briefs.empty:
+        for _, brief in briefs.iterrows():
+            with st.container(border=True):
+                st.caption("PLACE BRIEF")
+                st.subheader(brief["cleaned_title"])
+                st.write(brief.get("private_summary", ""))
+                st.caption(brief.get("location_name", ""))
+    for _, row in visible.iterrows():
+        label = "DRAFT CANDIDATE" if str(row.get("privacy_level")) == "public-ready" else str(row.get("record_kind", "field_note")).replace("_", " ").upper()
+        with st.container(border=True):
+            st.caption(label)
+            st.subheader(row.get("cleaned_title") or "Untitled field note")
+            st.write(f"{row.get('location_name', '')} | {row.get('date', '')} | {row.get('record_kind', '')}")
+            st.write(row.get("private_summary") or make_private_summary(row.get("note_text", ""), str(row.get("record_kind", "field note")), row.get("location_name", "")))
+            st.caption(f"Tags: {row.get('tags', '')}")
+            c1, c2, c3 = st.columns(3)
+            if c1.button("View", key=f"lib_view_{row['id']}"):
+                st.session_state[f"show_detail_{row['id']}"] = not st.session_state.get(f"show_detail_{row['id']}", False)
+            if c2.button("Ask follow-up", key=f"lib_ask_{row['id']}"):
+                st.session_state.ask_prefill = row.get("note_text", "")
+                st.session_state.ask_place_prefill = row.get("location_name", "")
+                go_to("Ask")
+            if c3.button("Export", key=f"lib_export_{row['id']}"):
+                st.session_state.export_selection = [f"Field note:{row['id']}"]
+                go_to("Export")
+            if st.session_state.get(f"show_detail_{row['id']}", False):
+                st.markdown("**User original words**")
+                st.write(row.get("note_text", ""))
+                st.markdown("**AI summary**")
+                st.write(row.get("private_summary", ""))
+
+
+def export_center_page() -> None:
+    st.title("Export")
+    st.caption("Turn selected field notes into something you can use. Rough observations → selected insight → draft output.")
+    st.warning("Public drafts are drafts. Review manually before publishing.")
+    st.markdown("Private Note → Public-safe Draft → Manual Review → Copy/Export")
+    items = fetch_all_library_items()
+    if items.empty:
+        st.info("Capture notes before exporting.")
+        return
+    options = [f"{row.source_type}:{row.source_id}" for row in items.itertuples()]
+    labels = {f"{row.source_type}:{row.source_id}": f"{row.display_title} | {row.display_location}" for row in items.itertuples()}
+    default = [item for item in st.session_state.pop("export_selection", []) if item in options]
+    selection = st.multiselect("Select private records", options, default=default, format_func=lambda value: labels.get(value, value))
+    export_type = st.selectbox("Export type", ["Public-safe travel reflection", "Essay outline", "Substack-style essay", "Podcast script", "Japanese diary", "English field note", "Field report", "Markdown archive"])
+    button_label = "Create Public Draft" if export_type == "Public-safe travel reflection" else "Create Draft"
+    if st.button(button_label, width="stretch"):
+        selected_items = get_selected_items(selection, items)
+        if not selected_items:
+            st.error("Select at least one private record.")
+            return
+        mapped_type = "English field note" if export_type in {"Public-safe travel reflection", "Field report", "Essay outline"} else export_type
+        title, content = generate_export(mapped_type, selected_items)
+        if export_type == "Public-safe travel reflection":
+            content = "PUBLIC-SAFE DRAFT — MANUAL REVIEW REQUIRED\n\n" + content + "\n\nRemoved/generalized by policy: exact address, real-time location, future itinerary, private names, raw transcript, affiliations, and sensitive comments should be checked manually."
+        st.session_state.generated_export = {"title": title, "content": content, "items": selected_items, "type": export_type}
+    generated = st.session_state.get("generated_export")
+    if generated:
+        st.subheader(generated["title"])
+        st.text_area("Draft output", generated["content"], height=420)
+        if st.button("Save Export Record"):
+            export_id = save_export(generated["type"], generated["items"], generated["content"], generated["title"])
+            st.success(f"Saved private export #{export_id}.")
+
+
 def main() -> None:
     apply_style()
     handle_voice_query_params()
     pages = [
         "Home",
+        "Understand",
+        "Ask",
+        "Capture",
         "Memory Map",
-        "Read Reviews",
-        "Search My Notes",
-        "Capture Note",
-        "Ask About This Place",
-        "Community Log",
-        "Personal Log",
-        "Journey Review",
+        "Synthesize",
         "Library",
         "Export",
-        "Publish Safely",
     ]
     if "page" not in st.session_state:
         st.session_state.page = "Home"
@@ -2966,28 +3538,20 @@ def main() -> None:
 
     if page == "Home":
         home_page()
+    elif page == "Understand":
+        ai_companion_page()
+    elif page == "Ask":
+        ask_page()
+    elif page == "Capture":
+        add_field_note_page()
     elif page == "Memory Map":
         map_view_page()
-    elif page == "Read Reviews":
-        note_library_page()
-    elif page == "Capture Note":
-        add_field_note_page()
-    elif page == "Search My Notes":
-        note_library_page()
-    elif page == "Ask About This Place":
-        ai_companion_page()
-    elif page == "Community Log":
-        farmstay_log_page()
-    elif page == "Personal Log":
-        personal_log_page()
-    elif page == "Journey Review":
+    elif page == "Synthesize":
         journey_review_page()
     elif page == "Library":
         note_library_page()
     elif page == "Export":
         export_center_page()
-    elif page == "Publish Safely":
-        privacy_page()
 
 
 if __name__ == "__main__":
