@@ -261,7 +261,7 @@ def seed_sample_data() -> None:
                 "Economic/lifestyle angle: Compare visitor-facing spaces with everyday services, housing, work, and mobility.\n"
                 "Questions to revisit: What does this place make easy, and what does it make difficult?",
             )
-            sample.setdefault("privacy_level", "public-ready")
+            sample.setdefault("privacy_level", "private")
 
             if count:
                 conn.execute(
@@ -296,11 +296,11 @@ def seed_sample_data() -> None:
         timestamp = now_iso()
         farm_sample = {
                 "date": "2026-04-10",
-                "farm_name": "Blue Ridge community lunch",
+                "farm_name": "Blue Ridge farmstay lunch",
                 "location_name": "Blue Ridge foothills",
                 "latitude": 35.5951,
                 "longitude": -82.5515,
-                "farm_type": "community event",
+                "farm_type": "farmstay",
                 "work_done": "Washed greens, helped sort seedlings, and observed how weather shaped the day's work plan.",
                 "people_met": "A vendor, a neighbor, and a visitor talked without private names recorded.",
                 "food_eaten": "Simple lunch with seasonal vegetables, bread, and coffee.",
@@ -310,7 +310,7 @@ def seed_sample_data() -> None:
                 "community_feeling": 4,
                 "surprises": "The amount of invisible planning behind a small market table.",
                 "reflection": "The encounter made local agriculture feel less like scenery and more like a daily negotiation among land, weather, bodies, money, and community.",
-                "ai_summary": "This community log connects shared food, local work, rural routines, and the social texture of place.",
+                "ai_summary": "This private farmstay note connects shared food, local work, rural routines, and the social texture of place.",
                 "public_version": "During spring 2026, I spent time in a community food setting in the Blue Ridge foothills. The exact host or organization and private identities are withheld. The public lesson was about how much planning, weather awareness, and cooperation sit behind local food and community life.",
         }
         if farm_count:
@@ -438,16 +438,16 @@ def fetch_all_library_items() -> pd.DataFrame:
     farm_items = pd.DataFrame()
     if not farms.empty:
         farm_items = farms.assign(
-            source_type="Community log",
+            source_type="Farmstay note",
             source_id=farms["id"].astype(str),
-            display_title=farms["farm_name"].fillna("Community log"),
+            display_title=farms["farm_name"].fillna("Farmstay note"),
             display_location=farms["location_name"].fillna(""),
-            display_category=farms["farm_type"].fillna("community"),
+            display_category=farms["farm_type"].fillna("farmstay"),
             display_text=farms["reflection"].fillna(""),
             display_state="",
             privacy_level="private",
-            category=farms["farm_type"].fillna("community"),
-            tags="community",
+            category=farms["farm_type"].fillna("farmstay"),
+            tags="farmstay",
         )
 
     return pd.concat([note_items, farm_items], ignore_index=True, sort=False)
