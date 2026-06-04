@@ -310,12 +310,27 @@
       .pin {
         position: absolute;
         transform: translate(-50%, -50%);
-        width: 16px;
-        height: 16px;
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
         background: var(--gold);
         border: 3px solid white;
         box-shadow: 0 0 0 8px rgba(184, 148, 92, 0.2);
+      }
+
+      .user-pin {
+        width: 18px;
+        height: 18px;
+        background: #f3d37a;
+        box-shadow: 0 0 0 9px rgba(243, 211, 122, 0.25);
+        z-index: 3;
+      }
+
+      .stock-pin {
+        background: rgba(255, 250, 241, 0.88);
+        border-color: rgba(47, 111, 88, 0.95);
+        box-shadow: 0 0 0 5px rgba(47, 111, 88, 0.18);
+        z-index: 2;
       }
 
       .pin span {
