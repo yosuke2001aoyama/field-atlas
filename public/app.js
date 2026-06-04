@@ -53,6 +53,7 @@ const pages = [
       function lookup(place) {
         const raw = (place || "").trim();
         const lower = raw.toLowerCase();
+        if (!lower) return ["Unknown place", "", null, null];
         for (const key of Object.keys(destinations)) {
           if (lower.includes(key) || key.includes(lower)) return destinations[key];
         }
