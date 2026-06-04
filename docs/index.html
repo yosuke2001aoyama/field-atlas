@@ -89,7 +89,7 @@
           <h2>Understand a Place</h2>
           <p class="small">Get oriented before you arrive. This is a “How to read this place” brief, not a tourist checklist.</p>
           <div class="panel">
-            <div class="field"><label>Destination</label><input id="briefDestination" placeholder="Boston, MA or Nashville, TN" /></div>
+            <div class="field"><label>Destination</label><input id="briefDestination" list="destinationOptions" placeholder="Boston, MA or Nashville, TN" /></div>
             <div class="field"><label>Lens</label><select id="briefLens"></select></div>
             <div class="field"><label>Optional question</label><input id="briefQuestion" placeholder="What should I notice here?" /></div>
             <button class="btn" id="generateBrief">Generate Place Brief</button>
@@ -101,7 +101,7 @@
           <h2>Ask About What I’m Seeing</h2>
           <p class="small">Use cautious hypotheses. Waymark helps you think, not pretend certainty.</p>
           <div class="panel">
-            <div class="field"><label>Current place</label><input id="askPlace" placeholder="Chicago, IL" /></div>
+            <div class="field"><label>Current place</label><input id="askPlace" list="destinationOptions" placeholder="Chicago, IL" /></div>
             <div class="field"><label>What are you seeing?</label><textarea id="askObservation" placeholder="I’m seeing a lot of churches and empty storefronts. What might explain that?"></textarea></div>
             <div class="field"><label>Lens</label><select id="askLens"></select></div>
             <button class="btn" id="askWaymark">Ask Waymark</button>
@@ -118,7 +118,7 @@
               <button class="btn secondary" id="stopDictation">Stop</button>
               <span class="small" id="voiceStatus">Voice dictation uses your browser when available.</span>
             </div>
-            <div class="field"><label>Place</label><input id="notePlace" placeholder="Louisville, KY" /></div>
+            <div class="field"><label>Place</label><input id="notePlace" list="destinationOptions" placeholder="Louisville, KY" /></div>
             <div class="field"><label>Optional title</label><input id="noteTitle" /></div>
             <div class="field"><label>Note type</label><select id="noteType"></select></div>
             <div class="field"><label>Raw note / transcript</label><textarea id="noteText"></textarea></div>
@@ -171,6 +171,7 @@
         </section>
       </main>
     </div>
+    <datalist id="destinationOptions"></datalist>
 
     <script src="app.js"></script>
   </body>
