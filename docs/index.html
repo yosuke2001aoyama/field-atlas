@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Waymark U.S.</title>
+    <meta
+      name="description"
+      content="Waymark U.S. is a private AI field journal for curious travelers. Understand what you see. Remember what you notice."
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <button class="btn mobile-menu" id="menuButton">Menu</button>
+    <div class="shell">
+      <aside id="sidebar">
+        <p class="brand">Waymark U.S.</p>
+        <p class="tagline">Private AI field journal.</p>
+        <nav id="nav"></nav>
+        <div class="privacy small">Nothing is published from Waymark. Public-safe drafts are only copyable drafts for manual review.</div>
+      </aside>
+
+      <main>
+        <section class="page active" id="home">
+          <div class="hero">
+            <div class="eyebrow">A private AI field journal</div>
+            <h1>Waymark U.S.</h1>
+            <h2>Understand what you see.<br />Remember what you notice.</h2>
+            <p>
+              Waymark helps curious travelers read a place before arriving, ask better questions while there,
+              and turn rough road notes into maps, comparisons, essays, and reflections after the trip.
+            </p>
+          </div>
+          <div class="quick-capture" aria-label="Quick capture">
+            <article class="quick-card primary">
+              <div class="eyebrow">One-tap field capture</div>
+              <h3>Ask or save the thought before it disappears.</h3>
+              <p>
+                Use this while moving only when it is safe. Tap once, dictate or type a short question or observation,
+                then send it to Ask or save it as a private note.
+              </p>
+              <div class="capture-row">
+                <textarea id="homeQuickText" placeholder="What am I seeing? Or: the diner feels like the town’s meeting room..."></textarea>
+                <button class="btn light" id="homeMic">Start Voice</button>
+              </div>
+              <div class="capture-actions">
+                <button class="btn gold" id="homeAsk">Ask Waymark</button>
+                <button class="btn light" id="homeSave">Save Private Note</button>
+                <span class="small" id="homeVoiceStatus">Ready. Your notes stay in this browser unless you export them.</span>
+              </div>
+            </article>
+            <article class="quick-card">
+              <div class="eyebrow">Read-only public app</div>
+              <h3>External visitors can use it, but cannot modify the service.</h3>
+              <p>
+                This public version is a static web app. It has no public posting endpoint, no shared database,
+                no account system, and no server-side write access. Each visitor’s notes stay local to their own browser.
+              </p>
+            </article>
+          </div>
+          <div class="panel">
+            <div class="grid">
+              <article class="card">
+                <div class="eyebrow">Before</div>
+                <h3>Understand a Place</h3>
+                <p>Get a short “How to read this place” brief before you arrive.</p>
+                <p><button class="btn" data-go="understand">Generate Place Brief</button></p>
+              </article>
+              <article class="card">
+                <div class="eyebrow">During</div>
+                <h3>Ask About What I’m Seeing</h3>
+                <p>Turn a confusing or interesting scene into better hypotheses and questions.</p>
+                <p><button class="btn" data-go="ask">Ask Waymark</button></p>
+              </article>
+              <article class="card">
+                <div class="eyebrow">Capture</div>
+                <h3>Capture a Field Note</h3>
+                <p>Say the thought before it disappears. Save it privately by place and theme.</p>
+                <p><button class="btn" data-go="capture">Capture Note</button></p>
+              </article>
+            </div>
+            <div class="privacy">
+              Not an audio tour. Not a trip planner. Not a route tracker. Waymark helps you notice, ask, compare, and remember.
+            </div>
+          </div>
+        </section>
+
+        <section class="page" id="understand">
+          <h2>Understand a Place</h2>
+          <p class="small">Get oriented before you arrive. This is a “How to read this place” brief, not a tourist checklist.</p>
+          <div class="panel">
+            <div class="field"><label>Destination</label><input id="briefDestination" placeholder="Boston, MA or Nashville, TN" /></div>
+            <div class="field"><label>Lens</label><select id="briefLens"></select></div>
+            <div class="field"><label>Optional question</label><input id="briefQuestion" placeholder="What should I notice here?" /></div>
+            <button class="btn" id="generateBrief">Generate Place Brief</button>
+            <div class="output" id="briefOutput"></div>
+          </div>
+        </section>
+
+        <section class="page" id="ask">
+          <h2>Ask About What I’m Seeing</h2>
+          <p class="small">Use cautious hypotheses. Waymark helps you think, not pretend certainty.</p>
+          <div class="panel">
+            <div class="field"><label>Current place</label><input id="askPlace" placeholder="Chicago, IL" /></div>
+            <div class="field"><label>What are you seeing?</label><textarea id="askObservation" placeholder="I’m seeing a lot of churches and empty storefronts. What might explain that?"></textarea></div>
+            <div class="field"><label>Lens</label><select id="askLens"></select></div>
+            <button class="btn" id="askWaymark">Ask Waymark</button>
+            <div class="output" id="askOutput"></div>
+          </div>
+        </section>
+
+        <section class="page" id="capture">
+          <h2>Capture a Field Note</h2>
+          <p class="small">Use this while walking, driving, waiting, eating, working, or noticing a place. Everything is private by default.</p>
+          <div class="panel">
+            <div class="toolbar">
+              <button class="btn" id="startDictation">Start Voice</button>
+              <button class="btn secondary" id="stopDictation">Stop</button>
+              <span class="small" id="voiceStatus">Voice dictation uses your browser when available.</span>
+            </div>
+            <div class="field"><label>Place</label><input id="notePlace" placeholder="Louisville, KY" /></div>
+            <div class="field"><label>Optional title</label><input id="noteTitle" /></div>
+            <div class="field"><label>Note type</label><select id="noteType"></select></div>
+            <div class="field"><label>Raw note / transcript</label><textarea id="noteText"></textarea></div>
+            <div class="field"><label>Visibility</label><select id="noteVisibility"><option>Private</option><option>Public-safe draft candidate</option></select></div>
+            <div class="toolbar">
+              <button class="btn secondary" id="noteToAsk">Ask Waymark</button>
+              <button class="btn" id="saveNote">Save as Field Note</button>
+            </div>
+            <div class="output" id="captureOutput"></div>
+          </div>
+        </section>
+
+        <section class="page" id="map">
+          <h2>Memory Map</h2>
+          <p class="small">Map what you noticed, not just where you went.</p>
+          <div class="field"><label>Filter</label><select id="mapFilter"></select></div>
+          <div class="map" id="memoryMap"></div>
+          <div class="output" id="needsLocation"></div>
+        </section>
+
+        <section class="page" id="synthesize">
+          <h2>Synthesize My Journey</h2>
+          <p class="small">Turn scattered road notes into patterns.</p>
+          <div class="panel">
+            <div class="field"><label>Synthesis type</label><select id="synthesisType"></select></div>
+            <button class="btn" id="runSynthesis">Synthesize</button>
+            <div class="output" id="synthesisOutput"></div>
+          </div>
+        </section>
+
+        <section class="page" id="library">
+          <h2>Library</h2>
+          <p class="small">Your private field notes, questions, place briefs, and reflections.</p>
+          <div class="grid two">
+            <div class="field"><label>Search</label><input id="librarySearch" /></div>
+            <div class="field"><label>Filter</label><select id="libraryFilter"></select></div>
+          </div>
+          <div class="output" id="libraryList"></div>
+        </section>
+
+        <section class="page" id="export">
+          <h2>Export</h2>
+          <p class="small">Turn selected field notes into something you can use. Public drafts require manual review.</p>
+          <div class="panel">
+            <div class="field"><label>Record</label><select id="exportRecord"></select></div>
+            <div class="field"><label>Export type</label><select id="exportType"></select></div>
+            <button class="btn" id="createExport">Create Draft</button>
+            <div class="output" id="exportOutput"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
