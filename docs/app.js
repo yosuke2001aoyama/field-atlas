@@ -185,6 +185,15 @@ const pages = [
         document.querySelector(id).innerHTML = options.map((value) => `<option>${value}</option>`).join("");
       }
 
+      function escapeHtml(value = "") {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
       function guideFor(place) {
         const found = lookup(place);
         const key = (found[0] || place || "").toLowerCase();
@@ -242,11 +251,17 @@ const pages = [
           .join("") + `<button class="btn" id="saveBrief">Save Private Place Brief</button>`;
       }
 
-      function askAnswer(place, observation, lens) {
-        return `<article class="note"><h3>Possible explanations</h3><p>One lens may be <strong>${lens}</strong>, but treat this as a hypothesis. Check work patterns, housing costs, religion, race/community history, local institutions, and tourism pressure.</p></article>
-        <article class="note"><h3>What to notice next</h3><p>Look for repeated signs, prices, uniforms, school colors, empty storefronts, pickup trucks, murals, churches, factories, and meeting places.</p></article>
-        <article class="note"><h3>Questions to ask locals</h3><p>What changed here in the last ten years? What has not changed? Where do people still gather?</p></article>
-        <article class="note"><h3>Related tags</h3><p>${lens}, question, observation, ${place}</p></article>`;
+      function renderAskAnswer(data) {
+        const notices = (data.what_to_notice || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+        const questions = (data.questions_to_ask || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+        const sources = (data.sources || []).map((source) => `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)}</a>${source.official ? " <strong>Official</strong>" : ""}</li>`).join("");
+        const modeNote = data.mode === "openai"
+          ? "Web sources summarized with AI."
+          : "Live reference material summarized with Waymark's no-key fallback.";
+        return `<article class="note"><div class="eyebrow">Sourced intelligent brief</div><h3>Possible explanations</h3><p>${escapeHtml(data.intelligent_brief)}</p></article>
+          <article class="note"><h3>What to notice next</h3><ul class="dynamic-list">${notices}</ul></article>
+          <article class="note"><h3>Questions to ask locals</h3><ul class="dynamic-list">${questions}</ul></article>
+          <article class="note"><h3>Sources</h3><p class="small">${modeNote} Open the sources to verify details and context.</p><ol class="source-list">${sources}</ol></article>`;
       }
 
       function renderMap() {
@@ -355,18 +370,47 @@ const pages = [
         });
       });
 
-      document.querySelector("#askWaymark").addEventListener("click", () => {
-        const place = document.querySelector("#askPlace").value;
-        const observation = document.querySelector("#askObservation").value;
+      document.querySelector("#askWaymark").addEventListener("click", async () => {
+        const place = document.querySelector("#askPlace").value.trim();
+        const observation = document.querySelector("#askObservation").value.trim();
         const lens = document.querySelector("#askLens").value;
-        if (!observation.trim()) return;
-        document.querySelector("#askOutput").innerHTML = askAnswer(place, observation, lens) + `<button class="btn" id="saveQuestion">Save as Question</button>`;
-        document.querySelector("#saveQuestion").addEventListener("click", () => {
-          const records = loadRecords();
-          records.unshift(makeRecord("question", titleFrom(observation), place, observation, "question," + lens, { ai: document.querySelector("#askOutput").innerText }));
-          saveRecords(records);
-          document.querySelector("#askOutput").insertAdjacentHTML("afterbegin", `<article class="note"><p>Saved as a private question.</p></article>`);
-        });
+        const status = document.querySelector("#askStatus");
+        const output = document.querySelector("#askOutput");
+        const button = document.querySelector("#askWaymark");
+        if (!place || !observation) {
+          status.textContent = "Enter both a place and what you are trying to understand.";
+          return;
+        }
+        status.textContent = `Researching ${place} and checking live reference material...`;
+        output.innerHTML = "";
+        button.disabled = true;
+        button.textContent = "Researching...";
+        try {
+          const response = await fetch("/api/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ place, question: observation, lens }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "The research request failed.");
+          output.innerHTML = renderAskAnswer(data) + `<button class="btn" id="saveQuestion">Save as Question</button>`;
+          status.textContent = `Built a place-specific answer from ${data.sources?.length || 0} live sources.`;
+          document.querySelector("#saveQuestion").addEventListener("click", () => {
+            const records = loadRecords();
+            records.unshift(makeRecord("question", titleFrom(observation), place, observation, "question," + lens, {
+              ai: JSON.stringify(data),
+              summary: data.intelligent_brief.slice(0, 240),
+            }));
+            saveRecords(records);
+            status.textContent = "Saved as a private question with its sourced answer.";
+          });
+        } catch (error) {
+          status.textContent = error.message || "Waymark could not research this question right now.";
+          output.innerHTML = `<article class="note"><h3>Research temporarily unavailable</h3><p>Check the place name and internet connection, then try again. Your question has not been published or shared.</p></article>`;
+        } finally {
+          button.disabled = false;
+          button.textContent = "Ask Waymark";
+        }
       });
 
       let recognition;
