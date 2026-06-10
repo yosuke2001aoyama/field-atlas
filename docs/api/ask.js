@@ -116,15 +116,33 @@ async function wikiSearch(project, query, limit = 3) {
     .filter((item) => item.text);
 }
 
+function questionFocus(question = "") {
+  const properPhrases = question.match(/\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g) || [];
+  const usefulTerms = question.toLowerCase().match(/[a-z]{5,}/g)?.filter((term) => ![
+    "where", "which", "there", "about", "would", "could", "should", "feels", "looks",
+    "architecturally", "consistent", "upscale", "explain", "seeing",
+  ].includes(term)) || [];
+  return [...properPhrases, ...usefulTerms].slice(0, 5).join(" ");
+}
+
+function sourceIsRelevant(source, place, focus) {
+  const city = place.split(",")[0].trim().toLowerCase();
+  const focusTerms = focus.toLowerCase().match(/[a-z]{4,}/g) || [];
+  const haystack = `${source.title} ${source.text.slice(0, 1600)}`.toLowerCase();
+  return haystack.includes(city) || focusTerms.some((term) => haystack.includes(term));
+}
+
 async function gatherSources(place, question) {
-  const targetedQuery = `${place} ${question}`.slice(0, 240);
+  const focus = questionFocus(question);
+  const targetedQuery = `${place} ${focus}`.slice(0, 180);
   const settled = await Promise.allSettled([
     wikiSearch("en.wikipedia", place, 2),
     wikiSearch("en.wikipedia", targetedQuery, 3),
     wikiSearch("en.wikivoyage", place, 2),
     findOfficialSource(place).then((source) => source ? [source] : []),
   ]);
-  const merged = settled.flatMap((item) => item.status === "fulfilled" ? item.value : []);
+  const merged = settled.flatMap((item) => item.status === "fulfilled" ? item.value : [])
+    .filter((source) => source.official || sourceIsRelevant(source, place, focus));
   const seen = new Set();
   return merged.filter((item) => {
     if (!item.url || seen.has(item.url)) return false;
@@ -136,7 +154,9 @@ async function gatherSources(place, question) {
 function relevantFacts(sources, question) {
   const stop = new Set(["what", "why", "when", "where", "which", "with", "that", "this", "there", "about", "does", "have", "from", "into", "here", "feel", "feels", "look", "looks", "would", "could", "should"]);
   const terms = question.toLowerCase().match(/[a-z]{4,}/g)?.filter((term) => !stop.has(term)) || [];
-  const all = sources.flatMap((source) => sentences(source.text).map((text) => ({ text, source })));
+  const all = sources.flatMap((source) => sentences(source.text)
+    .filter((text) => text.length >= 55 && text.length <= 420 && !/^\d/.test(text))
+    .map((text) => ({ text, source })));
   const scored = all.map((fact) => ({
     ...fact,
     score: terms.reduce((score, term) => score + (fact.text.toLowerCase().includes(term) ? 3 : 0), 0)
@@ -155,8 +175,8 @@ function fallbackResponse(place, question, lens, sources) {
   const sourceNames = [...new Set(selected.map((fact) => fact.source.title))];
   const questionTopic = question.replace(/[?.!]+$/, "").trim();
   const notice = selected.slice(0, 3).map((fact) => {
-    const subject = fact.text.split(/,|;|\bis\b|\bwas\b/i)[0].trim();
-    return `Look for how ${subject.slice(0, 90)} is visible in streets, institutions, prices, or daily routines.`;
+    const concrete = fact.text.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+    return `Test this on the ground: ${concrete.slice(0, 180).replace(/[.!?]+$/, "")}.`;
   });
   while (notice.length < 2) {
     notice.push(`Compare the older civic or commercial core of ${place} with newer development, noting materials, prices, and who uses each space.`);
