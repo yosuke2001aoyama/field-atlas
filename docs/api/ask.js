@@ -145,9 +145,18 @@ function questionFocus(question = "") {
 
 function sourceIsRelevant(source, place, focus) {
   const city = place.split(",")[0].trim().toLowerCase();
+  const region = place.split(",").slice(1).join(",").trim().toLowerCase();
   const focusTerms = focus.toLowerCase().match(/[a-z]{4,}/g) || [];
+  const title = source.title.toLowerCase();
   const haystack = `${source.title} ${source.text.slice(0, 1600)}`.toLowerCase();
-  return haystack.includes(city) || focusTerms.some((term) => haystack.includes(term));
+  const titleNamesPlace = title === city
+    || title.startsWith(`${city},`)
+    || title.startsWith(`${city} `)
+    || (region && (title === region || title.startsWith(`${region} `)));
+  const answersFocusedQuestion = focusTerms.length > 0
+    && haystack.includes(city)
+    && focusTerms.some((term) => haystack.includes(term));
+  return titleNamesPlace || answersFocusedQuestion;
 }
 
 async function gatherSources(place, question) {
