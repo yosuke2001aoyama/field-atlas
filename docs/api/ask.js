@@ -169,23 +169,28 @@ async function gatherSources(place, question) {
   }).slice(0, 6);
 }
 
-function relevantFacts(sources, question) {
+function relevantFacts(sources, question, place) {
   const stop = new Set(["what", "why", "when", "where", "which", "with", "that", "this", "there", "about", "does", "have", "from", "into", "here", "feel", "feels", "look", "looks", "would", "could", "should"]);
   const terms = question.toLowerCase().match(/[a-z]{4,}/g)?.filter((term) => !stop.has(term)) || [];
+  const placeName = place.split(",")[0].trim().toLowerCase();
   const all = sources.flatMap((source) => sentences(source.text)
     .filter((text) => text.length >= 55 && text.length <= 420 && !/^\d/.test(text))
+    .filter((text) => !/^(he|she|his|her|they|their)\b/i.test(text.trim()))
+    .filter((text) => !/\b(was born|is an? (american|artist|actor|singer|writer)|lives and works|studio in)\b/i.test(text))
     .map((text) => ({ text, source })));
   const scored = all.map((fact) => ({
     ...fact,
     score: terms.reduce((score, term) => score + (fact.text.toLowerCase().includes(term) ? 3 : 0), 0)
-      + (/founded|industry|econom|population|historic|district|university|architecture|wealth|income|tourism|immigration|port|rail|manufactur/i.test(fact.text) ? 1 : 0),
+      + (/founded|industry|econom|population|historic|district|university|architecture|wealth|income|tourism|immigration|port|rail|manufactur/i.test(fact.text) ? 1 : 0)
+      + (fact.text.toLowerCase().includes(placeName) ? 2 : 0)
+      + (fact.source.official ? 2 : 0),
   }));
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, 8);
 }
 
 function fallbackResponse(place, question, lens, sources) {
-  const facts = relevantFacts(sources, `${question} ${lens}`);
+  const facts = relevantFacts(sources, `${question} ${lens}`, place);
   const selected = facts.slice(0, 4);
   const factText = selected.length
     ? selected.map((fact) => fact.text).join(" ")
@@ -194,7 +199,7 @@ function fallbackResponse(place, question, lens, sources) {
   const questionTopic = question.replace(/[?.!]+$/, "").trim();
   const notice = selected.slice(0, 3).map((fact) => {
     const concrete = fact.text.replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
-    return `Test this on the ground: ${concrete.slice(0, 180).replace(/[.!?]+$/, "")}.`;
+    return `Look for visible evidence of this local context: ${concrete.slice(0, 180).replace(/[.!?]+$/, "")}.`;
   });
   while (notice.length < 2) {
     notice.push(`Compare the older civic or commercial core of ${place} with newer development, noting materials, prices, and who uses each space.`);
