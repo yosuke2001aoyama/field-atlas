@@ -10,9 +10,17 @@ const pages = [
       ];
       const lenses = ["General orientation", "Local history", "Food and local institutions", "Farm / rural life", "Race and community", "Economy and industries", "Religion and civic life", "Sports and local identity", "Nature and landscape", "Small-town life"];
       const types = ["Question", "Observation", "Conversation", "Food", "Farmstay", "Local institution", "Economic signal", "Cultural signal", "Reflection", "Road scene", "Other"];
-      const filters = ["All", "Questions", "Observations", "Food", "Farmstay", "Conversations", "Local institutions", "Economic signals", "Cultural signals", "Reflections", "Place Briefs", "Destination stock", "Export-ready"];
+      const filters = ["All", "Questions", "Observations", "Food", "Farmstay", "Conversations", "Local institutions", "Economic signals", "Cultural signals", "Reflections", "Place Briefs", "Themes", "Unanswered questions", "Needs location", "Destination stock", "Export-ready"];
       const exports = ["Public-safe travel reflection", "Essay outline", "Substack-style essay", "Podcast script", "Japanese diary", "English field note", "Field report", "Markdown archive"];
       const syntheses = ["Recurring themes", "Compare places", "What surprised me", "Questions I kept asking", "What I learned about America", "Essay outline", "Podcast outline", "Field report"];
+      const sampleQuestions = [
+        ["Louisville, Kentucky", "I’m in Louisville and I’m seeing bourbon everywhere. Why is bourbon so tied to Kentucky?"],
+        ["Rural Kentucky", "I’m driving through rural Kentucky and there seem to be churches everywhere. What role do churches play in towns like this?"],
+        ["Mississippi Delta, Mississippi", "I’m seeing huge flat fields and old small towns in the Mississippi Delta. What should I notice here?"],
+        ["Nashville, Tennessee", "Why does Nashville’s downtown feel so shaped by music and tourism?"],
+        ["Boston, Massachusetts", "Why does Boston feel so dominated by universities and medical institutions?"],
+        ["", "This diner feels like a community center. What might that say about the town?"],
+      ];
       const destinationRows = [
         ["Boston", "Massachusetts", 42.3601, -71.0589, "city"], ["Cambridge", "Massachusetts", 42.3736, -71.1097, "city"], ["Worcester", "Massachusetts", 42.2626, -71.8023, "city"],
         ["New York", "New York", 40.7128, -74.006, "city"], ["Buffalo", "New York", 42.8864, -78.8784, "city"], ["Albany", "New York", 42.6526, -73.7562, "city"], ["Rochester", "New York", 43.1566, -77.6088, "city"],
@@ -42,7 +50,7 @@ const pages = [
         ["Omaha", "Nebraska", 41.2565, -95.9345, "city"], ["Lincoln", "Nebraska", 40.8136, -96.7026, "city"],
         ["Wichita", "Kansas", 37.6872, -97.3301, "city"], ["Topeka", "Kansas", 39.0473, -95.6752, "city"], ["Lawrence", "Kansas", 38.9717, -95.2353, "city"],
         ["Denver", "Colorado", 39.7392, -104.9903, "city"], ["Boulder", "Colorado", 40.015, -105.2705, "city"], ["Colorado Springs", "Colorado", 38.8339, -104.8214, "city"],
-        ["Santa Fe", "New Mexico", 35.687, -105.9378, "city"], ["Albuquerque", "New Mexico", 35.0844, -106.6504, "city"], ["Las Cruces", "New Mexico", 32.3199, -106.7637, "city"],
+        ["Santa Fe", "New Mexico", 35.687, -105.9378, "city"], ["Taos", "New Mexico", 36.4072, -105.5731, "city"], ["Albuquerque", "New Mexico", 35.0844, -106.6504, "city"], ["Las Cruces", "New Mexico", 32.3199, -106.7637, "city"],
         ["Phoenix", "Arizona", 33.4484, -112.074, "city"], ["Tucson", "Arizona", 32.2226, -110.9747, "city"], ["Flagstaff", "Arizona", 35.1983, -111.6513, "city"], ["Sedona", "Arizona", 34.8697, -111.761, "city"],
         ["Las Vegas", "Nevada", 36.1699, -115.1398, "city"], ["Reno", "Nevada", 39.5296, -119.8138, "city"],
         ["Los Angeles", "California", 34.0522, -118.2437, "city"], ["San Francisco", "California", 37.7749, -122.4194, "city"], ["San Diego", "California", 32.7157, -117.1611, "city"], ["Sacramento", "California", 38.5816, -121.4944, "city"], ["Fresno", "California", 36.7378, -119.7871, "city"],
@@ -103,15 +111,12 @@ const pages = [
       }
 
       function loadRecords() {
-        const existing = JSON.parse(localStorage.getItem(storeKey) || "[]");
-        if (existing.length) return existing;
-        const seed = [
-          makeRecord("observation", "Chicago station arrival", "Chicago", "The station felt like a machine for movement: commuters, luggage, food halls, and office workers crossing in every direction.", "transit,city"),
-          makeRecord("food", "Knoxville diner counter", "Knoxville", "A breakfast counter felt like a civic room, with coffee refills, road work, and orange sports references.", "food,sports"),
-          makeRecord("farmstay", "Asheville market morning", "Asheville", "Local agriculture appeared as food, labor, visitor economy, land pressure, and weather knowledge.", "farmstay,agriculture"),
-        ];
-        localStorage.setItem(storeKey, JSON.stringify(seed));
-        return seed;
+        try {
+          const existing = JSON.parse(localStorage.getItem(storeKey) || "[]");
+          return Array.isArray(existing) ? existing : [];
+        } catch {
+          return [];
+        }
       }
 
       function saveRecords(records) {
@@ -134,14 +139,36 @@ const pages = [
         return [city, "", null, null];
       }
 
+      function inferPlaceFromText(text) {
+        const lower = (text || "").toLowerCase();
+        const matches = destinationRows
+          .filter((row) => lower.includes(row[0].toLowerCase()) || lower.includes(`${row[0]} ${row[1]}`.toLowerCase()))
+          .sort((a, b) => b[0].length - a[0].length);
+        if (matches.length) return `${matches[0][0]}, ${matches[0][1]}`;
+        const stateMatch = Object.values(destinations).find((row) => row[1] && lower.includes(row[1].toLowerCase()));
+        return stateMatch ? `${stateMatch[0]}, ${stateMatch[1]}` : "";
+      }
+
       function slugType(value) {
         return (value || "observation").toLowerCase().replaceAll(" ", "_");
       }
 
       function titleFrom(text) {
-        const clean = (text || "").replace(/\s+/g, " ").replace(/^(i want to know|i was wondering if|what should i|why does)\s+/i, "").trim();
+        const normalized = (text || "").replace(/\s+/g, " ").trim();
+        const activity = normalized.match(/^what should i do in\s+(.+?)[?.!]*$/i);
+        if (activity) return `Things to do in ${activity[1].replace(/[?.!]+$/, "")}`.slice(0, 70);
+        const clean = normalized.replace(/^(i saw a lot of|i noticed that|i want to know|i was wondering if|what should i do|what should i|why does)\s+/i, "").trim();
         if (!clean) return "Untitled field note";
         return clean.slice(0, 70).replace(/[.!?]+$/, "");
+      }
+
+      function cleanTranscript(text) {
+        return (text || "")
+          .replace(/\bWhy do I need to do in\b/gi, "What should I do in")
+          .replace(/\binteresting thing is in\b/gi, "interesting things in")
+          .replace(/\bpeople is\b/gi, "people are")
+          .replace(/\s+/g, " ")
+          .trim();
       }
 
       function summary(type, text) {
@@ -165,17 +192,31 @@ const pages = [
           lat: found[2],
           lon: found[3],
           date: new Date().toISOString().slice(0, 10),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
           text,
+          raw_observation: text,
           ai: extra.ai || "",
+          generated_response: extra.generated_response || extra.ai || "",
+          possible_lenses: extra.possible_lenses || [],
+          what_to_notice_next: extra.what_to_notice_next || [],
+          what_not_to_assume: extra.what_not_to_assume || "",
+          question_to_ask_local: extra.question_to_ask_local || "",
           summary: extra.summary || summary(type, text),
           tags: tags || type,
           visibility: extra.visibility || "Private",
+          related_record_ids: extra.related_record_ids || [],
+          journey_id: extra.journey_id || "default-journey",
+          source: extra.source || "user",
+          export_ready: (extra.visibility || "Private").includes("candidate"),
         };
       }
 
       function setPage(id) {
+        if (!pages.some(([pageId]) => pageId === id)) id = "home";
         document.querySelectorAll(".page").forEach((page) => page.classList.toggle("active", page.id === id));
         document.querySelectorAll(".nav-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.page === id));
+        document.querySelectorAll(".bottom-nav-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.page === id));
         document.querySelector("#sidebar").classList.remove("open");
         window.location.hash = id;
         if (id === "map" || id === "library" || id === "export" || id === "synthesize") renderAll();
@@ -254,14 +295,61 @@ const pages = [
       function renderAskAnswer(data) {
         const notices = (data.what_to_notice || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
         const questions = (data.questions_to_ask || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+        const tags = (data.suggested_tags || []).map((item) => `<span class="tag">${escapeHtml(item)}</span>`).join("");
         const sources = (data.sources || []).map((source) => `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)}</a>${source.official ? " <strong>Official</strong>" : ""}</li>`).join("");
         const modeNote = data.mode === "openai"
           ? "Web sources summarized with AI."
-          : "Live reference material summarized with Waymark's no-key fallback.";
-        return `<article class="note"><div class="eyebrow">Sourced intelligent brief</div><h3>Possible explanations</h3><p>${escapeHtml(data.intelligent_brief)}</p></article>
+          : data.mode === "local-template"
+            ? "Prototype mode: this cautious response is template-based because live research is unavailable."
+            : "Prototype mode: live references are summarized with Waymark's deterministic no-key fallback.";
+        return `<article class="note"><div class="eyebrow">Sourced intelligent brief</div><h3>Possible lenses</h3><p>${escapeHtml(data.intelligent_brief)}</p></article>
           <article class="note"><h3>What to notice next</h3><ul class="dynamic-list">${notices}</ul></article>
-          <article class="note"><h3>Questions to ask locals</h3><ul class="dynamic-list">${questions}</ul></article>
-          <article class="note"><h3>Sources</h3><p class="small">${modeNote} Open the sources to verify details and context.</p><ol class="source-list">${sources}</ol></article>`;
+          <article class="note"><h3>What not to assume</h3><p>${escapeHtml(data.what_not_to_assume || "Do not assume one visible scene represents the whole place or everyone who lives there.")}</p></article>
+          <article class="note"><h3>A question to ask a local</h3><ul class="dynamic-list">${questions}</ul></article>
+          <article class="note"><h3>Field note tags</h3><div class="tag-list">${tags}</div></article>
+          <article class="note"><h3>Sources</h3><p class="small">${modeNote}${sources ? " Open the sources to verify details and context." : " Reconnect and ask again for source links."}</p>${sources ? `<ol class="source-list">${sources}</ol>` : ""}</article>`;
+      }
+
+      function localAskFallback(place, observation, lens) {
+        const guide = guideFor(place);
+        const topic = observation.replace(/[?.!]+$/, "");
+        return {
+          mode: "local-template",
+          intelligent_brief: `One possible lens is ${lens}: ${topic.toLowerCase()} may connect to local institutions, work patterns, land use, and the difference between visitor-facing spaces and everyday life. In ${place}, compare that hypothesis with visible routines rather than treating it as a conclusion.`,
+          what_to_notice: [
+            `Compare who uses the central or visitor-facing area with who uses nearby everyday institutions such as libraries, diners, schools, churches, markets, or transit stops.`,
+            `Look for concrete local signals connected to ${guide.economy}: shift changes, signs, prices, uniforms, freight, campuses, or public buildings.`,
+            `Notice whether ${guide.anchors} reinforce or complicate your first impression.`,
+          ],
+          what_not_to_assume: `Do not assume one street, business, or conversation represents all of ${place}. Visible tourism, wealth, poverty, religion, or politics may hide substantial differences between neighborhoods and residents.`,
+          questions_to_ask: [`What change in ${place} would help a visitor understand what I am seeing?`],
+          suggested_tags: [lens, "question", "real-world noticing", lookup(place)[0].toLowerCase()],
+          sources: [],
+        };
+      }
+
+      function showAskResult(data, place, observation, lens, statusText) {
+        const output = document.querySelector("#askOutput");
+        const status = document.querySelector("#askStatus");
+        output.innerHTML = renderAskAnswer(data) + `<div class="toolbar"><button class="btn" id="saveQuestion">Save as Question</button><button class="btn secondary" id="saveObservation">Save as Observation</button></div>`;
+        status.textContent = statusText;
+        const saveAnswer = (type) => {
+          const records = loadRecords();
+          const tags = (data.suggested_tags || [type, lens]).join(",");
+          records.unshift(makeRecord(type, titleFrom(observation), place, observation, tags, {
+            ai: JSON.stringify(data), generated_response: data.intelligent_brief,
+            possible_lenses: [data.intelligent_brief], what_to_notice_next: data.what_to_notice,
+            what_not_to_assume: data.what_not_to_assume,
+            question_to_ask_local: data.questions_to_ask?.[0] || "",
+            summary: data.intelligent_brief.slice(0, 240),
+          }));
+          saveRecords(records);
+          output.insertAdjacentHTML("afterbegin", `<article class="save-confirmation"><div class="eyebrow">Your journey is growing</div><h3>Saved to ${escapeHtml(place)}.</h3><p>Tagged: ${escapeHtml(tags)}. Added to Memory Map. You now have ${records.length} private ${records.length === 1 ? "record" : "records"}.</p><div class="toolbar"><button class="btn confirmation-go" data-destination="map">View on Memory Map</button><button class="btn secondary confirmation-go" data-destination="ask">Add another observation</button><button class="btn secondary confirmation-go" data-destination="synthesize">Synthesize this journey</button></div></article>`);
+          document.querySelectorAll(".confirmation-go").forEach((button) => button.addEventListener("click", () => setPage(button.dataset.destination)));
+          status.textContent = `Saved privately as ${type === "question" ? "a question" : "an observation"}.`;
+        };
+        document.querySelector("#saveQuestion").addEventListener("click", () => saveAnswer("question"));
+        document.querySelector("#saveObservation").addEventListener("click", () => saveAnswer("observation"));
       }
 
       function renderMap() {
@@ -270,7 +358,7 @@ const pages = [
         const filtered = filterRecords(records, selected);
         const map = document.querySelector("#memoryMap");
         const located = filtered.filter((r) => r.lat && r.lon);
-        const showStock = selected === "All" || selected === "Destination stock";
+        const showStock = selected === "Destination stock";
         const stock = showStock ? destinationRows.filter((row) => row[2] && row[3]) : [];
         map.innerHTML = stock
           .map((row) => {
@@ -284,7 +372,7 @@ const pages = [
           .map((r, index) => {
             const x = Math.max(4, Math.min(96, ((r.lon + 170) / 105) * 100));
             const y = Math.max(5, Math.min(94, ((72 - r.lat) / 48) * 100));
-            return `<button class="pin user-pin" style="left:${x}%;top:${y}%"><span><strong>${r.title}</strong><br>${r.place}<br>${r.type}<br>${r.summary}</span></button>`;
+            return `<button class="pin user-pin" data-title="${escapeHtml(r.title)}" aria-label="Open ${escapeHtml(r.title)} in Library" style="left:${x}%;top:${y}%"><span><strong>${escapeHtml(r.title)}</strong><br>${escapeHtml(r.place || "No place")}<br>${escapeHtml(r.type)}<br>${escapeHtml((r.summary || "").slice(0, 120))}<br><em>Open details in Library.</em></span></button>`;
           })
           .join("");
         map.querySelectorAll(".stock-pin").forEach((pin) => {
@@ -293,10 +381,22 @@ const pages = [
             setPage("understand");
           });
         });
+        map.querySelectorAll(".user-pin").forEach((pin) => pin.addEventListener("click", () => {
+          document.querySelector("#librarySearch").value = pin.dataset.title;
+          setPage("library");
+        }));
         const missing = filtered.filter((r) => !r.lat || !r.lon);
+        document.querySelector("#mapRecordList").innerHTML = located.length
+          ? `<h3>Mapped private records</h3>${located.map((r) => `<button class="map-list-item" data-title="${escapeHtml(r.title)}"><strong>${escapeHtml(r.title)}</strong><span>${escapeHtml(r.place || "No place")} · ${escapeHtml(r.type)}</span></button>`).join("")}`
+          : `<article class="note"><p>No private records match this filter yet.</p></article>`;
+        document.querySelectorAll(".map-list-item").forEach((button) => button.addEventListener("click", () => {
+          document.querySelector("#librarySearch").value = button.dataset.title;
+          setPage("library");
+        }));
         document.querySelector("#needsLocation").innerHTML = missing.length
-          ? `<article class="note"><h3>Needs location</h3><p>${missing.map((r) => r.title).join(", ")}</p></article>`
-          : "";
+          ? `<article class="note"><h3>Needs location</h3><p>${missing.map((r) => escapeHtml(r.title)).join(", ")}</p></article>`
+          : (!filtered.length && selected !== "Destination stock" ? `<article class="note"><h3>Your map is empty.</h3><p>Start by asking Waymark about something you notice on the road.</p><button class="btn empty-map-ask">Ask about what I’m seeing</button></article>` : "");
+        document.querySelector(".empty-map-ask")?.addEventListener("click", () => setPage("ask"));
       }
 
       function filterRecords(records, selected) {
@@ -314,6 +414,9 @@ const pages = [
         };
         if (selected === "All") return records;
         if (selected === "Destination stock") return [];
+        if (selected === "Themes") return records.filter((r) => String(r.tags || "").includes(","));
+        if (selected === "Unanswered questions") return records.filter((r) => r.type === "question" && !r.generated_response && !r.ai);
+        if (selected === "Needs location") return records.filter((r) => !r.lat || !r.lon);
         if (selected === "Export-ready") return records.filter((r) => r.visibility.includes("candidate"));
         return records.filter((r) => r.type === map[selected]);
       }
@@ -324,8 +427,26 @@ const pages = [
         let records = filterRecords(loadRecords(), selected);
         if (q) records = records.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
         document.querySelector("#libraryList").innerHTML = records
-          .map((r) => `<article class="note"><div class="eyebrow">${r.type} · ${r.visibility}</div><h3>${r.title}</h3><p>${r.place} · ${r.date}</p><p>${r.summary}</p><details><summary>View original</summary><p>${r.text || r.ai}</p></details></article>`)
+          .map((r) => `<article class="note"><div class="eyebrow">${escapeHtml(r.type)} · ${escapeHtml(r.visibility)}</div><h3>${escapeHtml(r.title)}</h3><p>${escapeHtml(r.place || "No place")} · ${escapeHtml(r.date)}</p><div class="tag-list">${String(r.tags || r.type).split(",").map((tag) => `<span class="tag">${escapeHtml(tag.trim())}</span>`).join("")}</div><p>${escapeHtml(r.summary)}</p><details><summary>View details</summary><h4>What I saw</h4><p>${escapeHtml(r.text || "No raw observation saved.")}</p>${r.generated_response ? `<h4>What it might mean</h4><p>${escapeHtml(r.generated_response)}</p>` : ""}${r.what_to_notice_next?.length ? `<h4>What to notice next</h4><ul>${r.what_to_notice_next.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}</details><div class="toolbar"><button class="btn secondary record-action" data-action="ask" data-record-id="${escapeHtml(r.id)}">Ask follow-up</button><button class="btn secondary record-action" data-action="synthesize" data-record-id="${escapeHtml(r.id)}">Add to synthesis</button><button class="btn secondary record-action" data-action="export" data-record-id="${escapeHtml(r.id)}">Export</button><button class="btn secondary delete-record" data-record-id="${escapeHtml(r.id)}">Delete</button></div></article>`)
           .join("") || `<article class="note"><p>No records yet.</p></article>`;
+        document.querySelectorAll(".delete-record").forEach((button) => button.addEventListener("click", () => {
+          if (!window.confirm("Delete this private record from this browser?")) return;
+          saveRecords(loadRecords().filter((record) => record.id !== button.dataset.recordId));
+        }));
+        document.querySelectorAll(".record-action").forEach((button) => button.addEventListener("click", () => {
+          const record = loadRecords().find((item) => item.id === button.dataset.recordId);
+          if (!record) return;
+          if (button.dataset.action === "ask") {
+            document.querySelector("#askPlace").value = record.place || "";
+            document.querySelector("#askObservation").value = `I noticed: ${record.text}. What else should I consider?`;
+            setPage("ask");
+          } else if (button.dataset.action === "synthesize") {
+            setPage("synthesize");
+          } else {
+            setPage("export");
+            [...document.querySelector("#exportRecord").options].forEach((option) => { option.selected = option.value === record.id; });
+          }
+        }));
       }
 
       function renderExportOptions() {
@@ -340,10 +461,12 @@ const pages = [
       }
 
       document.querySelector("#nav").innerHTML = pages.map(([id, label]) => `<button class="nav-btn" data-page="${id}">${label}</button>`).join("");
+      const mobilePages = ["ask", "capture", "map", "library", "home"].map((id) => pages.find(([pageId]) => pageId === id));
+      document.querySelector("#bottomNav").innerHTML = mobilePages.map(([id, label]) => `<button class="bottom-nav-btn" data-page="${id}"><span aria-hidden="true">${{home:"⌂",ask:"?",capture:"●",map:"◇",library:"▤"}[id]}</span>${label.replace("Memory ", "")}</button>`).join("");
       document.querySelectorAll("[data-page], [data-go]").forEach((btn) => btn.addEventListener("click", () => setPage(btn.dataset.page || btn.dataset.go)));
       document.querySelector("#menuButton").addEventListener("click", () => document.querySelector("#sidebar").classList.toggle("open"));
       fillSelect("#briefLens", lenses);
-      fillSelect("#askLens", ["history", "economy", "religion", "race/community", "food", "agriculture", "sports", "urban design", "other"]);
+      fillSelect("#askLens", ["General curiosity", "Local history", "Economy", "Religion and civic life", "Race and community", "Agriculture", "Food culture", "Urban design", "Sports and identity", "Transportation", "Nature and landscape"]);
       fillSelect("#noteType", types);
       fillSelect("#mapFilter", filters);
       fillSelect("#libraryFilter", filters);
@@ -352,6 +475,14 @@ const pages = [
       document.querySelector("#destinationOptions").innerHTML = destinationRows
         .map((row) => `<option value="${row[0]}, ${row[1]}">${row[4]}</option>`)
         .join("");
+      document.querySelector("#askSamples").innerHTML = sampleQuestions.map(([place, question]) => `<button class="sample-card sample-question" data-place="${escapeHtml(place)}" data-question="${escapeHtml(question)}"><strong>${escapeHtml(place || "A roadside diner")}</strong><span>${escapeHtml(question)}</span></button>`).join("");
+      document.querySelectorAll(".sample-question").forEach((button) => button.addEventListener("click", () => {
+        document.querySelector("#askPlace").value = button.dataset.place;
+        document.querySelector("#askObservation").value = button.dataset.question;
+        setPage("ask");
+        if (button.dataset.place) runAsk();
+        else document.querySelector("#askStatus").textContent = "Add the town or place where you saw this, then ask Waymark.";
+      }));
 
       document.querySelector("#generateBrief").addEventListener("click", () => {
         const destination = document.querySelector("#briefDestination").value.trim();
@@ -370,9 +501,10 @@ const pages = [
         });
       });
 
-      document.querySelector("#askWaymark").addEventListener("click", async () => {
+      async function runAsk() {
         const place = document.querySelector("#askPlace").value.trim();
-        const observation = document.querySelector("#askObservation").value.trim();
+        const observation = cleanTranscript(document.querySelector("#askObservation").value);
+        document.querySelector("#askObservation").value = observation;
         const lens = document.querySelector("#askLens").value;
         const status = document.querySelector("#askStatus");
         const output = document.querySelector("#askOutput");
@@ -393,27 +525,20 @@ const pages = [
           });
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || "The research request failed.");
-          output.innerHTML = renderAskAnswer(data) + `<button class="btn" id="saveQuestion">Save as Question</button>`;
-          status.textContent = `Built a place-specific answer from ${data.sources?.length || 0} live sources.`;
-          document.querySelector("#saveQuestion").addEventListener("click", () => {
-            const records = loadRecords();
-            records.unshift(makeRecord("question", titleFrom(observation), place, observation, "question," + lens, {
-              ai: JSON.stringify(data),
-              summary: data.intelligent_brief.slice(0, 240),
-            }));
-            saveRecords(records);
-            status.textContent = "Saved as a private question with its sourced answer.";
-          });
+          showAskResult(data, place, observation, lens, `Built a place-specific answer from ${data.sources?.length || 0} live sources.`);
         } catch (error) {
-          status.textContent = error.message || "Waymark could not research this question right now.";
-          output.innerHTML = `<article class="note"><h3>Research temporarily unavailable</h3><p>Check the place name and internet connection, then try again. Your question has not been published or shared.</p></article>`;
+          const fallback = localAskFallback(place, observation, lens);
+          showAskResult(fallback, place, observation, lens, "Prototype mode: a cautious local template is shown because live research is unavailable.");
         } finally {
           button.disabled = false;
           button.textContent = "Ask Waymark";
         }
-      });
+      }
+
+      document.querySelector("#askWaymark").addEventListener("click", runAsk);
 
       let recognition;
+      let silenceTimer;
       function startSpeech(targetSelector, statusSelector) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
@@ -426,13 +551,15 @@ const pages = [
         recognition.interimResults = true;
         recognition.lang = "en-US";
         recognition.onresult = (event) => {
+          clearTimeout(silenceTimer);
           let text = "";
           for (let i = 0; i < event.results.length; i++) text += event.results[i][0].transcript;
           document.querySelector(targetSelector).value = text;
+          silenceTimer = setTimeout(() => recognition && recognition.stop(), 3000);
         };
         recognition.onend = () => (document.querySelector(statusSelector).textContent = "Transcript ready.");
         recognition.start();
-        document.querySelector(statusSelector).textContent = "Recording. Pause naturally, or tap Stop.";
+        document.querySelector(statusSelector).textContent = "Recording. Pause for 3 seconds to stop, or tap Stop.";
       }
 
       document.querySelector("#homeMic").addEventListener("click", () => {
@@ -446,27 +573,34 @@ const pages = [
       document.querySelector("#stopDictation").addEventListener("click", () => recognition && recognition.stop());
 
       document.querySelector("#homeAsk").addEventListener("click", () => {
-        const text = document.querySelector("#homeQuickText").value.trim();
+        const text = cleanTranscript(document.querySelector("#homeQuickText").value);
         if (!text) {
           document.querySelector("#homeVoiceStatus").textContent = "Add a short question or observation first.";
           return;
         }
+        const place = inferPlaceFromText(text);
         document.querySelector("#askObservation").value = text;
+        document.querySelector("#askPlace").value = place;
         setPage("ask");
+        if (place) runAsk();
+        else document.querySelector("#askStatus").textContent = "I kept your observation. Add the place so Waymark can build a specific answer.";
       });
 
       document.querySelector("#homeSave").addEventListener("click", () => {
-        const text = document.querySelector("#homeQuickText").value.trim();
+        const text = cleanTranscript(document.querySelector("#homeQuickText").value);
         if (!text) {
           document.querySelector("#homeVoiceStatus").textContent = "Add a short thought first.";
           return;
         }
-        const guessedType = text.includes("?") || /\\b(why|what|how|i want to know|i was wondering)\\b/i.test(text) ? "question" : "observation";
+        const guessedType = text.includes("?") || /\b(why|what|how|i want to know|i was wondering)\b/i.test(text) ? "question" : "observation";
+        const place = inferPlaceFromText(text);
         const records = loadRecords();
-        records.unshift(makeRecord(guessedType, titleFrom(text), "", text, guessedType + ",quick capture"));
+        records.unshift(makeRecord(guessedType, titleFrom(text), place, text, guessedType + ",quick capture"));
         saveRecords(records);
         document.querySelector("#homeQuickText").value = "";
-        document.querySelector("#homeVoiceStatus").textContent = "Saved privately. Find it in Library.";
+        document.querySelector("#homeVoiceStatus").textContent = "Saved privately.";
+        document.querySelector("#homeQuickOutput").innerHTML = `<article class="save-confirmation"><h3>Saved${place ? ` to ${escapeHtml(place)}` : " as a private note"}.</h3><p>${place ? "Added to Memory Map. " : "Add a place later to map it. "}You now have ${records.length} private ${records.length === 1 ? "record" : "records"}.</p><div class="toolbar"><button class="btn home-save-go" data-destination="${place ? "map" : "library"}">${place ? "View on Memory Map" : "Open Library"}</button><button class="btn secondary home-save-go" data-destination="capture">Add details</button></div></article>`;
+        document.querySelectorAll(".home-save-go").forEach((button) => button.addEventListener("click", () => setPage(button.dataset.destination)));
       });
 
       document.querySelector("#noteToAsk").addEventListener("click", () => {
@@ -477,14 +611,16 @@ const pages = [
 
       document.querySelector("#saveNote").addEventListener("click", () => {
         const place = document.querySelector("#notePlace").value;
-        const text = document.querySelector("#noteText").value;
+        const text = cleanTranscript(document.querySelector("#noteText").value);
+        document.querySelector("#noteText").value = text;
         const title = document.querySelector("#noteTitle").value || titleFrom(text);
         if (!place && !text && !title) return;
         const type = slugType(document.querySelector("#noteType").value);
         const records = loadRecords();
         records.unshift(makeRecord(type, title, place, text, type, { visibility: document.querySelector("#noteVisibility").value }));
         saveRecords(records);
-        document.querySelector("#captureOutput").innerHTML = `<article class="note"><p>Saved as a private field note.</p></article>`;
+        document.querySelector("#captureOutput").innerHTML = `<article class="save-confirmation"><div class="eyebrow">Your journey is growing</div><h3>Saved${place ? ` to ${escapeHtml(place)}` : " privately"}.</h3><p>${place ? "Added to Memory Map. " : "It needs a place before it can appear on the map. "}You now have ${records.length} private ${records.length === 1 ? "record" : "records"}.</p><div class="toolbar"><button class="btn capture-go" data-destination="library">Open Library</button><button class="btn secondary capture-go" data-destination="${place ? "map" : "capture"}">${place ? "View Map" : "Add location"}</button></div></article>`;
+        document.querySelectorAll(".capture-go").forEach((button) => button.addEventListener("click", () => setPage(button.dataset.destination)));
       });
 
       document.querySelector("#mapFilter").addEventListener("change", renderMap);
@@ -492,22 +628,67 @@ const pages = [
       document.querySelector("#librarySearch").addEventListener("input", renderLibrary);
 
       document.querySelector("#runSynthesis").addEventListener("click", () => {
-        const records = loadRecords();
+        const from = document.querySelector("#synthesisFrom").value;
+        const to = document.querySelector("#synthesisTo").value;
+        const placeTerms = document.querySelector("#synthesisPlaces").value.toLowerCase().split(",").map((item) => item.trim()).filter(Boolean);
+        const records = loadRecords().filter((record) => (!from || record.date >= from) && (!to || record.date <= to) && (!placeTerms.length || placeTerms.some((term) => String(record.place).toLowerCase().includes(term))));
         const themes = [...new Set(records.map((r) => r.type))].join(", ");
         const places = [...new Set(records.map((r) => r.place).filter(Boolean))].join(", ");
-        document.querySelector("#synthesisOutput").innerHTML = `<article class="note"><h3>Recurring themes</h3><p>${themes}</p></article><article class="note"><h3>Places to compare</h3><p>${places}</p></article><article class="note"><h3>Questions that remain</h3><p>What changed fastest? What institutions still gather people? What surprised you twice?</p></article>`;
+        const strongest = records.slice(0, 3).map((r) => escapeHtml(r.summary)).join(" ") || "Capture at least one field note to begin finding patterns.";
+        document.querySelector("#synthesisOutput").innerHTML = `<article class="note"><h3>Main themes</h3><p>${escapeHtml(themes || "No recurring theme yet.")}</p></article><article class="note"><h3>Repeated questions</h3><p>Which institutions gather people? What work shapes daily life? What has changed without disappearing?</p></article><article class="note"><h3>Places that felt connected</h3><p>${escapeHtml(places || "Add notes from more than one place to compare them.")}</p></article><article class="note"><h3>Places that felt different</h3><p>Compare the pace, public spaces, prices, institutions, and local symbols in each saved place.</p></article><article class="note"><h3>Strongest observations</h3><p>${strongest}</p></article><article class="note"><h3>What I still don’t understand</h3><p>Which first impressions need another conversation or a better source?</p></article><article class="note"><h3>Possible essay or podcast angles</h3><p>How ordinary institutions reveal belonging; what road notes show that itineraries miss; the gap between visitor imagery and daily life.</p></article><article class="note"><h3>Next trip prompts</h3><p>Revisit one unanswered question. Compare one similar institution in two places. Ask a local what visitors usually misunderstand.</p></article><button class="btn synthesize-export">Turn this into an essay draft</button>`;
+        document.querySelector(".synthesize-export").addEventListener("click", () => setPage("export"));
       });
 
       document.querySelector("#createExport").addEventListener("click", () => {
-        const id = document.querySelector("#exportRecord").value;
+        const selectedIds = [...document.querySelector("#exportRecord").selectedOptions].map((option) => option.value);
         const type = document.querySelector("#exportType").value;
-        const record = loadRecords().find((r) => r.id === id);
-        if (!record) return;
+        const selectedRecords = loadRecords().filter((r) => selectedIds.includes(r.id));
+        if (!selectedRecords.length) return;
+        const combined = selectedRecords.map((record) => `${record.title}\n${record.place}\n${record.text || record.ai}`).join("\n\n---\n\n");
+        const summaries = selectedRecords.map((record) => record.summary).join(" ");
         const draft = type.includes("Public-safe")
-          ? `Private Note -> Public-safe Draft -> Manual Review -> Copy/Export\\n\\nThis draft generalizes exact date, exact location, raw transcript, private names, affiliation, and sensitive details.\\n\\n${record.summary}\\n\\nPublic-safe reflection: I noticed how ordinary places reveal work, memory, food, institutions, and belonging.`
-          : `${type}\\n\\n${record.title}\\n${record.place}\\n\\n${record.text || record.ai}\\n\\nAngle: What does this observation reveal about the place?`;
-        document.querySelector("#exportOutput").innerHTML = `<textarea>${draft}</textarea>`;
+          ? `Private Note -> Public-safe Draft -> Manual Review -> Copy/Export\n\nRemove private names, exact real-time location, future itinerary, affiliations, and unverified claims.\n\n${summaries}\n\nPublic-safe reflection: I noticed how ordinary places reveal work, memory, food, institutions, and belonging.`
+          : `${type}\n\n${combined}\n\nAngle: What do these selected observations reveal when read together?`;
+        document.querySelector("#exportOutput").innerHTML = `<textarea id="generatedDraft">${escapeHtml(draft)}</textarea>`;
+        document.querySelector(".export-actions").hidden = false;
       });
+
+      async function shareDraft() {
+        const draft = document.querySelector("#generatedDraft")?.value || "";
+        if (!draft) return;
+        if (navigator.share) {
+          try { await navigator.share({ title: "Waymark U.S. draft", text: draft }); return; } catch (error) { if (error.name === "AbortError") return; }
+        }
+        await navigator.clipboard.writeText(draft);
+        window.alert("Draft copied to the clipboard.");
+      }
+
+      document.querySelector("#shareExport").addEventListener("click", shareDraft);
+      document.querySelector("#copyExport").addEventListener("click", async () => {
+        const draft = document.querySelector("#generatedDraft")?.value || "";
+        if (!draft) return;
+        await navigator.clipboard.writeText(draft);
+        document.querySelector("#copyExport").textContent = "Copied";
+      });
+
+      document.querySelector("#deleteLocalData").addEventListener("click", () => {
+        if (!window.confirm("Delete all private Waymark records stored in this browser? This cannot be undone.")) return;
+        localStorage.removeItem(storeKey);
+        renderAll();
+        setPage("home");
+      });
+
+      function updateNetworkStatus() {
+        document.querySelector("#offlineBanner").hidden = navigator.onLine;
+      }
+      window.addEventListener("online", updateNetworkStatus);
+      window.addEventListener("offline", updateNetworkStatus);
+      window.addEventListener("hashchange", () => setPage(location.hash.replace("#", "") || "home"));
+      updateNetworkStatus();
+
+      if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      }
 
       renderAll();
       setPage(location.hash.replace("#", "") || "home");
