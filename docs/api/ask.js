@@ -1,4 +1,20 @@
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
+const RATE_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT = 20;
+const requestBuckets = new Map();
+
+function clientKey(req) {
+  return String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "anonymous").split(",")[0].trim();
+}
+
+function isRateLimited(req) {
+  const now = Date.now();
+  const key = clientKey(req);
+  const recent = (requestBuckets.get(key) || []).filter((time) => now - time < RATE_WINDOW_MS);
+  recent.push(now);
+  requestBuckets.set(key, recent);
+  return recent.length > RATE_LIMIT;
+}
 
 const STATE_NAMES = {
   AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
@@ -45,12 +61,14 @@ function isSafePublicUrl(value) {
   try {
     const url = new URL(value);
     const host = url.hostname.toLowerCase();
+    const privateIpv4 = /^(10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/;
     return url.protocol === "https:"
       && host !== "localhost"
       && host !== "127.0.0.1"
       && host !== "0.0.0.0"
       && host !== "::1"
-      && !host.endsWith(".local");
+      && !host.endsWith(".local")
+      && !privateIpv4.test(host);
   } catch {
     return false;
   }
@@ -190,6 +208,8 @@ function fallbackResponse(place, question, lens, sources) {
     intelligent_brief: `${factText} Taken together, these facts suggest several possible lenses for “${questionTopic}”: inherited institutions and land use, the industries and populations that accumulated around them, and later redevelopment or tourism. This is a sourced hypothesis rather than a definitive causal claim; compare it with what is visible on the ground and what residents say.`,
     what_to_notice: notice.slice(0, 3),
     questions_to_ask: questions.slice(0, 3),
+    what_not_to_assume: `Do not assume one visible scene represents all of ${place}, or that a single historical or economic lens explains every resident's experience.`,
+    suggested_tags: [...new Set([lens.toLowerCase(), "question", "observation", place.split(",")[0].trim().toLowerCase()])].slice(0, 5),
   };
 }
 
@@ -205,7 +225,7 @@ function extractResponseText(payload) {
 
 async function askOpenAI(place, question, lens, sources) {
   const sourceMaterial = sources.map((source, index) => `[${index + 1}] ${source.title}\n${source.text.slice(0, 3000)}\n${source.url}`).join("\n\n");
-  const system = `You are Waymark, a private AI field-journal research assistant. Answer a traveler's question about a U.S. place using only the supplied source material and clearly marked cautious inference. Do not give generic checklists. Explain concrete historical, economic, institutional, architectural, demographic, or cultural mechanisms relevant to the exact question. Generate 2-3 highly specific observations and 2-3 natural questions for residents. Never invent names, statistics, teams, institutions, or causal claims. Return valid JSON only with exactly these keys: intelligent_brief (string), what_to_notice (array of strings), questions_to_ask (array of strings).`;
+  const system = `You are Waymark, a private AI field-journal research assistant. Answer a traveler's question about a U.S. place using only the supplied source material and clearly marked cautious inference. Do not give generic checklists. Explain 2-4 concrete possible lenses relevant to the exact question. Generate 2-3 specific observations, one respectful local question, a caution against stereotyping or overgeneralizing, and useful field-note tags. Never invent names, statistics, teams, institutions, or causal claims. Return valid JSON only with exactly these keys: intelligent_brief (string), what_to_notice (array of strings), questions_to_ask (array of strings), what_not_to_assume (string), suggested_tags (array of strings).`;
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { ...JSON_HEADERS, Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
@@ -224,8 +244,10 @@ async function askOpenAI(place, question, lens, sources) {
               intelligent_brief: { type: "string" },
               what_to_notice: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 3 },
               questions_to_ask: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 3 },
+              what_not_to_assume: { type: "string" },
+              suggested_tags: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 },
             },
-            required: ["intelligent_brief", "what_to_notice", "questions_to_ask"],
+            required: ["intelligent_brief", "what_to_notice", "questions_to_ask", "what_not_to_assume", "suggested_tags"],
           },
         },
       },
@@ -239,6 +261,10 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed" });
+  }
+  if (isRateLimited(req)) {
+    res.setHeader("Retry-After", "600");
+    return res.status(429).json({ error: "Waymark has received too many questions from this connection. Please try again in a few minutes." });
   }
   const place = cleanPlace(req.body?.place || "").slice(0, 120);
   const question = String(req.body?.question || "").trim().slice(0, 600);
