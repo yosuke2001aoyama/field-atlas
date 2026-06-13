@@ -14,7 +14,7 @@
     />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/waymark-icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="style.css?v=waymarkus-stock-20260604" />
+    <link rel="stylesheet" href="style.css?v=waymarkus-journey-20260612" />
   </head>
   <body>
     <button class="btn mobile-menu" id="menuButton">Menu</button>
@@ -72,6 +72,7 @@
             <h3>I’m in Louisville and I’m seeing bourbon everywhere. Why is bourbon so tied to Kentucky?</h3>
             <button class="btn sample-question" data-place="Louisville, Kentucky" data-question="I’m in Louisville and I’m seeing bourbon everywhere. Why is bourbon so tied to Kentucky?">Try this example</button>
           </div>
+          <div class="journey-portrait" id="homeJourneyPortrait" aria-live="polite"></div>
           <div class="panel">
             <div class="grid">
               <article class="card">
@@ -154,10 +155,20 @@
         <section class="page" id="map">
           <h2>Memory Map</h2>
           <p class="small">Map what you noticed, not just where you went.</p>
+          <div class="boundary-intro">
+            <div>
+              <div class="eyebrow">Boundary Moments</div>
+              <h3>A border becomes a prompt to understand.</h3>
+              <p>On iPhone, optional Journey Mode can recognize a new state or county while the app is in use. Your raw location is not uploaded by this feature.</p>
+            </div>
+            <button class="btn secondary" id="previewBoundary">Preview a Boundary Moment</button>
+          </div>
+          <div class="boundary-moment" id="boundaryPreview" hidden aria-live="polite"></div>
           <div class="field"><label>Filter</label><select id="mapFilter"></select></div>
           <div class="map" id="memoryMap"></div>
           <div class="map-record-list" id="mapRecordList"></div>
           <div class="output" id="needsLocation"></div>
+          <div class="journey-portrait" id="mapJourneyPortrait"></div>
         </section>
 
         <section class="page" id="synthesize">
@@ -207,6 +218,6 @@
       <p><a href="support.html">Support</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <button class="text-button" id="deleteLocalData">Delete local data</button></p>
     </footer>
 
-    <script src="app.js?v=waymarkus-appstore-20260609"></script>
+    <script src="app.js?v=waymarkus-journey-20260612"></script>
   </body>
 </html>
