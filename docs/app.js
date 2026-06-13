@@ -124,6 +124,122 @@ const pages = [
         renderAll();
       }
 
+      function journeyPortraitData(records = loadRecords()) {
+        const states = [...new Set(records.map((record) => record.state || lookup(record.place)[1]).filter((state) => state && state !== "Multi-state"))];
+        const places = [...new Set(records.map((record) => record.place).filter(Boolean))];
+        const questions = records.filter((record) => record.type === "question").length;
+        const meaningful = records.filter((record) => ["question", "observation", "conversation", "food", "farmstay", "reflection", "local_institution", "economic_signal", "cultural_signal"].includes(record.type)).length;
+        const tagCounts = {};
+        records.forEach((record) => String(record.tags || record.type || "observation").split(",").forEach((raw) => {
+          const tag = raw.trim().toLowerCase();
+          if (tag && !["question", "observation", "place brief", "quick capture"].includes(tag)) tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        }));
+        const topTheme = Object.entries(tagCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || (records.length ? "place and memory" : "waiting to be noticed");
+        return { states, places, questions, meaningful, topTheme, percent: Math.min(100, (states.length / 50) * 100) };
+      }
+
+      function portraitMarkup(records = loadRecords()) {
+        const data = journeyPortraitData(records);
+        if (!records.length) {
+          return `<article class="portrait-card"><div class="eyebrow">Your private journey portrait</div><h3>A blank map is an invitation.</h3><p>Ask one place question or save one field note. Waymark will build a portrait of what you noticed, not a trail of everywhere you went.</p><button class="btn light portrait-start">Capture the first observation</button></article>`;
+        }
+        return `<article class="portrait-card"><div class="eyebrow">Your private journey portrait</div><h3>${escapeHtml(data.states.length ? `${data.states.length} ${data.states.length === 1 ? "state" : "states"} encountered through ${data.topTheme}` : `A journey shaped by ${data.topTheme}`)}</h3><p>Your map grows darker through questions and observations, not passive location tracking.</p><div class="portrait-stats"><div class="portrait-stat"><strong>${data.states.length}</strong><span>states encountered</span></div><div class="portrait-stat"><strong>${data.places.length}</strong><span>places remembered</span></div><div class="portrait-stat"><strong>${data.meaningful}</strong><span>meaningful notes</span></div><div class="portrait-stat"><strong>${data.questions}</strong><span>questions asked</span></div></div><div class="toolbar"><button class="btn light share-portrait">Create share card</button><button class="btn secondary portrait-map">Open Memory Map</button></div><p class="small">Exact routes, dates, raw transcripts, and private names are never placed on the share card.</p></article>`;
+      }
+
+      function renderJourneyPortrait() {
+        const markup = portraitMarkup();
+        ["#homeJourneyPortrait", "#mapJourneyPortrait"].forEach((selector) => {
+          const target = document.querySelector(selector);
+          if (target) target.innerHTML = markup;
+        });
+        document.querySelectorAll(".portrait-start").forEach((button) => button.addEventListener("click", () => setPage("capture")));
+        document.querySelectorAll(".portrait-map").forEach((button) => button.addEventListener("click", () => setPage("map")));
+        document.querySelectorAll(".share-portrait").forEach((button) => button.addEventListener("click", shareJourneyPortrait));
+      }
+
+      function renderBoundaryPreview() {
+        const preview = document.querySelector("#boundaryPreview");
+        if (!preview) return;
+        preview.hidden = false;
+        preview.innerHTML = `<div class="eyebrow">Boundary Moment · Preview</div><h3>You have entered Taos County.</h3><p><strong>Why this line matters:</strong> county boundaries organize courts, roads, schools, public services, and local political life. They do not mark a clean cultural border, so look for gradual changes rather than assuming everyone inside the line shares one identity.</p><p><strong>Notice next:</strong> how adobe building traditions, Pueblo lands, tourism, and working landscapes meet along the road.</p><div class="toolbar"><button class="btn light boundary-capture">Capture what I notice</button><button class="btn secondary boundary-ask">Ask about this boundary</button></div><p class="small">The iPhone preview uses location only while Journey Mode is active. It does not save a raw route.</p>`;
+        preview.scrollIntoView({ behavior: "smooth", block: "center" });
+        preview.querySelector(".boundary-capture").addEventListener("click", () => {
+          document.querySelector("#notePlace").value = "Taos County, New Mexico";
+          document.querySelector("#noteText").value = "Crossing into Taos County, I noticed ";
+          setPage("capture");
+        });
+        preview.querySelector(".boundary-ask").addEventListener("click", () => {
+          document.querySelector("#askPlace").value = "Taos County, New Mexico";
+          document.querySelector("#askObservation").value = "What should I understand about the boundary I just crossed, and what should I avoid assuming?";
+          setPage("ask");
+        });
+      }
+
+      function portraitCanvas(data) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1080;
+        canvas.height = 1920;
+        const context = canvas.getContext("2d");
+        const gradient = context.createLinearGradient(0, 0, 1080, 1920);
+        gradient.addColorStop(0, "#10271f");
+        gradient.addColorStop(1, "#2f6f58");
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, 1080, 1920);
+        context.strokeStyle = "rgba(224,188,126,.38)";
+        context.lineWidth = 2;
+        for (let x = 70; x < 1080; x += 105) { context.beginPath(); context.moveTo(x, 0); context.lineTo(x, 1920); context.stroke(); }
+        context.fillStyle = "#e0bc7e";
+        context.font = "700 28px system-ui";
+        context.letterSpacing = "6px";
+        context.fillText("MY WAYMARK JOURNEY", 76, 126);
+        context.fillStyle = "#fffaf1";
+        context.font = "700 86px Georgia";
+        context.fillText("What I noticed", 76, 260);
+        context.font = "700 52px Georgia";
+        const title = data.states.length ? `${data.states.length} states through` : "A journey through";
+        context.fillText(title, 76, 385);
+        context.fillStyle = "#e0bc7e";
+        context.fillText(data.topTheme, 76, 452);
+        const stats = [[data.states.length, "STATES ENCOUNTERED"], [data.places.length, "PLACES REMEMBERED"], [data.meaningful, "MEANINGFUL NOTES"], [data.questions, "QUESTIONS ASKED"]];
+        stats.forEach(([number, label], index) => {
+          const y = 640 + index * 210;
+          context.strokeStyle = "rgba(255,255,255,.28)";
+          context.beginPath(); context.moveTo(76, y - 75); context.lineTo(1004, y - 75); context.stroke();
+          context.fillStyle = "#fffaf1";
+          context.font = "700 88px Georgia";
+          context.fillText(String(number), 76, y);
+          context.fillStyle = "rgba(255,250,241,.72)";
+          context.font = "700 24px system-ui";
+          context.fillText(label, 250, y - 20);
+        });
+        context.fillStyle = "rgba(255,250,241,.78)";
+        context.font = "400 32px system-ui";
+        context.fillText("Map what you noticed, not just where you went.", 76, 1630);
+        context.fillStyle = "#e0bc7e";
+        context.font = "700 34px Georgia";
+        context.fillText("Waymark U.S.", 76, 1770);
+        context.fillStyle = "rgba(255,250,241,.58)";
+        context.font = "400 22px system-ui";
+        context.fillText("Private by default · Exact routes hidden", 76, 1816);
+        return canvas;
+      }
+
+      async function shareJourneyPortrait() {
+        const data = journeyPortraitData();
+        const canvas = portraitCanvas(data);
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+        if (!blob) return;
+        const file = new File([blob], "waymark-journey.png", { type: "image/png" });
+        if (navigator.canShare?.({ files: [file] })) {
+          try { await navigator.share({ title: "My Waymark journey", text: "Map what you noticed, not just where you went.", files: [file] }); return; } catch (error) { if (error.name === "AbortError") return; }
+        }
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = file.name;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      }
+
       function lookup(place) {
         const raw = (place || "").trim();
         const lower = raw.toLowerCase();
@@ -458,6 +574,7 @@ const pages = [
         renderMap();
         renderLibrary();
         renderExportOptions();
+        renderJourneyPortrait();
       }
 
       document.querySelector("#nav").innerHTML = pages.map(([id, label]) => `<button class="nav-btn" data-page="${id}">${label}</button>`).join("");
@@ -624,6 +741,7 @@ const pages = [
       });
 
       document.querySelector("#mapFilter").addEventListener("change", renderMap);
+      document.querySelector("#previewBoundary")?.addEventListener("click", renderBoundaryPreview);
       document.querySelector("#libraryFilter").addEventListener("change", renderLibrary);
       document.querySelector("#librarySearch").addEventListener("input", renderLibrary);
 
