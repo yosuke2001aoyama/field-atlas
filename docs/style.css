@@ -724,7 +724,7 @@
 
         .hero {
           min-height: 620px;
-          padding: 34px 22px;
+          padding: 34px 22px 96px;
           background-position: 58% center;
         }
 
@@ -756,16 +756,13 @@
         }
 
         .core-flow {
-          justify-content: flex-start;
-          overflow-x: auto;
-          flex-wrap: nowrap;
-          scrollbar-width: none;
+          justify-content: center;
+          overflow: visible;
+          flex-wrap: wrap;
         }
 
-        .core-flow::-webkit-scrollbar { display: none; }
-
         .core-flow strong,
-        .core-flow span { white-space: nowrap; }
+        .core-flow span { white-space: normal; }
 
         .sample-grid,
         .about-block {
