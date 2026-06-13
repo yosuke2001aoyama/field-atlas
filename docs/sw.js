@@ -1,4 +1,4 @@
-const CACHE = "waymark-shell-v2";
+const CACHE = "waymark-shell-v3-journey-ui";
 const SHELL = ["/", "/index.html", "/style.css", "/app.js", "/offline.html", "/support.html", "/privacy.html", "/terms.html", "/manifest.webmanifest", "/assets/waymark-icon.svg"];
 
 self.addEventListener("install", (event) => {
