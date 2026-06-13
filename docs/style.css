@@ -90,6 +90,7 @@
 
       main {
         min-width: 0;
+        overflow-x: clip;
       }
 
       section.page {
@@ -102,7 +103,7 @@
       }
 
       .hero {
-        min-height: 640px;
+        min-height: min(680px, calc(100svh - 48px));
         display: flex;
         flex-direction: column;
         justify-content: end;
@@ -177,9 +178,15 @@
         grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
         gap: 18px;
         align-items: stretch;
-        margin-top: -34px;
+        margin-top: 24px;
         position: relative;
         z-index: 2;
+      }
+
+      .quick-capture > *,
+      .grid > *,
+      .hero-actions > * {
+        min-width: 0;
       }
 
       .quick-card {
@@ -220,6 +227,12 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 10px;
+      }
+
+      .hero-actions .btn,
+      .hero-actions .hero-link {
+        white-space: normal;
+        text-align: center;
       }
 
       .hero-link {
@@ -273,6 +286,89 @@
         border-left: 5px solid var(--gold);
       }
 
+      .journey-portrait {
+        margin: 24px 0;
+      }
+
+      .portrait-card {
+        position: relative;
+        overflow: hidden;
+        padding: clamp(24px, 5vw, 46px);
+        color: white;
+        background:
+          linear-gradient(135deg, rgba(10, 27, 21, .98), rgba(37, 91, 70, .94)),
+          repeating-linear-gradient(90deg, transparent 0 70px, rgba(255,255,255,.04) 71px 72px);
+        border: 1px solid rgba(184,148,92,.65);
+        box-shadow: var(--shadow);
+      }
+
+      .portrait-card::after {
+        content: "";
+        position: absolute;
+        width: 240px;
+        height: 240px;
+        right: -70px;
+        bottom: -90px;
+        border: 1px solid rgba(255,255,255,.16);
+        border-radius: 50%;
+        box-shadow: 0 0 0 34px rgba(255,255,255,.035), 0 0 0 68px rgba(255,255,255,.025);
+      }
+
+      .portrait-card > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .portrait-card h3 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.8rem, 4vw, 3rem); max-width: 720px; }
+      .portrait-card p { color: rgba(255,255,255,.78); max-width: 760px; }
+      .portrait-card .eyebrow { color: #e0bc7e; }
+
+      .portrait-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 24px 0;
+      }
+
+      .portrait-stat {
+        padding: 14px;
+        border-top: 1px solid rgba(255,255,255,.3);
+      }
+
+      .portrait-stat strong { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 2rem; }
+      .portrait-stat span { color: rgba(255,255,255,.7); font-size: .82rem; }
+
+      .portrait-card .btn.secondary { color: white; border-color: rgba(255,255,255,.45); }
+
+      .boundary-intro {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 22px;
+        align-items: center;
+        padding: 22px;
+        margin: 18px 0;
+        background: rgba(255,250,241,.92);
+        border-left: 4px solid var(--gold);
+      }
+
+      .boundary-moment {
+        padding: clamp(24px, 5vw, 44px);
+        margin: 18px 0 24px;
+        color: white;
+        background: linear-gradient(135deg, #132a22, #2f6f58);
+        border: 1px solid rgba(184,148,92,.7);
+        animation: boundaryIn .55s ease both;
+      }
+
+      .boundary-moment h3 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 5vw, 3.8rem); }
+      .boundary-moment p { color: rgba(255,255,255,.8); max-width: 760px; }
+      .boundary-moment .btn.secondary { color: white; border-color: rgba(255,255,255,.5); }
+
+      @keyframes boundaryIn {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
       .save-confirmation .btn.secondary {
         color: white;
         border-color: rgba(255,255,255,.5);
@@ -318,6 +414,8 @@
         background: var(--green);
         color: white;
         font-weight: 900;
+        line-height: 1.2;
+        text-align: center;
       }
 
       .btn.secondary {
@@ -618,12 +716,14 @@
 
         .grid,
         .grid.two,
+        .portrait-stats,
+        .boundary-intro,
         .quick-capture {
           grid-template-columns: 1fr;
         }
 
         .hero {
-          min-height: min(620px, 78svh);
+          min-height: 620px;
           padding: 34px 22px;
           background-position: 58% center;
         }
@@ -632,7 +732,19 @@
         .hero h2 { font-size: clamp(2rem, 9vw, 3rem); }
 
         .quick-capture {
-          margin-top: 14px;
+          margin-top: 18px;
+        }
+
+        .hero-actions {
+          display: grid;
+          grid-template-columns: 1fr;
+          width: 100%;
+        }
+
+        .hero-actions .btn,
+        .hero-actions .hero-link {
+          width: 100%;
+          min-height: 52px;
         }
 
         .capture-row {
@@ -647,7 +759,10 @@
           justify-content: flex-start;
           overflow-x: auto;
           flex-wrap: nowrap;
+          scrollbar-width: none;
         }
+
+        .core-flow::-webkit-scrollbar { display: none; }
 
         .core-flow strong,
         .core-flow span { white-space: nowrap; }
