@@ -104,7 +104,7 @@ const pages = [
         detroit: { teams: "Lions, Tigers, Pistons, Red Wings, high-school and neighborhood sports", food: "Detroit-style pizza, coney dogs, Middle Eastern food, soul food, bakeries", economy: "auto industry, logistics, healthcare, design, music, downtown redevelopment", politics: "Detroit is strongly Democratic; metro-suburban contrasts matter.", anchors: "Eastern Market, riverfront, Corktown, Dearborn food corridors, auto heritage sites" },
       };
       const storeKey = "waymark_private_records_v2";
-      const briefCacheKey = "waymark_researched_briefs_v6";
+      const briefCacheKey = "waymark_researched_briefs_v7";
 
       function uid() {
         if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
