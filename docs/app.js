@@ -104,6 +104,7 @@ const pages = [
         detroit: { teams: "Lions, Tigers, Pistons, Red Wings, high-school and neighborhood sports", food: "Detroit-style pizza, coney dogs, Middle Eastern food, soul food, bakeries", economy: "auto industry, logistics, healthcare, design, music, downtown redevelopment", politics: "Detroit is strongly Democratic; metro-suburban contrasts matter.", anchors: "Eastern Market, riverfront, Corktown, Dearborn food corridors, auto heritage sites" },
       };
       const storeKey = "waymark_private_records_v2";
+      const briefCacheKey = "waymark_researched_briefs_v1";
 
       function uid() {
         if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
@@ -122,6 +123,14 @@ const pages = [
       function saveRecords(records) {
         localStorage.setItem(storeKey, JSON.stringify(records));
         renderAll();
+      }
+
+      function loadBriefCache() {
+        try { return JSON.parse(localStorage.getItem(briefCacheKey) || "{}"); } catch { return {}; }
+      }
+
+      function saveBriefCache(cache) {
+        localStorage.setItem(briefCacheKey, JSON.stringify(cache));
       }
 
       function journeyPortraitData(records = loadRecords()) {
@@ -402,10 +411,26 @@ const pages = [
         };
       }
 
-      function renderBriefOutput(data, destination) {
-        return Object.entries(data)
-          .map(([key, value]) => `<article class="note"><h3>${key}</h3><p>${value}</p></article>`)
-          .join("") + `<button class="btn" id="saveBrief">Save Private Place Brief</button>`;
+      function renderBriefList(title, values) {
+        if (!Array.isArray(values) || !values.length) return "";
+        return `<article class="note"><h3>${escapeHtml(title)}</h3><ul class="dynamic-list">${values.map((value) => `<li>${escapeHtml(value)}</li>`).join("")}</ul></article>`;
+      }
+
+      function renderBriefOutput(data) {
+        const sources = (data.sources || []).map((source) => `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title)}</a>${source.official ? " <strong>Official</strong>" : ""}</li>`).join("");
+        const researched = data.researched_at ? new Date(data.researched_at).toLocaleDateString() : "today";
+        return `<article class="note researched-lead"><div class="eyebrow">Researched place brief</div><h3>${escapeHtml(data.destination || "Place orientation")}</h3><p>${escapeHtml(data.fifteen_seconds || "")}</p><p class="small">Researched ${escapeHtml(researched)} · ${data.mode === "openai" ? "Source-grounded AI synthesis" : "Source-grounded no-key synthesis"}</p></article>
+          ${renderBriefList("Local history", data.local_history)}
+          ${renderBriefList("Economy and industries", data.economy_industries)}
+          ${renderBriefList("Food and local institutions", data.food_institutions)}
+          ${renderBriefList("Sports and civic culture", data.sports_civic_culture)}
+          ${renderBriefList("Politics and civic baseline", data.politics_civic_baseline)}
+          ${renderBriefList("Good places to start observing", data.field_anchors)}
+          ${renderBriefList("What to notice next", data.what_to_notice)}
+          ${renderBriefList("Questions to ask locals", data.questions_to_ask)}
+          <article class="note"><h3>What not to assume</h3><p>${escapeHtml(data.what_not_to_assume || "Do not treat one source or one neighborhood as the whole place.")}</p></article>
+          <article class="note"><h3>Sources</h3><ol class="source-list">${sources}</ol></article>
+          <button class="btn" id="saveBrief">Save Private Place Brief</button>`;
       }
 
       function renderAskAnswer(data) {
@@ -601,18 +626,48 @@ const pages = [
         else document.querySelector("#askStatus").textContent = "Add the town or place where you saw this, then ask Waymark.";
       }));
 
-      document.querySelector("#generateBrief").addEventListener("click", () => {
+      document.querySelector("#generateBrief").addEventListener("click", async () => {
         const destination = document.querySelector("#briefDestination").value.trim();
         if (!destination) {
           document.querySelector("#briefOutput").innerHTML = `<article class="note"><p>We could not lock this destination. Please type the city and state manually.</p></article>`;
           return;
         }
-        const data = brief(destination, document.querySelector("#briefLens").value, document.querySelector("#briefQuestion").value);
-        document.querySelector("#briefOutput").innerHTML = renderBriefOutput(data, destination);
+        const lens = document.querySelector("#briefLens").value;
+        const question = document.querySelector("#briefQuestion").value.trim();
+        const output = document.querySelector("#briefOutput");
+        const button = document.querySelector("#generateBrief");
+        const found = lookup(destination);
+        const canonical = `${found[0]}${found[1] ? ", " + found[1] : ""}`;
+        const key = `${canonical.toLowerCase()}|${lens.toLowerCase()}|${question.toLowerCase()}`;
+        const cache = loadBriefCache();
+        let data = cache[key];
+        button.disabled = true;
+        button.textContent = data ? "Opening researched brief..." : "Researching this place...";
+        output.innerHTML = `<article class="note"><p>${data ? "Opening saved research for this destination." : `Gathering official and public reference sources for ${escapeHtml(canonical)}. This can take several seconds.`}</p></article>`;
+        try {
+          if (!data) {
+            const response = await fetch("/api/ask", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ request_type: "place_brief", place: canonical, lens, question }),
+            });
+            data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Research failed.");
+            cache[key] = data;
+            saveBriefCache(cache);
+          }
+          output.innerHTML = renderBriefOutput(data);
+        } catch (error) {
+          output.innerHTML = `<article class="note"><h3>Research unavailable</h3><p>${escapeHtml(error.message || "Waymark could not research this destination right now.")}</p><p>No generic substitute has been shown. Please reconnect and try again.</p></article>`;
+          return;
+        } finally {
+          button.disabled = false;
+          button.textContent = "Generate Place Brief";
+        }
         document.querySelector("#saveBrief").addEventListener("click", () => {
-          const text = Object.entries(data).map(([k, v]) => `${k}: ${v.replace(/<[^>]+>/g, "")}`).join("\\n\\n");
+          const text = [data.fifteen_seconds, ...(data.local_history || []), ...(data.economy_industries || []), ...(data.food_institutions || []), ...(data.sports_civic_culture || []), ...(data.politics_civic_baseline || []), ...(data.field_anchors || [])].filter(Boolean).join("\\n\\n");
           const records = loadRecords();
-          records.unshift(makeRecord("place_brief", "How to read " + lookup(destination)[0], destination, text, "place brief", { ai: text, summary: data["This place in 15 seconds"].replace(/<[^>]+>/g, "") }));
+          records.unshift(makeRecord("place_brief", "How to read " + found[0], canonical, text, "place brief", { ai: text, summary: data.fifteen_seconds }));
           saveRecords(records);
           document.querySelector("#briefOutput").insertAdjacentHTML("afterbegin", `<article class="note"><p>Saved as a private place brief.</p></article>`);
         });
