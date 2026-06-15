@@ -185,16 +185,17 @@ async function gatherBriefSources(place) {
     taggedSearch("en.wikipedia", place, "general", 3),
     taggedSearch("en.wikipedia", `${place} history`, "history", 3),
     taggedSearch("en.wikipedia", `${place} economy industries`, "economy", 3),
-    taggedSearch("en.wikipedia", `${place} cuisine food`, "food", 3, true),
-    taggedSearch("en.wikipedia", `${place} sports teams`, "sports", 3, true),
-    taggedSearch("en.wikipedia", `${place} government politics elections`, "politics", 3, true),
-    taggedSearch("en.wikipedia", `${place} landmarks neighborhoods museums`, "anchors", 5, true),
-    taggedSearch("en.wikivoyage", place, "guide", 3, true),
+    taggedSearch("en.wikipedia", `${place} cuisine food`, "food", 3),
+    taggedSearch("en.wikipedia", `${place} sports teams`, "sports", 3),
+    taggedSearch("en.wikipedia", `${place} government politics elections`, "politics", 3),
+    taggedSearch("en.wikipedia", `${place} landmarks neighborhoods museums`, "anchors", 5),
+    taggedSearch("en.wikivoyage", place, "guide", 3),
     findOfficialSource(place).then((source) => source ? [{ ...source, topic: "official" }] : []),
   ]);
   const city = place.split(",")[0].trim().toLowerCase();
+  const categoryTitle = /cuisine|food|restaurant|sport|team|government|politic|election|landmark|museum|neighborhood|district|park|history|economy|industry/i;
   const merged = settled.flatMap((item) => item.status === "fulfilled" ? item.value : [])
-    .filter((source) => source.official || `${source.title} ${source.text.slice(0, 1000)}`.toLowerCase().includes(city));
+    .filter((source) => source.official || `${source.title} ${source.text.slice(0, 1000)}`.toLowerCase().includes(city) || categoryTitle.test(source.title));
   const balanced = ["general", "history", "economy", "food", "sports", "politics", "anchors", "guide", "official"]
     .flatMap((topic) => merged.filter((source) => source.topic === topic).slice(0, topic === "anchors" ? 3 : 2));
   const seen = new Set();
