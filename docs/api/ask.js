@@ -256,14 +256,23 @@ function fallbackResponse(place, question, lens, sources) {
   };
 }
 
-function selectFacts(sources, pattern, limit = 3, topics = [], titlePattern = null) {
+function selectFacts(sources, pattern, limit = 3, topics = [], titlePattern = null, place = "") {
+  const city = place.split(",")[0].trim().toLowerCase();
   const candidates = sources.flatMap((source) => sentences(source.text).map((text) => ({ text, source })))
     .filter(({ source }) => !topics.length || topics.includes(source.topic))
     .filter(({ source }) => !titlePattern || titlePattern.test(source.title))
     .filter(({ text }) => text.length >= 55 && text.length <= 420)
     .filter(({ text }) => pattern.test(text))
     .filter(({ text }) => !/bomb|attack|murder|killed|shooting|disaster|crime/i.test(text))
-    .sort((a, b) => Number(b.source.official) - Number(a.source.official));
+    .map((fact) => ({
+      ...fact,
+      localScore: city
+        ? Number(fact.source.title.toLowerCase().includes(city)) * 5
+          + Number(fact.text.toLowerCase().includes(city)) * 4
+          + Number(fact.source.official) * 2
+        : Number(fact.source.official) * 2,
+    }))
+    .sort((a, b) => b.localScore - a.localScore);
   const seen = new Set();
   return candidates.filter(({ text }) => {
     const key = text.toLowerCase().replace(/[^a-z0-9]+/g, " ").slice(0, 100);
@@ -287,13 +296,14 @@ function sourcedBriefFallback(place, lens, sources) {
   const generalSource = sources.find((source) => source.topic === "general" && source.title.toLowerCase() === city)
     || sources.find((source) => source.topic === "general");
   const overview = generalSource ? [cleanExcerpt(generalSource.text)] : [];
-  const history = selectFacts(sources, /historic|founded|settled|century|revolution|indigenous|native|immigra|rail|\bport\b|industrial|civil rights|annex/i, 3, ["history", "general"]);
-  const economy = selectFacts(sources, /econom|industry|employ|manufactur|technology|finance|tourism|agricultur|university|hospital|\bport\b|logistics|energy|mining|biotech/i, 3, ["economy", "general", "official"]);
-  const food = selectFacts(sources, /food|cuisine|restaurant|market|dish|barbecue|seafood|chowder|sandwich|brew|wine|diner|bakery|culinary/i, 3, ["food", "guide", "official"]);
-  const sports = selectFacts(sources, /sport|team|league|stadium|arena|football|baseball|basketball|hockey|soccer|marathon|championship/i, 3, ["sports", "general", "official"]);
-  const politics = selectFacts(sources, /government|politic|election|mayor|council|county seat|state capital|legislature|democrat|republican/i, 2, ["politics", "official"], /politic|government|election|mayor|council|official/i);
+  const history = selectFacts(sources, /historic|founded|settled|century|revolution|indigenous|native|immigra|rail|\bport\b|industrial|civil rights|annex/i, 3, ["history", "general"], null, place);
+  const economy = selectFacts(sources, /econom|industry|employ|manufactur|technology|finance|tourism|agricultur|university|hospital|\bport\b|logistics|energy|mining|biotech/i, 3, ["economy", "general", "official"], null, place);
+  const food = selectFacts(sources, /food|cuisine|restaurant|market|dish|barbecue|seafood|chowder|sandwich|brew|wine|diner|bakery|culinary|chicken/i, 3, ["food", "guide", "official"], null, place);
+  const sports = selectFacts(sources, /sport|team|league|stadium|arena|football|baseball|basketball|hockey|soccer|marathon|championship/i, 3, ["sports", "general", "official"], null, place);
+  const politics = selectFacts(sources, /government|politic|election|mayor|council|county seat|state capital|legislature|democrat|republican/i, 2, ["politics", "official"], /politic|government|election|mayor|council|official/i, place);
   const anchorSources = sources.filter((source) => source.topic === "anchors" && source.title.toLowerCase() !== city)
     .filter((source) => !/election|politic|shooting|bombing|murder/i.test(source.title))
+    .filter((source) => source.title.trim().length > 3 && !/^(it|this|that|there)$/i.test(source.title.trim()))
     .filter((source) => /museum|university|college|library|church|temple|capitol|courthouse|market|district|park|monument|historic|neighborhood|memorial|landmark/i.test(source.title))
     .slice(0, 5);
   const anchors = anchorSources.map((source) => `${source.title}: ${cleanExcerpt(source.text, 260)}`);
