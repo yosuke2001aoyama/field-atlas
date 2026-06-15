@@ -195,12 +195,14 @@ async function gatherBriefSources(place) {
   const city = place.split(",")[0].trim().toLowerCase();
   const merged = settled.flatMap((item) => item.status === "fulfilled" ? item.value : [])
     .filter((source) => source.official || `${source.title} ${source.text.slice(0, 1000)}`.toLowerCase().includes(city));
+  const balanced = ["general", "history", "economy", "food", "sports", "politics", "anchors", "guide", "official"]
+    .flatMap((topic) => merged.filter((source) => source.topic === topic).slice(0, topic === "anchors" ? 3 : 2));
   const seen = new Set();
-  return merged.filter((item) => {
+  return balanced.filter((item) => {
     if (!item.url || seen.has(item.url)) return false;
     seen.add(item.url);
     return true;
-  }).slice(0, 12);
+  }).slice(0, 18);
 }
 
 function relevantFacts(sources, question, place) {
