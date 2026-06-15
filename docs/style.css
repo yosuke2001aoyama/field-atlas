@@ -493,6 +493,14 @@
         border-bottom: 1px solid var(--line);
       }
 
+      .researched-lead {
+        color: white;
+        background: linear-gradient(135deg, #10271f, #2f6f58);
+        border-color: rgba(184, 148, 92, .75);
+      }
+
+      .researched-lead .small { color: rgba(255,255,255,.7); }
+
       .map {
         position: relative;
         min-height: 420px;
