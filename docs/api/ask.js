@@ -125,8 +125,9 @@ async function findOfficialSource(place) {
   return null;
 }
 
-async function wikiSearch(project, query, limit = 3) {
-  const endpoint = `https://${project}.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=${limit}&prop=extracts|info&exintro=1&explaintext=1&inprop=url&format=json&origin=*`;
+async function wikiSearch(project, query, limit = 3, full = false) {
+  const extractOptions = full ? "explaintext=1&exchars=7000" : "exintro=1&explaintext=1";
+  const endpoint = `https://${project}.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=${limit}&prop=extracts|info&${extractOptions}&inprop=url&format=json&origin=*`;
   const data = await fetchJson(endpoint);
   return Object.values(data?.query?.pages || {})
     .sort((a, b) => (a.index || 0) - (b.index || 0))
@@ -179,16 +180,16 @@ async function gatherSources(place, question) {
 }
 
 async function gatherBriefSources(place) {
-  const taggedSearch = async (project, query, topic, limit) => (await wikiSearch(project, query, limit)).map((source) => ({ ...source, topic }));
+  const taggedSearch = async (project, query, topic, limit, full = false) => (await wikiSearch(project, query, limit, full)).map((source) => ({ ...source, topic }));
   const settled = await Promise.allSettled([
     taggedSearch("en.wikipedia", place, "general", 3),
     taggedSearch("en.wikipedia", `${place} history`, "history", 3),
     taggedSearch("en.wikipedia", `${place} economy industries`, "economy", 3),
-    taggedSearch("en.wikipedia", `${place} cuisine food`, "food", 3),
-    taggedSearch("en.wikipedia", `${place} sports teams`, "sports", 3),
-    taggedSearch("en.wikipedia", `${place} government politics`, "politics", 3),
-    taggedSearch("en.wikipedia", `${place} landmarks neighborhoods museums`, "anchors", 4),
-    taggedSearch("en.wikivoyage", place, "guide", 3),
+    taggedSearch("en.wikipedia", `${place} cuisine food`, "food", 3, true),
+    taggedSearch("en.wikipedia", `${place} sports teams`, "sports", 3, true),
+    taggedSearch("en.wikipedia", `${place} government politics elections`, "politics", 3, true),
+    taggedSearch("en.wikipedia", `${place} landmarks neighborhoods museums`, "anchors", 5, true),
+    taggedSearch("en.wikivoyage", place, "guide", 3, true),
     findOfficialSource(place).then((source) => source ? [{ ...source, topic: "official" }] : []),
   ]);
   const city = place.split(",")[0].trim().toLowerCase();
@@ -251,9 +252,10 @@ function fallbackResponse(place, question, lens, sources) {
   };
 }
 
-function selectFacts(sources, pattern, limit = 3, topics = []) {
+function selectFacts(sources, pattern, limit = 3, topics = [], titlePattern = null) {
   const candidates = sources.flatMap((source) => sentences(source.text).map((text) => ({ text, source })))
     .filter(({ source }) => !topics.length || topics.includes(source.topic))
+    .filter(({ source }) => !titlePattern || titlePattern.test(source.title))
     .filter(({ text }) => text.length >= 55 && text.length <= 420)
     .filter(({ text }) => pattern.test(text))
     .filter(({ text }) => !/bomb|attack|murder|killed|shooting|disaster|crime/i.test(text))
@@ -267,19 +269,30 @@ function selectFacts(sources, pattern, limit = 3, topics = []) {
   }).slice(0, limit).map(({ text }) => text);
 }
 
+function cleanExcerpt(text = "", max = 440) {
+  const cleaned = text.replace(/\(\s*\)/g, "").replace(/\s+/g, " ").trim();
+  if (cleaned.length <= max) return cleaned;
+  const clipped = cleaned.slice(0, max);
+  const boundary = Math.max(clipped.lastIndexOf(". "), clipped.lastIndexOf("; "));
+  return `${clipped.slice(0, boundary > 180 ? boundary + 1 : max).trim()}…`;
+}
+
 function sourcedBriefFallback(place, lens, sources) {
   const city = place.split(",")[0].trim().toLowerCase();
   const generalSource = sources.find((source) => source.topic === "general" && source.title.toLowerCase() === city)
     || sources.find((source) => source.topic === "general");
-  const overview = generalSource ? sentences(generalSource.text).filter((text) => text.length > 55).slice(0, 1) : [];
+  const overview = generalSource ? [cleanExcerpt(generalSource.text)] : [];
   const history = selectFacts(sources, /historic|founded|settled|century|revolution|indigenous|native|immigra|rail|port|industrial|civil rights|annex/i, 3, ["history", "general"]);
   const economy = selectFacts(sources, /econom|industry|employ|manufactur|technology|finance|tourism|agricultur|university|hospital|port|logistics|energy|mining|biotech/i, 3, ["economy", "general", "official"]);
   const food = selectFacts(sources, /food|cuisine|restaurant|market|dish|barbecue|seafood|chowder|sandwich|brew|wine|diner|bakery|culinary/i, 3, ["food", "guide", "official"]);
   const sports = selectFacts(sources, /sport|team|league|stadium|arena|football|baseball|basketball|hockey|soccer|marathon|championship/i, 3, ["sports", "general", "official"]);
-  const politics = selectFacts(sources, /government|politic|election|mayor|council|county seat|state capital|legislature|democrat|republican/i, 2, ["politics", "general", "official"]);
-  const anchors = selectFacts(sources, /museum|university|college|library|church|temple|capitol|courthouse|market|district|park|monument|historic site|neighborhood/i, 5, ["anchors", "guide", "official"]);
+  const politics = selectFacts(sources, /government|politic|election|mayor|council|county seat|state capital|legislature|democrat|republican/i, 2, ["politics", "official"], /politic|government|election|mayor|council|official/i);
+  const anchorSources = sources.filter((source) => source.topic === "anchors" && source.title.toLowerCase() !== city)
+    .filter((source) => /museum|university|college|library|church|temple|capitol|courthouse|market|district|park|monument|historic|neighborhood/i.test(`${source.title} ${source.text.slice(0, 300)}`))
+    .slice(0, 5);
+  const anchors = anchorSources.map((source) => `${source.title}: ${cleanExcerpt(source.text, 260)}`);
   const concrete = [...history, ...economy, ...food, ...sports, ...anchors];
-  const keywords = [...new Set(concrete.join(" ").match(/\b[A-Z][A-Za-z&.'’-]+(?:\s+[A-Z][A-Za-z&.'’-]+){0,4}\b/g) || [])]
+  const keywords = [...new Set([...anchorSources.map((source) => source.title), ...sports, ...food].join(" ").match(/\b[A-Z][A-Za-z&.'’-]+(?:\s+[A-Z][A-Za-z&.'’-]+){0,4}\b/g) || [])]
     .filter((name) => !name.startsWith("The ") && name !== place.split(",")[0]).slice(0, 8);
   const first = overview[0] || history[0] || economy[0] || `${place} is documented through the sources listed below.`;
   return {
@@ -292,7 +305,7 @@ function sourcedBriefFallback(place, lens, sources) {
     sports_civic_culture: sports,
     politics_civic_baseline: politics,
     field_anchors: anchors,
-    what_to_notice: concrete.slice(0, 3).map((fact) => `Look for present-day evidence of this documented context: ${fact.replace(/[.!?]+$/, "")}.`),
+    what_to_notice: [history[0], economy[0], food[0] || sports[0] || anchors[0]].filter(Boolean).map((fact) => `Look for present-day evidence of this documented context: ${cleanExcerpt(fact, 220).replace(/[.!?…]+$/, "")}.`),
     questions_to_ask: [
       `Which change has most reshaped ${place.split(",")[0]} in the last decade?`,
       keywords[0] ? `How do residents understand the role of ${keywords[0]} today?` : `Which local institution matters more than visitors realize?`,
