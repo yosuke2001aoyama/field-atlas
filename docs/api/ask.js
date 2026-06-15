@@ -179,17 +179,17 @@ async function gatherSources(place, question) {
 }
 
 async function gatherBriefSources(place) {
-  const queries = [
-    place,
-    `${place} history economy industries`,
-    `${place} food culture institutions`,
-    `${place} sports civic culture`,
-    `${place} landmarks neighborhoods`,
-  ];
+  const taggedSearch = async (project, query, topic, limit) => (await wikiSearch(project, query, limit)).map((source) => ({ ...source, topic }));
   const settled = await Promise.allSettled([
-    ...queries.map((query, index) => wikiSearch("en.wikipedia", query, index === 0 ? 3 : 2)),
-    wikiSearch("en.wikivoyage", place, 3),
-    findOfficialSource(place).then((source) => source ? [source] : []),
+    taggedSearch("en.wikipedia", place, "general", 3),
+    taggedSearch("en.wikipedia", `${place} history`, "history", 3),
+    taggedSearch("en.wikipedia", `${place} economy industries`, "economy", 3),
+    taggedSearch("en.wikipedia", `${place} cuisine food`, "food", 3),
+    taggedSearch("en.wikipedia", `${place} sports teams`, "sports", 3),
+    taggedSearch("en.wikipedia", `${place} government politics`, "politics", 3),
+    taggedSearch("en.wikipedia", `${place} landmarks neighborhoods museums`, "anchors", 4),
+    taggedSearch("en.wikivoyage", place, "guide", 3),
+    findOfficialSource(place).then((source) => source ? [{ ...source, topic: "official" }] : []),
   ]);
   const city = place.split(",")[0].trim().toLowerCase();
   const merged = settled.flatMap((item) => item.status === "fulfilled" ? item.value : [])
@@ -251,10 +251,12 @@ function fallbackResponse(place, question, lens, sources) {
   };
 }
 
-function selectFacts(sources, pattern, limit = 3) {
+function selectFacts(sources, pattern, limit = 3, topics = []) {
   const candidates = sources.flatMap((source) => sentences(source.text).map((text) => ({ text, source })))
+    .filter(({ source }) => !topics.length || topics.includes(source.topic))
     .filter(({ text }) => text.length >= 55 && text.length <= 420)
     .filter(({ text }) => pattern.test(text))
+    .filter(({ text }) => !/bomb|attack|murder|killed|shooting|disaster|crime/i.test(text))
     .sort((a, b) => Number(b.source.official) - Number(a.source.official));
   const seen = new Set();
   return candidates.filter(({ text }) => {
@@ -266,18 +268,20 @@ function selectFacts(sources, pattern, limit = 3) {
 }
 
 function sourcedBriefFallback(place, lens, sources) {
-  const overview = relevantFacts(sources, `${place} founded population known history`, place).slice(0, 3).map((item) => item.text);
-  const history = selectFacts(sources, /historic|founded|settled|century|war|indigenous|native|immigra|rail|port|industrial|civil rights|annex/i);
-  const economy = selectFacts(sources, /econom|industry|employ|manufactur|technology|finance|tourism|agricultur|university|hospital|port|logistics|energy|mining/i);
-  const food = selectFacts(sources, /food|cuisine|restaurant|market|dish|barbecue|seafood|brew|wine|diner|bakery|culinary/i);
-  const sports = selectFacts(sources, /sport|team|league|stadium|arena|football|baseball|basketball|hockey|soccer|marathon/i);
-  const institutions = selectFacts(sources, /museum|university|college|library|church|temple|capitol|courthouse|market|district|park|monument|historic site/i, 5);
-  const politics = selectFacts(sources, /government|politic|election|mayor|council|county seat|capital|legislature|democrat|republican/i, 2);
-  const anchors = institutions.length ? institutions : relevantFacts(sources, `${place} landmark district park museum`, place).slice(0, 4).map((item) => item.text);
+  const city = place.split(",")[0].trim().toLowerCase();
+  const generalSource = sources.find((source) => source.topic === "general" && source.title.toLowerCase() === city)
+    || sources.find((source) => source.topic === "general");
+  const overview = generalSource ? sentences(generalSource.text).filter((text) => text.length > 55).slice(0, 1) : [];
+  const history = selectFacts(sources, /historic|founded|settled|century|revolution|indigenous|native|immigra|rail|port|industrial|civil rights|annex/i, 3, ["history", "general"]);
+  const economy = selectFacts(sources, /econom|industry|employ|manufactur|technology|finance|tourism|agricultur|university|hospital|port|logistics|energy|mining|biotech/i, 3, ["economy", "general", "official"]);
+  const food = selectFacts(sources, /food|cuisine|restaurant|market|dish|barbecue|seafood|chowder|sandwich|brew|wine|diner|bakery|culinary/i, 3, ["food", "guide", "official"]);
+  const sports = selectFacts(sources, /sport|team|league|stadium|arena|football|baseball|basketball|hockey|soccer|marathon|championship/i, 3, ["sports", "general", "official"]);
+  const politics = selectFacts(sources, /government|politic|election|mayor|council|county seat|state capital|legislature|democrat|republican/i, 2, ["politics", "general", "official"]);
+  const anchors = selectFacts(sources, /museum|university|college|library|church|temple|capitol|courthouse|market|district|park|monument|historic site|neighborhood/i, 5, ["anchors", "guide", "official"]);
   const concrete = [...history, ...economy, ...food, ...sports, ...anchors];
   const keywords = [...new Set(concrete.join(" ").match(/\b[A-Z][A-Za-z&.'’-]+(?:\s+[A-Z][A-Za-z&.'’-]+){0,4}\b/g) || [])]
     .filter((name) => !name.startsWith("The ") && name !== place.split(",")[0]).slice(0, 8);
-  const first = overview[0] || concrete[0] || `${place} is documented through the sources listed below.`;
+  const first = overview[0] || history[0] || economy[0] || `${place} is documented through the sources listed below.`;
   return {
     destination: place,
     researched_at: new Date().toISOString(),
