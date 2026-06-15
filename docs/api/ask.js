@@ -126,7 +126,7 @@ async function findOfficialSource(place) {
 }
 
 async function wikiSearch(project, query, limit = 3, full = false) {
-  const extractOptions = full ? "explaintext=1&exchars=7000" : "exintro=1&explaintext=1";
+  const extractOptions = full ? "explaintext=1&exchars=1200" : "exintro=1&explaintext=1";
   const endpoint = `https://${project}.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=${limit}&prop=extracts|info&${extractOptions}&inprop=url&format=json&origin=*`;
   const data = await fetchJson(endpoint);
   return Object.values(data?.query?.pages || {})
