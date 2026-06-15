@@ -277,7 +277,8 @@ function cleanExcerpt(text = "", max = 440) {
   if (cleaned.length <= max) return cleaned;
   const clipped = cleaned.slice(0, max);
   const boundary = Math.max(clipped.lastIndexOf(". "), clipped.lastIndexOf("; "));
-  return `${clipped.slice(0, boundary > 180 ? boundary + 1 : max).trim()}…`;
+  const wordBoundary = clipped.lastIndexOf(" ");
+  return `${clipped.slice(0, boundary > 180 ? boundary + 1 : wordBoundary > 160 ? wordBoundary : max).trim()}…`;
 }
 
 function sourcedBriefFallback(place, lens, sources) {
@@ -308,10 +309,10 @@ function sourcedBriefFallback(place, lens, sources) {
     sports_civic_culture: sports,
     politics_civic_baseline: politics,
     field_anchors: anchors,
-    what_to_notice: [history[0], economy[0], food[0] || sports[0] || anchors[0]].filter(Boolean).map((fact) => `Look for present-day evidence of this documented context: ${cleanExcerpt(fact, 220).replace(/[.!?…]+$/, "")}.`),
+    what_to_notice: [history[0], economy[0], food[0] || sports[0] || anchors[0]].filter(Boolean).map((fact) => `Look for present-day evidence of this documented context: ${cleanExcerpt(fact, 220)}`),
     questions_to_ask: [
       `Which change has most reshaped ${place.split(",")[0]} in the last decade?`,
-      keywords[0] ? `How do residents understand the role of ${keywords[0]} today?` : `Which local institution matters more than visitors realize?`,
+      anchorSources[0]?.title ? `How do residents understand the role of ${anchorSources[0].title} today?` : keywords[0] ? `How do residents understand the role of ${keywords[0]} today?` : `Which local institution matters more than visitors realize?`,
       `What do visitors commonly misunderstand about this place?`,
     ],
     what_not_to_assume: `The sources describe institutions and historical patterns, not every resident's experience. Treat neighborhood, class, race, politics, and identity as internally varied rather than as a single story about ${place}.`,
