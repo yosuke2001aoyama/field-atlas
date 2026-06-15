@@ -185,7 +185,7 @@ async function gatherBriefSources(place) {
     taggedSearch("en.wikipedia", place, "general", 3),
     taggedSearch("en.wikipedia", `${place} history`, "history", 3),
     taggedSearch("en.wikipedia", `${place} economy industries`, "economy", 3),
-    taggedSearch("en.wikipedia", `${place} cuisine food`, "food", 3),
+    taggedSearch("en.wikipedia", `${place} local food dishes cuisine`, "food", 4),
     taggedSearch("en.wikipedia", `${place} sports teams`, "sports", 3),
     taggedSearch("en.wikipedia", `${place} government politics elections`, "politics", 3),
     taggedSearch("en.wikipedia", `${place} landmarks neighborhoods museums`, "anchors", 5),
@@ -195,6 +195,7 @@ async function gatherBriefSources(place) {
   const city = place.split(",")[0].trim().toLowerCase();
   const categoryTitle = /cuisine|food|restaurant|sport|team|government|politic|election|landmark|museum|neighborhood|district|park|history|economy|industry/i;
   const merged = settled.flatMap((item) => item.status === "fulfilled" ? item.value : [])
+    .filter((source) => !/shooting|bombing|murder|disaster|massacre/i.test(source.title))
     .filter((source) => source.official || `${source.title} ${source.text.slice(0, 1000)}`.toLowerCase().includes(city) || categoryTitle.test(source.title));
   const balanced = ["general", "history", "economy", "food", "sports", "politics", "anchors", "guide", "official"]
     .flatMap((topic) => merged.filter((source) => source.topic === topic).slice(0, topic === "anchors" ? 3 : 2));
@@ -286,13 +287,14 @@ function sourcedBriefFallback(place, lens, sources) {
   const generalSource = sources.find((source) => source.topic === "general" && source.title.toLowerCase() === city)
     || sources.find((source) => source.topic === "general");
   const overview = generalSource ? [cleanExcerpt(generalSource.text)] : [];
-  const history = selectFacts(sources, /historic|founded|settled|century|revolution|indigenous|native|immigra|rail|port|industrial|civil rights|annex/i, 3, ["history", "general"]);
-  const economy = selectFacts(sources, /econom|industry|employ|manufactur|technology|finance|tourism|agricultur|university|hospital|port|logistics|energy|mining|biotech/i, 3, ["economy", "general", "official"]);
+  const history = selectFacts(sources, /historic|founded|settled|century|revolution|indigenous|native|immigra|rail|\bport\b|industrial|civil rights|annex/i, 3, ["history", "general"]);
+  const economy = selectFacts(sources, /econom|industry|employ|manufactur|technology|finance|tourism|agricultur|university|hospital|\bport\b|logistics|energy|mining|biotech/i, 3, ["economy", "general", "official"]);
   const food = selectFacts(sources, /food|cuisine|restaurant|market|dish|barbecue|seafood|chowder|sandwich|brew|wine|diner|bakery|culinary/i, 3, ["food", "guide", "official"]);
   const sports = selectFacts(sources, /sport|team|league|stadium|arena|football|baseball|basketball|hockey|soccer|marathon|championship/i, 3, ["sports", "general", "official"]);
   const politics = selectFacts(sources, /government|politic|election|mayor|council|county seat|state capital|legislature|democrat|republican/i, 2, ["politics", "official"], /politic|government|election|mayor|council|official/i);
   const anchorSources = sources.filter((source) => source.topic === "anchors" && source.title.toLowerCase() !== city)
-    .filter((source) => /museum|university|college|library|church|temple|capitol|courthouse|market|district|park|monument|historic|neighborhood/i.test(`${source.title} ${source.text.slice(0, 300)}`))
+    .filter((source) => !/election|politic|shooting|bombing|murder/i.test(source.title))
+    .filter((source) => /museum|university|college|library|church|temple|capitol|courthouse|market|district|park|monument|historic|neighborhood|memorial|landmark/i.test(source.title))
     .slice(0, 5);
   const anchors = anchorSources.map((source) => `${source.title}: ${cleanExcerpt(source.text, 260)}`);
   const concrete = [...history, ...economy, ...food, ...sports, ...anchors];
