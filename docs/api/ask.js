@@ -178,6 +178,30 @@ async function gatherSources(place, question) {
   }).slice(0, 6);
 }
 
+async function gatherBriefSources(place) {
+  const queries = [
+    place,
+    `${place} history economy industries`,
+    `${place} food culture institutions`,
+    `${place} sports civic culture`,
+    `${place} landmarks neighborhoods`,
+  ];
+  const settled = await Promise.allSettled([
+    ...queries.map((query, index) => wikiSearch("en.wikipedia", query, index === 0 ? 3 : 2)),
+    wikiSearch("en.wikivoyage", place, 3),
+    findOfficialSource(place).then((source) => source ? [source] : []),
+  ]);
+  const city = place.split(",")[0].trim().toLowerCase();
+  const merged = settled.flatMap((item) => item.status === "fulfilled" ? item.value : [])
+    .filter((source) => source.official || `${source.title} ${source.text.slice(0, 1000)}`.toLowerCase().includes(city));
+  const seen = new Set();
+  return merged.filter((item) => {
+    if (!item.url || seen.has(item.url)) return false;
+    seen.add(item.url);
+    return true;
+  }).slice(0, 12);
+}
+
 function relevantFacts(sources, question, place) {
   const stop = new Set(["what", "why", "when", "where", "which", "with", "that", "this", "there", "about", "does", "have", "from", "into", "here", "feel", "feels", "look", "looks", "would", "could", "should"]);
   const terms = question.toLowerCase().match(/[a-z]{4,}/g)?.filter((term) => !stop.has(term)) || [];
@@ -227,6 +251,54 @@ function fallbackResponse(place, question, lens, sources) {
   };
 }
 
+function selectFacts(sources, pattern, limit = 3) {
+  const candidates = sources.flatMap((source) => sentences(source.text).map((text) => ({ text, source })))
+    .filter(({ text }) => text.length >= 55 && text.length <= 420)
+    .filter(({ text }) => pattern.test(text))
+    .sort((a, b) => Number(b.source.official) - Number(a.source.official));
+  const seen = new Set();
+  return candidates.filter(({ text }) => {
+    const key = text.toLowerCase().replace(/[^a-z0-9]+/g, " ").slice(0, 100);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, limit).map(({ text }) => text);
+}
+
+function sourcedBriefFallback(place, lens, sources) {
+  const overview = relevantFacts(sources, `${place} founded population known history`, place).slice(0, 3).map((item) => item.text);
+  const history = selectFacts(sources, /historic|founded|settled|century|war|indigenous|native|immigra|rail|port|industrial|civil rights|annex/i);
+  const economy = selectFacts(sources, /econom|industry|employ|manufactur|technology|finance|tourism|agricultur|university|hospital|port|logistics|energy|mining/i);
+  const food = selectFacts(sources, /food|cuisine|restaurant|market|dish|barbecue|seafood|brew|wine|diner|bakery|culinary/i);
+  const sports = selectFacts(sources, /sport|team|league|stadium|arena|football|baseball|basketball|hockey|soccer|marathon/i);
+  const institutions = selectFacts(sources, /museum|university|college|library|church|temple|capitol|courthouse|market|district|park|monument|historic site/i, 5);
+  const politics = selectFacts(sources, /government|politic|election|mayor|council|county seat|capital|legislature|democrat|republican/i, 2);
+  const anchors = institutions.length ? institutions : relevantFacts(sources, `${place} landmark district park museum`, place).slice(0, 4).map((item) => item.text);
+  const concrete = [...history, ...economy, ...food, ...sports, ...anchors];
+  const keywords = [...new Set(concrete.join(" ").match(/\b[A-Z][A-Za-z&.'’-]+(?:\s+[A-Z][A-Za-z&.'’-]+){0,4}\b/g) || [])]
+    .filter((name) => !name.startsWith("The ") && name !== place.split(",")[0]).slice(0, 8);
+  const first = overview[0] || concrete[0] || `${place} is documented through the sources listed below.`;
+  return {
+    destination: place,
+    researched_at: new Date().toISOString(),
+    fifteen_seconds: first,
+    local_history: history,
+    economy_industries: economy,
+    food_institutions: food,
+    sports_civic_culture: sports,
+    politics_civic_baseline: politics,
+    field_anchors: anchors,
+    what_to_notice: concrete.slice(0, 3).map((fact) => `Look for present-day evidence of this documented context: ${fact.replace(/[.!?]+$/, "")}.`),
+    questions_to_ask: [
+      `Which change has most reshaped ${place.split(",")[0]} in the last decade?`,
+      keywords[0] ? `How do residents understand the role of ${keywords[0]} today?` : `Which local institution matters more than visitors realize?`,
+      `What do visitors commonly misunderstand about this place?`,
+    ],
+    what_not_to_assume: `The sources describe institutions and historical patterns, not every resident's experience. Treat neighborhood, class, race, politics, and identity as internally varied rather than as a single story about ${place}.`,
+    lens,
+  };
+}
+
 function extractResponseText(payload) {
   if (payload.output_text) return payload.output_text;
   for (const item of payload.output || []) {
@@ -271,6 +343,34 @@ async function askOpenAI(place, question, lens, sources) {
   return JSON.parse(extractResponseText(await response.json()));
 }
 
+async function briefOpenAI(place, lens, question, sources) {
+  const sourceMaterial = sources.map((source, index) => `[${index + 1}] ${source.title}\n${source.text.slice(0, 3200)}\n${source.url}`).join("\n\n");
+  const system = `You are Waymark's place researcher. Create a concise, fact-rich field guide for the exact U.S. destination using only the supplied sources. Never output generic travel-writing templates. Name real industries, institutions, foods, teams, districts, landmarks, events, and historical forces when the sources support them. Omit a section rather than inventing content. Separate sourced fact from cautious interpretation. Field anchors are places useful for observing local life, not ranked tourist attractions. Return valid JSON only.`;
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { ...JSON_HEADERS, Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || "gpt-5-mini",
+      input: `${system}\n\nDESTINATION: ${place}\nLENS: ${lens}\nOPTIONAL QUESTION: ${question || "None"}\n\nSOURCE MATERIAL:\n${sourceMaterial}`,
+      text: { format: { type: "json_schema", name: "waymark_researched_brief", strict: true, schema: {
+        type: "object", additionalProperties: false,
+        properties: {
+          destination: { type: "string" }, researched_at: { type: "string" }, fifteen_seconds: { type: "string" },
+          local_history: { type: "array", items: { type: "string" } }, economy_industries: { type: "array", items: { type: "string" } },
+          food_institutions: { type: "array", items: { type: "string" } }, sports_civic_culture: { type: "array", items: { type: "string" } },
+          politics_civic_baseline: { type: "array", items: { type: "string" } }, field_anchors: { type: "array", items: { type: "string" } },
+          what_to_notice: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 3 },
+          questions_to_ask: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 3 },
+          what_not_to_assume: { type: "string" }, lens: { type: "string" },
+        },
+        required: ["destination", "researched_at", "fifteen_seconds", "local_history", "economy_industries", "food_institutions", "sports_civic_culture", "politics_civic_baseline", "field_anchors", "what_to_notice", "questions_to_ask", "what_not_to_assume", "lens"],
+      } } },
+    }),
+  });
+  if (!response.ok) throw new Error(`OpenAI returned ${response.status}`);
+  return JSON.parse(extractResponseText(await response.json()));
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -283,8 +383,25 @@ export default async function handler(req, res) {
   const place = cleanPlace(req.body?.place || "").slice(0, 120);
   const question = String(req.body?.question || "").trim().slice(0, 600);
   const lens = String(req.body?.lens || "general orientation").trim().slice(0, 80);
-  if (!place || !question) return res.status(400).json({ error: "Please enter both a place and a question." });
+  const requestType = req.body?.request_type === "place_brief" ? "place_brief" : "question";
+  if (!place || (requestType === "question" && !question)) return res.status(400).json({ error: "Please enter the required place and question." });
   try {
+    if (requestType === "place_brief") {
+      const sources = await gatherBriefSources(place);
+      if (!sources.length) return res.status(404).json({ error: "We could not find enough reliable reference material for this place. Try adding the state or region." });
+      let brief;
+      let mode = "sourced-fallback";
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          brief = await briefOpenAI(place, lens, question, sources);
+          mode = "openai";
+        } catch (error) {
+          console.error("OpenAI brief fallback:", error.message);
+        }
+      }
+      brief ||= sourcedBriefFallback(place, lens, sources);
+      return res.status(200).json({ ...brief, mode, sources: sources.map(({ title, url, official = false }) => ({ title, url, official })) });
+    }
     const sources = await gatherSources(place, question);
     if (!sources.length) return res.status(404).json({ error: "We could not find enough reliable reference material for this place. Try adding the state or region." });
     let answer;
