@@ -298,7 +298,18 @@ function sourcedBriefFallback(place, lens, sources) {
   const overview = generalSource ? [cleanExcerpt(generalSource.text)] : [];
   const history = selectFacts(sources, /historic|founded|settled|century|revolution|indigenous|native|immigra|rail|\bport\b|industrial|civil rights|annex/i, 3, ["history", "general"], null, place);
   const economy = selectFacts(sources, /econom|industry|employ|manufactur|technology|finance|tourism|agricultur|university|hospital|\bport\b|logistics|energy|mining|biotech/i, 3, ["economy", "general", "official"], null, place);
-  const food = selectFacts(sources, /food|cuisine|restaurant|market|dish|barbecue|seafood|chowder|sandwich|brew|wine|diner|bakery|culinary|chicken/i, 3, ["food", "guide", "official"], null, place);
+  const namedFoodSources = sources
+    .filter((source) => source.topic === "food")
+    .filter((source) => !/^(american cuisine|cuisine of the united states|food)$/i.test(source.title.trim()))
+    .filter((source) => source.title.trim().length > 3)
+    .sort((a, b) => {
+      const aLocal = Number(a.title.toLowerCase().includes(city)) * 2 + Number(a.text.toLowerCase().includes(city));
+      const bLocal = Number(b.title.toLowerCase().includes(city)) * 2 + Number(b.text.toLowerCase().includes(city));
+      return bLocal - aLocal;
+    })
+    .slice(0, 2)
+    .map((source) => `${source.title}: ${cleanExcerpt(source.text, 280)}`);
+  const food = [...namedFoodSources, ...selectFacts(sources, /food|cuisine|restaurant|market|dish|barbecue|seafood|chowder|sandwich|brew|wine|diner|bakery|culinary|chicken/i, 3, ["food", "guide", "official"], null, place)].slice(0, 3);
   const sports = selectFacts(sources, /sport|team|league|stadium|arena|football|baseball|basketball|hockey|soccer|marathon|championship/i, 3, ["sports", "general", "official"], null, place);
   const politics = selectFacts(sources, /government|politic|election|mayor|council|county seat|state capital|legislature|democrat|republican/i, 2, ["politics", "official"], /politic|government|election|mayor|council|official/i, place);
   const anchorSources = sources.filter((source) => source.topic === "anchors" && source.title.toLowerCase() !== city)
