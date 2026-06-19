@@ -10,7 +10,7 @@ const pages = [
       ];
       const lenses = ["General orientation", "Local history", "Food and local institutions", "Farm / rural life", "Race and community", "Economy and industries", "Religion and civic life", "Sports and local identity", "Nature and landscape", "Small-town life"];
       const types = ["Question", "Observation", "Conversation", "Food", "Farmstay", "Local institution", "Economic signal", "Cultural signal", "Reflection", "Road scene", "Other"];
-      const filters = ["All", "Questions", "Observations", "Food", "Farmstay", "Conversations", "Local institutions", "Economic signals", "Cultural signals", "Reflections", "Place Briefs", "Themes", "Unanswered questions", "Needs location", "Destination stock", "Export-ready"];
+      const filters = ["All", "Trip Routes", "Visited Places", "Questions", "Observations", "Food", "Farmstay", "Conversations", "Local institutions", "Economic signals", "Cultural signals", "Reflections", "Place Briefs", "Themes", "Unanswered questions", "Needs location", "Destination stock", "Export-ready"];
       const exports = ["Public-safe travel reflection", "Essay outline", "Substack-style essay", "Podcast script", "Japanese diary", "English field note", "Field report", "Markdown archive"];
       const syntheses = ["Recurring themes", "Compare places", "What surprised me", "Questions I kept asking", "What I learned about America", "Essay outline", "Podcast outline", "Field report"];
       const sampleQuestions = [
@@ -135,6 +135,9 @@ const pages = [
 
       function journeyPortraitData(records = loadRecords()) {
         const states = [...new Set(records.map((record) => record.state || lookup(record.place)[1]).filter((state) => state && state !== "Multi-state"))];
+        records.filter((record) => record.type === "route").forEach((record) => (record.route_states || []).forEach((state) => {
+          if (state && state !== "Multi-state" && !states.includes(state)) states.push(state);
+        }));
         const places = [...new Set(records.map((record) => record.place).filter(Boolean))];
         const questions = records.filter((record) => record.type === "question").length;
         const meaningful = records.filter((record) => ["question", "observation", "conversation", "food", "farmstay", "reflection", "local_institution", "economic_signal", "cultural_signal"].includes(record.type)).length;
@@ -264,6 +267,77 @@ const pages = [
         return [city, "", null, null];
       }
 
+      function stateAverages() {
+        const grouped = {};
+        destinationRows.forEach((row) => {
+          if (!row[1] || row[1] === "Multi-state" || !row[2] || !row[3]) return;
+          grouped[row[1]] ||= [];
+          grouped[row[1]].push(row);
+        });
+        return Object.fromEntries(Object.entries(grouped).map(([state, rows]) => [state, {
+          lat: rows.reduce((sum, row) => sum + row[2], 0) / rows.length,
+          lon: rows.reduce((sum, row) => sum + row[3], 0) / rows.length,
+          count: rows.length,
+        }]));
+      }
+
+      const stateCenters = stateAverages();
+
+      function projectPoint(lat, lon) {
+        return {
+          x: Math.max(4, Math.min(96, ((lon + 170) / 105) * 100)),
+          y: Math.max(5, Math.min(94, ((72 - lat) / 48) * 100)),
+        };
+      }
+
+      function distanceMiles(a, b) {
+        if (!a[2] || !a[3] || !b[2] || !b[3]) return 0;
+        const toRad = (value) => value * Math.PI / 180;
+        const lat1 = toRad(a[2]);
+        const lat2 = toRad(b[2]);
+        const dLat = toRad(b[2] - a[2]);
+        const dLon = toRad(b[3] - a[3]);
+        const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+        return Math.round(3958.8 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h)));
+      }
+
+      function routePreview(startValue, endValue) {
+        const start = lookup(startValue);
+        const end = lookup(endValue);
+        if (!start[2] || !end[2]) return null;
+        const routeStates = [];
+        [start[1], end[1]].forEach((state) => {
+          if (state && state !== "Multi-state" && !routeStates.includes(state)) routeStates.push(state);
+        });
+        const minLat = Math.min(start[2], end[2]) - 1.7;
+        const maxLat = Math.max(start[2], end[2]) + 1.7;
+        const minLon = Math.min(start[3], end[3]) - 2.5;
+        const maxLon = Math.max(start[3], end[3]) + 2.5;
+        Object.entries(stateCenters).forEach(([state, center]) => {
+          if (center.lat >= minLat && center.lat <= maxLat && center.lon >= minLon && center.lon <= maxLon && !routeStates.includes(state)) routeStates.push(state);
+        });
+        const midpoints = destinationRows
+          .filter((row) => row[4] === "city" && row[2] >= minLat && row[2] <= maxLat && row[3] >= minLon && row[3] <= maxLon)
+          .filter((row) => row[0] !== start[0] && row[0] !== end[0])
+          .sort((a, b) => Math.abs((a[2] + a[3]) - ((start[2] + end[2] + start[3] + end[3]) / 2)) - Math.abs((b[2] + b[3]) - ((start[2] + end[2] + start[3] + end[3]) / 2)))
+          .slice(0, 3);
+        const points = [start, ...midpoints, end];
+        const miles = Math.round(distanceMiles(start, end) * 1.18);
+        const counties = Math.max(routeStates.length * 2, Math.round(miles / 42));
+        return { start, end, points, routeStates, miles, counties };
+      }
+
+      function routeRecordFromPreview(preview) {
+        const title = `${preview.start[0]} to ${preview.end[0]}`;
+        return makeRecord("route", title, `${preview.start[0]}, ${preview.start[1]} → ${preview.end[0]}, ${preview.end[1]}`, `Planned route from ${preview.start[0]} to ${preview.end[0]}.`, "route,road trip", {
+          summary: `${preview.miles} mile road story across about ${preview.routeStates.length} states and ${preview.counties} counties.`,
+          route_points: preview.points.map((row) => ({ name: row[0], state: row[1], lat: row[2], lon: row[3], kind: row[4] })),
+          route_states: preview.routeStates,
+          route_counties_estimate: preview.counties,
+          route_distance_estimate: preview.miles,
+        });
+      }
+
       function inferPlaceFromText(text) {
         const lower = (text || "").toLowerCase();
         const matches = destinationRows
@@ -334,6 +408,10 @@ const pages = [
           journey_id: extra.journey_id || "default-journey",
           source: extra.source || "user",
           export_ready: (extra.visibility || "Private").includes("candidate"),
+          route_points: extra.route_points || [],
+          route_states: extra.route_states || [],
+          route_counties_estimate: extra.route_counties_estimate || null,
+          route_distance_estimate: extra.route_distance_estimate || null,
         };
       }
 
@@ -499,20 +577,40 @@ const pages = [
         const filtered = filterRecords(records, selected);
         const map = document.querySelector("#memoryMap");
         const located = filtered.filter((r) => r.lat && r.lon);
+        const routeRecords = (selected === "All" || selected === "Trip Routes") ? records.filter((r) => r.type === "route" && r.route_points?.length >= 2) : [];
+        const visitedRecords = (selected === "All" || selected === "Visited Places") ? records.filter((r) => r.type === "visited" && r.lat && r.lon) : [];
         const showStock = selected === "Destination stock";
         const stock = showStock ? destinationRows.filter((row) => row[2] && row[3]) : [];
-        map.innerHTML = stock
+        const routeSvg = routeRecords.length
+          ? `<svg class="route-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${routeRecords.map((record) => {
+              const points = record.route_points.map((point) => projectPoint(point.lat, point.lon)).map((point) => `${point.x},${point.y}`).join(" ");
+              return `<polyline points="${points}" />`;
+            }).join("")}</svg>`
+          : "";
+        map.innerHTML = routeSvg + stock
           .map((row) => {
-            const x = Math.max(4, Math.min(96, ((row[3] + 170) / 105) * 100));
-            const y = Math.max(5, Math.min(94, ((72 - row[2]) / 48) * 100));
+            const { x, y } = projectPoint(row[2], row[3]);
             const label = `${row[0]}, ${row[1]}`;
             return `<button class="pin stock-pin" data-place="${label}" style="left:${x}%;top:${y}%"><span><strong>${row[0]}</strong><br>${row[1]}<br>${row[4]}<br><em>Click to open Understand.</em></span></button>`;
           })
           .join("") +
+          visitedRecords
+          .map((r) => {
+            const { x, y } = projectPoint(r.lat, r.lon);
+            return `<button class="pin visited-pin" data-title="${escapeHtml(r.title)}" aria-label="Open ${escapeHtml(r.title)} in Library" style="left:${x}%;top:${y}%"><span><strong>${escapeHtml(r.title)}</strong><br>${escapeHtml(r.place || "Visited place")}<br>${escapeHtml(r.summary || "Private travel stamp")}<br><em>Open details in Library.</em></span></button>`;
+          })
+          .join("") +
+          routeRecords
+          .flatMap((record) => record.route_points.map((point, index) => ({ record, point, index })))
+          .map(({ record, point, index }) => {
+            const { x, y } = projectPoint(point.lat, point.lon);
+            return `<button class="pin route-pin" data-title="${escapeHtml(record.title)}" aria-label="${escapeHtml(point.name)} on ${escapeHtml(record.title)}" style="left:${x}%;top:${y}%"><span><strong>${escapeHtml(point.name)}</strong><br>${escapeHtml(point.state)}<br>${index === 0 ? "Start" : index === record.route_points.length - 1 ? "Destination" : "Road prompt"}<br>${escapeHtml(record.summary || "")}</span></button>`;
+          })
+          .join("") +
           located
+          .filter((r) => r.type !== "route" && r.type !== "visited")
           .map((r, index) => {
-            const x = Math.max(4, Math.min(96, ((r.lon + 170) / 105) * 100));
-            const y = Math.max(5, Math.min(94, ((72 - r.lat) / 48) * 100));
+            const { x, y } = projectPoint(r.lat, r.lon);
             return `<button class="pin user-pin" data-title="${escapeHtml(r.title)}" aria-label="Open ${escapeHtml(r.title)} in Library" style="left:${x}%;top:${y}%"><span><strong>${escapeHtml(r.title)}</strong><br>${escapeHtml(r.place || "No place")}<br>${escapeHtml(r.type)}<br>${escapeHtml((r.summary || "").slice(0, 120))}<br><em>Open details in Library.</em></span></button>`;
           })
           .join("");
@@ -522,13 +620,14 @@ const pages = [
             setPage("understand");
           });
         });
-        map.querySelectorAll(".user-pin").forEach((pin) => pin.addEventListener("click", () => {
+        map.querySelectorAll(".user-pin,.visited-pin,.route-pin").forEach((pin) => pin.addEventListener("click", () => {
           document.querySelector("#librarySearch").value = pin.dataset.title;
           setPage("library");
         }));
         const missing = filtered.filter((r) => !r.lat || !r.lon);
-        document.querySelector("#mapRecordList").innerHTML = located.length
-          ? `<h3>Mapped private records</h3>${located.map((r) => `<button class="map-list-item" data-title="${escapeHtml(r.title)}"><strong>${escapeHtml(r.title)}</strong><span>${escapeHtml(r.place || "No place")} · ${escapeHtml(r.type)}</span></button>`).join("")}`
+        const visibleList = [...routeRecords, ...visitedRecords, ...located.filter((r) => r.type !== "route" && r.type !== "visited")];
+        document.querySelector("#mapRecordList").innerHTML = visibleList.length
+          ? `<h3>Mapped private records</h3>${visibleList.map((r) => `<button class="map-list-item" data-title="${escapeHtml(r.title)}"><strong>${escapeHtml(r.title)}</strong><span>${escapeHtml(r.place || "No place")} · ${escapeHtml(r.type)}${r.route_states?.length ? ` · ${r.route_states.length} states` : ""}</span></button>`).join("")}`
           : `<article class="note"><p>No private records match this filter yet.</p></article>`;
         document.querySelectorAll(".map-list-item").forEach((button) => button.addEventListener("click", () => {
           document.querySelector("#librarySearch").value = button.dataset.title;
@@ -542,6 +641,8 @@ const pages = [
 
       function filterRecords(records, selected) {
         const map = {
+          "Trip Routes": "route",
+          "Visited Places": "visited",
           Questions: "question",
           Observations: "observation",
           Food: "food",
@@ -595,17 +696,96 @@ const pages = [
         document.querySelector("#exportRecord").innerHTML = records.map((r) => `<option value="${r.id}">${r.title} | ${r.place} | ${r.type}</option>`).join("");
       }
 
+      function renderStateProgress() {
+        const target = document.querySelector("#stateProgress");
+        if (!target) return;
+        const data = journeyPortraitData();
+        const byState = {};
+        loadRecords().forEach((record) => {
+          const states = record.type === "route" ? record.route_states || [] : [record.state || lookup(record.place)[1]];
+          states.forEach((state) => {
+            if (!state || state === "Multi-state") return;
+            byState[state] ||= { passed: 0, stopped: 0, stayed: 0, meaningful: 0 };
+            const level = String(record.summary || record.tags || "").toLowerCase();
+            if (level.includes("meaningful")) byState[state].meaningful += 1;
+            else if (level.includes("overnight")) byState[state].stayed += 1;
+            else if (level.includes("stopped")) byState[state].stopped += 1;
+            else byState[state].passed += 1;
+          });
+        });
+        const rows = Object.entries(byState).sort(([a], [b]) => a.localeCompare(b));
+        target.innerHTML = `<div class="progress-hero"><strong>${data.states.length}/50 states</strong><span>${data.percent.toFixed(1)}% of the U.S. state map touched</span></div>${rows.length ? `<div class="state-grid">${rows.map(([state, counts]) => {
+          const level = counts.meaningful ? "Meaningful memory" : counts.stayed ? "Stayed overnight" : counts.stopped ? "Stopped there" : "Passed through";
+          const className = counts.meaningful ? "level-4" : counts.stayed ? "level-3" : counts.stopped ? "level-2" : "level-1";
+          return `<span class="state-chip ${className}"><strong>${escapeHtml(state)}</strong><em>${level}</em></span>`;
+        }).join("")}</div>` : `<p class="small">Add one visited place or route to start filling the map.</p>`}`;
+      }
+
+      function setMapMode(mode) {
+        const safeMode = ["route", "visited", "live"].includes(mode) ? mode : "route";
+        document.querySelectorAll(".map-mode").forEach((button) => button.classList.toggle("active", button.dataset.mapMode === safeMode));
+        document.querySelector("#routePanel").hidden = safeMode !== "route";
+        document.querySelector("#visitedPanel").hidden = safeMode !== "visited";
+        document.querySelector("#livePanel").hidden = safeMode !== "live";
+        document.querySelector("#mapFilter").value = safeMode === "route" ? "Trip Routes" : safeMode === "visited" ? "Visited Places" : "All";
+        renderMap();
+        renderStateProgress();
+        if (safeMode === "live") renderBoundaryPreview();
+      }
+
+      function drawRouteFromInputs(save = false) {
+        const start = document.querySelector("#routeStart").value.trim();
+        const end = document.querySelector("#routeEnd").value.trim();
+        const target = document.querySelector("#routeSummary");
+        const preview = routePreview(start, end);
+        if (!preview) {
+          target.innerHTML = `<article class="note"><h3>Type two recognizable places.</h3><p>Try “Chicago, Illinois” and “Nashville, Tennessee.”</p></article>`;
+          return null;
+        }
+        target.innerHTML = `<article class="route-result"><div class="eyebrow">Road story preview</div><h3>${escapeHtml(preview.start[0])} → ${escapeHtml(preview.end[0])}</h3><div class="route-metrics"><span><strong>${preview.miles}</strong> estimated miles</span><span><strong>${preview.routeStates.length}</strong> states</span><span><strong>${preview.counties}</strong> county moments</span></div><p><strong>States you may touch:</strong> ${preview.routeStates.map(escapeHtml).join(", ")}</p><p><strong>Watch for:</strong> changes in radio stations, school colors, roadside food, warehouse edges, church signs, courthouse towns, and how the highway bypasses or feeds older main streets.</p><p class="small">This is a high-level road preview, not navigation or routing advice.</p></article>`;
+        if (save) {
+          const records = loadRecords();
+          records.unshift(routeRecordFromPreview(preview));
+          saveRecords(records);
+          document.querySelector("#routeSummary").insertAdjacentHTML("afterbegin", `<article class="save-confirmation"><h3>Route saved to your private map.</h3><p>The map now shows a simple road-story line for this trip.</p></article>`);
+        }
+        return preview;
+      }
+
+      function markVisitedPlace() {
+        const place = document.querySelector("#visitedPlace").value.trim();
+        const level = document.querySelector("#visitedLevel").value;
+        const found = lookup(place);
+        if (!place || !found[2]) {
+          document.querySelector("#stateProgress").innerHTML = `<article class="note"><h3>Choose a mapped place.</h3><p>Try a city, national park, or road corridor from the suggestions.</p></article>`;
+          return;
+        }
+        const canonical = `${found[0]}${found[1] ? ", " + found[1] : ""}`;
+        const records = loadRecords();
+        records.unshift(makeRecord("visited", canonical, canonical, `${level}: ${canonical}`, "visited,collection", {
+          summary: level,
+          visibility: "Private",
+        }));
+        saveRecords(records);
+        document.querySelector("#visitedPlace").value = "";
+        renderStateProgress();
+      }
+
       function renderAll() {
         renderMap();
         renderLibrary();
         renderExportOptions();
         renderJourneyPortrait();
+        renderStateProgress();
       }
 
       document.querySelector("#nav").innerHTML = pages.map(([id, label]) => `<button class="nav-btn" data-page="${id}">${label}</button>`).join("");
       const mobilePages = ["ask", "capture", "map", "library", "home"].map((id) => pages.find(([pageId]) => pageId === id));
       document.querySelector("#bottomNav").innerHTML = mobilePages.map(([id, label]) => `<button class="bottom-nav-btn" data-page="${id}"><span aria-hidden="true">${{home:"⌂",ask:"?",capture:"●",map:"◇",library:"▤"}[id]}</span>${label.replace("Memory ", "")}</button>`).join("");
-      document.querySelectorAll("[data-page], [data-go]").forEach((btn) => btn.addEventListener("click", () => setPage(btn.dataset.page || btn.dataset.go)));
+      document.querySelectorAll("[data-page], [data-go]").forEach((btn) => btn.addEventListener("click", () => {
+        setPage(btn.dataset.page || btn.dataset.go);
+        if (btn.dataset.mapMode) setMapMode(btn.dataset.mapMode);
+      }));
       document.querySelector("#menuButton").addEventListener("click", () => document.querySelector("#sidebar").classList.toggle("open"));
       fillSelect("#briefLens", lenses);
       fillSelect("#askLens", ["General curiosity", "Local history", "Economy", "Religion and civic life", "Race and community", "Agriculture", "Food culture", "Urban design", "Sports and identity", "Transportation", "Nature and landscape"]);
@@ -796,6 +976,19 @@ const pages = [
       });
 
       document.querySelector("#mapFilter").addEventListener("change", renderMap);
+      document.querySelectorAll(".map-mode").forEach((button) => button.addEventListener("click", () => setMapMode(button.dataset.mapMode)));
+      document.querySelector("#drawRoute").addEventListener("click", () => {
+        const preview = drawRouteFromInputs(false);
+        if (!preview) return;
+        const tempRecord = routeRecordFromPreview(preview);
+        const stored = loadRecords();
+        localStorage.setItem(storeKey, JSON.stringify([tempRecord, ...stored]));
+        renderMap();
+        localStorage.setItem(storeKey, JSON.stringify(stored));
+      });
+      document.querySelector("#saveRoute").addEventListener("click", () => drawRouteFromInputs(true));
+      document.querySelector("#markVisited").addEventListener("click", markVisitedPlace);
+      document.querySelector("#shareTravelMap").addEventListener("click", shareJourneyPortrait);
       document.querySelector("#previewBoundary")?.addEventListener("click", renderBoundaryPreview);
       document.querySelector("#libraryFilter").addEventListener("change", renderLibrary);
       document.querySelector("#librarySearch").addEventListener("input", renderLibrary);
