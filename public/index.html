@@ -3,12 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#173a2d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Waymark U.S." />
     <title>Waymark U.S.</title>
     <meta
       name="description"
       content="Waymark U.S. is a private AI field journal for curious travelers. Understand what you see. Remember what you notice."
     />
-    <link rel="stylesheet" href="style.css?v=waymarkus-stock-20260604" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="assets/waymark-icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css?v=waymarkus-roadmap-20260618" />
   </head>
   <body>
     <button class="btn mobile-menu" id="menuButton">Menu</button>
@@ -22,15 +28,49 @@
 
       <main>
         <section class="page active" id="home">
-          <div class="hero">
-            <div class="eyebrow">A private AI field journal</div>
-            <h1>Waymark U.S.</h1>
-            <h2>Understand what you see.<br />Remember what you notice.</h2>
-            <p>
-              Waymark helps curious travelers read a place before arriving, ask better questions while there,
-              and turn rough road notes into maps, comparisons, essays, and reflections after the trip.
-            </p>
+          <div class="simple-start">
+            <div class="eyebrow">Start here</div>
+            <h1>Your road map starts here.</h1>
+            <h2>Understand the road. Keep the places.</h2>
+            <p class="simple-copy">Open the app, choose one simple action, and let the map become a record of the places you passed, asked about, and remembered.</p>
+            <div class="start-grid" aria-label="Three ways to use Waymark">
+              <article class="start-card route-card">
+                <div class="start-icon">↗</div>
+                <div class="eyebrow">Before you go</div>
+                <h3>Plan a road trip</h3>
+                <p>Enter a start and destination. Waymark estimates the states and county moments you may cross, then gives you road prompts.</p>
+                <button class="btn gold" data-go="map" data-map-mode="route">Plan a Route</button>
+              </article>
+              <article class="start-card stamp-card">
+                <div class="start-icon">◇</div>
+                <div class="eyebrow">After or during</div>
+                <h3>Mark places I’ve been</h3>
+                <p>Tap cities, parks, or road corridors to build your own U.S. map. Watch states fill in as your journey grows.</p>
+                <button class="btn" data-go="map" data-map-mode="visited">Open My Map</button>
+              </article>
+              <article class="start-card live-card">
+                <div class="start-icon">●</div>
+                <div class="eyebrow">On the road</div>
+                <h3>Where am I?</h3>
+                <p>Use a safe one-tap preview to see a boundary moment and turn the place you are passing through into a note.</p>
+                <button class="btn light" data-go="map" data-map-mode="live">Show Current Place</button>
+              </article>
+            </div>
+            <div class="how-strip">
+              <strong>1. Choose a mode</strong><span>→</span><strong>2. Add places</strong><span>→</span><strong>3. See your U.S. map grow</strong>
+            </div>
           </div>
+          <div class="hero secondary-hero">
+            <div class="eyebrow">A real-world noticing app for travel</div>
+            <h1>Notice. Ask. Remember.</h1>
+            <h2>Travel to understand,<br />not just to visit.</h2>
+            <p>
+              See something that makes you curious? Ask what it might reveal about the place, save your observation,
+              and build a private map of what you noticed.
+            </p>
+            <div class="hero-actions"><button class="btn gold" data-go="ask">Ask about what I’m seeing</button><button class="btn light" data-go="capture">Capture a field note</button><button class="hero-link" data-go="understand">Generate a place brief</button></div>
+          </div>
+          <div class="core-flow" aria-label="How Waymark works"><strong>Notice something</strong><span>→</span><strong>Ask what it might mean</strong><span>→</span><strong>Save it</strong><span>→</span><strong>Map it</strong><span>→</span><strong>Synthesize the journey</strong></div>
           <div class="quick-capture" aria-label="Quick capture">
             <article class="quick-card primary">
               <div class="eyebrow">One-tap field capture</div>
@@ -48,16 +88,23 @@
                 <button class="btn light" id="homeSave">Save Private Note</button>
                 <span class="small" id="homeVoiceStatus">Ready. Your notes stay in this browser unless you export them.</span>
               </div>
+              <div class="output" id="homeQuickOutput" aria-live="polite"></div>
             </article>
             <article class="quick-card">
-              <div class="eyebrow">Read-only public app</div>
-              <h3>External visitors can use it, but cannot modify the service.</h3>
+              <div class="eyebrow">Private workspace</div>
+              <h3>Your journey starts with a blank, private notebook.</h3>
               <p>
-                This public version is a static web app. It has no public posting endpoint, no shared database,
-                no account system, and no server-side write access. Each visitor’s notes stay local to their own browser.
+                Notes stay on this device unless you deliberately share or export them. Ask uses online public sources,
+                while Capture and Library remain useful without a connection in the iOS app.
               </p>
             </article>
           </div>
+          <div class="panel sample-panel">
+            <div class="eyebrow">Try it in under 30 seconds</div>
+            <h3>I’m in Louisville and I’m seeing bourbon everywhere. Why is bourbon so tied to Kentucky?</h3>
+            <button class="btn sample-question" data-place="Louisville, Kentucky" data-question="I’m in Louisville and I’m seeing bourbon everywhere. Why is bourbon so tied to Kentucky?">Try this example</button>
+          </div>
+          <div class="journey-portrait" id="homeJourneyPortrait" aria-live="polite"></div>
           <div class="panel">
             <div class="grid">
               <article class="card">
@@ -83,11 +130,15 @@
               Not an audio tour. Not a trip planner. Not a route tracker. Waymark helps you notice, ask, compare, and remember.
             </div>
           </div>
+          <div class="panel about-block">
+            <div><div class="eyebrow">Why Waymark</div><h3>ChatGPT answers one question. Waymark remembers the whole journey.</h3><p>Waymark is for people who travel to understand, not just to visit. It turns real-world noticing into a private map of questions, observations, and reflections.</p></div>
+            <div><div class="eyebrow">Coming later: Memory World</div><h3>Your journey, rebuilt as a memory space.</h3><p>A future spatial archive of places, questions, and reflections: first a Memory Board, later a 3D Memory Walk. It will help you revisit the real world, not escape it.</p></div>
+          </div>
         </section>
 
         <section class="page" id="understand">
           <h2>Understand a Place</h2>
-          <p class="small">Get oriented before you arrive. This is a “How to read this place” brief, not a tourist checklist.</p>
+          <p class="small">Get oriented before you arrive. Every suggested destination is researched from current official and public reference sources; Waymark does not substitute a generic city template.</p>
           <div class="panel">
             <div class="field"><label>Destination</label><input id="briefDestination" list="destinationOptions" placeholder="Boston, MA or Nashville, TN" /></div>
             <div class="field"><label>Lens</label><select id="briefLens"></select></div>
@@ -98,15 +149,17 @@
         </section>
 
         <section class="page" id="ask">
-          <h2>Ask About What I’m Seeing</h2>
-          <p class="small">Use cautious hypotheses. Waymark helps you think, not pretend certainty.</p>
+          <h2>Ask about what I’m seeing</h2>
+          <p class="small">Turn a strange, interesting, or confusing scene into better questions and possible explanations.</p>
           <div class="panel">
-            <div class="field"><label>Current place</label><input id="askPlace" list="destinationOptions" placeholder="Chicago, IL" /></div>
+            <div class="field"><label>Where are you?</label><input id="askPlace" list="destinationOptions" placeholder="Chicago, IL" /></div>
             <div class="field"><label>What are you seeing?</label><textarea id="askObservation" placeholder="I’m seeing a lot of churches and empty storefronts. What might explain that?"></textarea></div>
             <div class="field"><label>Lens</label><select id="askLens"></select></div>
             <button class="btn" id="askWaymark">Ask Waymark</button>
+            <p class="small ask-status" id="askStatus" aria-live="polite"></p>
             <div class="output" id="askOutput"></div>
           </div>
+          <div class="panel"><div class="eyebrow">Try a sample</div><div class="sample-grid" id="askSamples"></div></div>
         </section>
 
         <section class="page" id="capture">
@@ -132,17 +185,61 @@
         </section>
 
         <section class="page" id="map">
-          <h2>Memory Map</h2>
-          <p class="small">Map what you noticed, not just where you went.</p>
+          <h2>My U.S. Travel Map</h2>
+          <p class="small">Collect the roads and places you have touched. Waymark can show a simple route line, a visited-place stamp map, and private field notes on one map.</p>
+          <div class="map-mode-tabs" role="tablist" aria-label="Map modes">
+            <button class="map-mode active" data-map-mode="route">Plan route</button>
+            <button class="map-mode" data-map-mode="visited">Mark visited</button>
+            <button class="map-mode" data-map-mode="live">Where am I?</button>
+          </div>
+          <div class="trip-planner-panel" id="routePanel">
+            <div>
+              <div class="eyebrow">Route Mode</div>
+              <h3>Draw the road story before you go.</h3>
+              <p>Type a start and destination. This is a simple preview, not turn-by-turn navigation.</p>
+            </div>
+            <div class="grid two">
+              <div class="field"><label>Start</label><input id="routeStart" list="destinationOptions" placeholder="Chicago, Illinois" /></div>
+              <div class="field"><label>Destination</label><input id="routeEnd" list="destinationOptions" placeholder="Nashville, Tennessee" /></div>
+            </div>
+            <div class="toolbar"><button class="btn" id="drawRoute">Draw Route</button><button class="btn secondary" id="saveRoute">Save Route</button></div>
+            <div class="route-summary" id="routeSummary" aria-live="polite"></div>
+          </div>
+          <div class="trip-planner-panel" id="visitedPanel" hidden>
+            <div>
+              <div class="eyebrow">Collection Mode</div>
+              <h3>Tap places you have been.</h3>
+              <p>Think of it as a private stamp rally: cities, parks, and road corridors become your personal U.S. map.</p>
+            </div>
+            <div class="grid two">
+              <div class="field"><label>Add a place</label><input id="visitedPlace" list="destinationOptions" placeholder="Grand Canyon National Park, Arizona" /></div>
+              <div class="field"><label>Memory level</label><select id="visitedLevel"><option>Passed through</option><option>Stopped there</option><option>Stayed overnight</option><option>Meaningful memory</option></select></div>
+            </div>
+            <div class="toolbar"><button class="btn" id="markVisited">Mark Visited</button><button class="btn secondary" id="shareTravelMap">Create Share Card</button></div>
+            <div class="state-progress" id="stateProgress" aria-live="polite"></div>
+          </div>
+          <div class="boundary-intro" id="livePanel" hidden>
+            <div>
+              <div class="eyebrow">Boundary Moments</div>
+              <h3>A border becomes a prompt to understand.</h3>
+              <p>On iPhone, optional Journey Mode can recognize a new state or county while the app is in use. Your raw location is not uploaded by this feature.</p>
+            </div>
+            <button class="btn secondary" id="previewBoundary">Preview a Boundary Moment</button>
+          </div>
+          <div class="boundary-moment" id="boundaryPreview" hidden aria-live="polite"></div>
           <div class="field"><label>Filter</label><select id="mapFilter"></select></div>
           <div class="map" id="memoryMap"></div>
+          <div class="map-record-list" id="mapRecordList"></div>
           <div class="output" id="needsLocation"></div>
+          <div class="journey-portrait" id="mapJourneyPortrait"></div>
         </section>
 
         <section class="page" id="synthesize">
-          <h2>Synthesize My Journey</h2>
-          <p class="small">Turn scattered road notes into patterns.</p>
+          <h2>What did this trip teach me?</h2>
+          <p class="small">Turn scattered road notes into patterns, questions, and reflections. A single answer fades. A journey becomes a pattern.</p>
           <div class="panel">
+            <div class="grid two"><div class="field"><label>From</label><input type="date" id="synthesisFrom" /></div><div class="field"><label>To</label><input type="date" id="synthesisTo" /></div></div>
+            <div class="field"><label>Places, optional</label><input id="synthesisPlaces" placeholder="Chicago, Louisville" /></div>
             <div class="field"><label>Synthesis type</label><select id="synthesisType"></select></div>
             <button class="btn" id="runSynthesis">Synthesize</button>
             <div class="output" id="synthesisOutput"></div>
@@ -163,16 +260,37 @@
           <h2>Export</h2>
           <p class="small">Turn selected field notes into something you can use. Public drafts require manual review.</p>
           <div class="panel">
-            <div class="field"><label>Record</label><select id="exportRecord"></select></div>
+            <div class="field"><label>Selected field notes</label><select id="exportRecord" multiple size="6"></select><span class="small">Choose one or more notes.</span></div>
             <div class="field"><label>Export type</label><select id="exportType"></select></div>
             <button class="btn" id="createExport">Create Draft</button>
             <div class="output" id="exportOutput"></div>
+            <div class="toolbar export-actions" hidden>
+              <button class="btn" id="shareExport">Share Draft</button>
+              <button class="btn secondary" id="copyExport">Copy Draft</button>
+            </div>
           </div>
         </section>
       </main>
     </div>
     <datalist id="destinationOptions"></datalist>
 
-    <script src="app.js?v=waymarkus-stock-20260604"></script>
+    <div class="offline-banner" id="offlineBanner" hidden>You are offline. Capture and Library still work on this device.</div>
+    <div class="access-gate" id="accessGate" hidden>
+      <div class="access-card">
+        <div class="eyebrow">Private preview</div>
+        <h2>Waymark U.S. is shared by link or passcode.</h2>
+        <p>This preview is for invited collaborators. Nothing you type here is published, and local notes stay in this browser.</p>
+        <div class="field"><label>Passcode</label><input id="accessCode" type="password" autocomplete="current-password" placeholder="Enter preview passcode" /></div>
+        <button class="btn" id="unlockAccess">Enter Waymark</button>
+        <p class="small" id="accessMessage" aria-live="polite"></p>
+      </div>
+    </div>
+    <nav class="bottom-nav" id="bottomNav" aria-label="Primary mobile navigation"></nav>
+    <footer class="site-footer">
+      <p><strong>Private by default.</strong> Nothing is published from Waymark.</p>
+      <p><a href="support.html">Support</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <button class="text-button" id="deleteLocalData">Delete local data</button></p>
+    </footer>
+
+    <script src="app.js?v=waymarkus-private-preview-20260618"></script>
   </body>
 </html>
