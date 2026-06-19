@@ -305,23 +305,20 @@ const pages = [
         const start = lookup(startValue);
         const end = lookup(endValue);
         if (!start[2] || !end[2]) return null;
-        const routeStates = [];
-        [start[1], end[1]].forEach((state) => {
-          if (state && state !== "Multi-state" && !routeStates.includes(state)) routeStates.push(state);
-        });
         const minLat = Math.min(start[2], end[2]) - 1.7;
         const maxLat = Math.max(start[2], end[2]) + 1.7;
         const minLon = Math.min(start[3], end[3]) - 2.5;
         const maxLon = Math.max(start[3], end[3]) + 2.5;
-        Object.entries(stateCenters).forEach(([state, center]) => {
-          if (center.lat >= minLat && center.lat <= maxLat && center.lon >= minLon && center.lon <= maxLon && !routeStates.includes(state)) routeStates.push(state);
-        });
         const midpoints = destinationRows
           .filter((row) => row[4] === "city" && row[2] >= minLat && row[2] <= maxLat && row[3] >= minLon && row[3] <= maxLon)
           .filter((row) => row[0] !== start[0] && row[0] !== end[0])
           .sort((a, b) => Math.abs((a[2] + a[3]) - ((start[2] + end[2] + start[3] + end[3]) / 2)) - Math.abs((b[2] + b[3]) - ((start[2] + end[2] + start[3] + end[3]) / 2)))
           .slice(0, 3);
         const points = [start, ...midpoints, end];
+        const routeStates = [];
+        points.forEach((point) => {
+          if (point[1] && point[1] !== "Multi-state" && !routeStates.includes(point[1])) routeStates.push(point[1]);
+        });
         const miles = Math.round(distanceMiles(start, end) * 1.18);
         const counties = Math.max(routeStates.length * 2, Math.round(miles / 42));
         return { start, end, points, routeStates, miles, counties };
