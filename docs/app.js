@@ -91,6 +91,68 @@ const pages = [
         ["I-95 Northeast Corridor", "Multi-state", 39.5, -75.8, "interstate corridor"], ["I-90 Northern Corridor", "Multi-state", 43.5, -94.5, "interstate corridor"], ["I-80 Transcontinental Corridor", "Multi-state", 41.5, -101.0, "interstate corridor"], ["I-40 Southern Corridor", "Multi-state", 35.2, -95.0, "interstate corridor"], ["I-10 Sun Belt Corridor", "Multi-state", 30.2, -100.5, "interstate corridor"], ["I-5 Pacific Corridor", "Multi-state", 40.0, -122.2, "interstate corridor"], ["I-35 Central Corridor", "Multi-state", 37.0, -97.0, "interstate corridor"], ["I-70 Mountain-to-Plains Corridor", "Multi-state", 39.4, -99.0, "interstate corridor"],
       ];
 
+      const supplementalDestinationRows = [
+        ["Tuscaloosa", "Alabama", 33.2098, -87.5692, "college town"], ["Auburn", "Alabama", 32.6099, -85.4808, "college town"], ["Dothan", "Alabama", 31.2232, -85.3905, "city"], ["Florence", "Alabama", 34.7998, -87.6773, "city"], ["University of Alabama", "Alabama", 33.214, -87.5458, "university"], ["Bryant-Denny Stadium", "Alabama", 33.2083, -87.5504, "stadium"], ["Auburn University", "Alabama", 32.5934, -85.4952, "university"],
+        ["Fairbanks", "Alaska", 64.8378, -147.7164, "city"], ["Sitka", "Alaska", 57.0531, -135.33, "city"], ["National Park of American Samoa", "American Samoa", -14.2583, -170.6833, "national park"],
+        ["Prescott", "Arizona", 34.5400, -112.4685, "city"], ["Tempe", "Arizona", 33.4255, -111.94, "college city"], ["Scottsdale", "Arizona", 33.4942, -111.9261, "city"], ["Arizona State University", "Arizona", 33.4242, -111.9281, "university"], ["Monument Valley", "Arizona", 36.998, -110.0985, "landmark"], ["Hoover Dam", "Nevada", 36.0161, -114.7377, "landmark"],
+        ["Jonesboro", "Arkansas", 35.8423, -90.7043, "city"], ["Bentonville", "Arkansas", 36.3729, -94.2088, "city"], ["Eureka Springs", "Arkansas", 36.4012, -93.7379, "small town"],
+        ["Long Beach", "California", 33.7701, -118.1937, "city"], ["Oakland", "California", 37.8044, -122.2712, "city"], ["Berkeley", "California", 37.8715, -122.273, "college city"], ["Santa Barbara", "California", 34.4208, -119.6982, "city"], ["Monterey", "California", 36.6002, -121.8947, "city"], ["Palm Springs", "California", 33.8303, -116.5453, "city"], ["Stanford University", "California", 37.4275, -122.1697, "university"], ["Rose Bowl", "California", 34.1613, -118.1676, "stadium"], ["Dodger Stadium", "California", 34.0739, -118.24, "stadium"], ["Golden Gate Bridge", "California", 37.8199, -122.4783, "landmark"], ["Big Sur", "California", 36.2704, -121.8081, "landmark"],
+        ["Fort Collins", "Colorado", 40.5853, -105.0844, "city"], ["Pueblo", "Colorado", 38.2544, -104.6091, "city"], ["Aspen", "Colorado", 39.1911, -106.8175, "mountain town"], ["University of Colorado Boulder", "Colorado", 40.0076, -105.2659, "university"], ["Red Rocks Amphitheatre", "Colorado", 39.6654, -105.2057, "landmark"],
+        ["Stamford", "Connecticut", 41.0534, -73.5387, "city"], ["Mystic", "Connecticut", 41.3543, -71.9665, "coastal town"], ["Yale University", "Connecticut", 41.3163, -72.9223, "university"],
+        ["Rehoboth Beach", "Delaware", 38.7209, -75.076, "coastal town"], ["University of Delaware", "Delaware", 39.678, -75.7527, "university"],
+        ["St. Augustine", "Florida", 29.9012, -81.3124, "historic city"], ["Tallahassee", "Florida", 30.4383, -84.2807, "city"], ["Gainesville", "Florida", 29.6516, -82.3248, "college city"], ["Key West", "Florida", 24.5551, -81.78, "island city"], ["University of Florida", "Florida", 29.6436, -82.3549, "university"], ["Doak Campbell Stadium", "Florida", 30.4381, -84.3044, "stadium"], ["Walt Disney World", "Florida", 28.3772, -81.5707, "landmark"],
+        ["Augusta", "Georgia", 33.4735, -82.0105, "city"], ["Macon", "Georgia", 32.8407, -83.6324, "city"], ["Marietta", "Georgia", 33.9526, -84.5499, "city"], ["University of Georgia", "Georgia", 33.948, -83.3773, "university"], ["Sanford Stadium", "Georgia", 33.9498, -83.3739, "stadium"],
+        ["Kailua-Kona", "Hawaii", 19.64, -155.9969, "town"], ["Lahaina", "Hawaii", 20.8783, -156.6825, "historic town"], ["Pearl Harbor National Memorial", "Hawaii", 21.365, -157.95, "historic site"],
+        ["Moscow", "Idaho", 46.7324, -117.0002, "college town"], ["Twin Falls", "Idaho", 42.5629, -114.4609, "city"], ["Sun Valley", "Idaho", 43.6971, -114.3517, "mountain town"],
+        ["Champaign", "Illinois", 40.1164, -88.2434, "college city"], ["Urbana", "Illinois", 40.1106, -88.2073, "college city"], ["Evanston", "Illinois", 42.0451, -87.6877, "college city"], ["University of Illinois Urbana-Champaign", "Illinois", 40.102, -88.2272, "university"], ["Wrigley Field", "Illinois", 41.9484, -87.6553, "stadium"],
+        ["South Bend", "Indiana", 41.6764, -86.252, "city"], ["West Lafayette", "Indiana", 40.4259, -86.9081, "college town"], ["Terre Haute", "Indiana", 39.4667, -87.4139, "city"], ["University of Notre Dame", "Indiana", 41.7056, -86.2353, "university"], ["Purdue University", "Indiana", 40.4237, -86.9212, "university"], ["Notre Dame Stadium", "Indiana", 41.6984, -86.2339, "stadium"], ["Indianapolis Motor Speedway", "Indiana", 39.795, -86.2344, "landmark"],
+        ["Ames", "Iowa", 42.0308, -93.6319, "college town"], ["Davenport", "Iowa", 41.5236, -90.5776, "city"], ["Iowa State University", "Iowa", 42.0266, -93.6465, "university"], ["Kinnick Stadium", "Iowa", 41.6587, -91.5511, "stadium"],
+        ["Manhattan", "Kansas", 39.1836, -96.5717, "college town"], ["Salina", "Kansas", 38.8403, -97.6114, "city"], ["Kansas State University", "Kansas", 39.1974, -96.5847, "university"],
+        ["Frankfort", "Kentucky", 38.2009, -84.8733, "city"], ["Berea", "Kentucky", 37.5687, -84.2963, "college town"], ["University of Kentucky", "Kentucky", 38.0307, -84.504, "university"], ["Churchill Downs", "Kentucky", 38.2029, -85.7702, "landmark"],
+        ["Shreveport", "Louisiana", 32.5252, -93.7502, "city"], ["Lake Charles", "Louisiana", 30.2266, -93.2174, "city"], ["Louisiana State University", "Louisiana", 30.414, -91.1789, "university"], ["Tiger Stadium Baton Rouge", "Louisiana", 30.4119, -91.1855, "stadium"],
+        ["Bar Harbor", "Maine", 44.3876, -68.2039, "gateway town"], ["Lewiston", "Maine", 44.1004, -70.2148, "city"],
+        ["Frederick", "Maryland", 39.4143, -77.4105, "city"], ["College Park", "Maryland", 38.9897, -76.9378, "college city"], ["University of Maryland", "Maryland", 38.9869, -76.9426, "university"],
+        ["Springfield", "Massachusetts", 42.1015, -72.5898, "city"], ["Amherst", "Massachusetts", 42.3732, -72.5199, "college town"], ["Harvard University", "Massachusetts", 42.3744, -71.1169, "university"], ["Fenway Park", "Massachusetts", 42.3467, -71.0972, "stadium"],
+        ["Lansing", "Michigan", 42.7325, -84.5555, "city"], ["East Lansing", "Michigan", 42.7369, -84.4839, "college city"], ["Kalamazoo", "Michigan", 42.2917, -85.5872, "city"], ["Michigan State University", "Michigan", 42.7018, -84.4822, "university"], ["Michigan Stadium", "Michigan", 42.2658, -83.7487, "stadium"],
+        ["Rochester", "Minnesota", 44.0121, -92.4802, "city"], ["Mankato", "Minnesota", 44.1636, -93.9994, "city"], ["University of Minnesota", "Minnesota", 44.973, -93.2277, "university"],
+        ["Hattiesburg", "Mississippi", 31.3271, -89.2903, "city"], ["Starkville", "Mississippi", 33.4504, -88.8184, "college town"], ["Mississippi State University", "Mississippi", 33.4552, -88.7944, "university"], ["University of Mississippi", "Mississippi", 34.3657, -89.5384, "university"],
+        ["Branson", "Missouri", 36.6437, -93.2185, "tourism town"], ["Springfield", "Missouri", 37.209, -93.2923, "city"], ["University of Missouri", "Missouri", 38.9404, -92.3277, "university"], ["Busch Stadium", "Missouri", 38.6226, -90.1928, "stadium"],
+        ["Helena", "Montana", 46.5891, -112.0391, "city"], ["Kalispell", "Montana", 48.1917, -114.3168, "gateway city"],
+        ["Kearney", "Nebraska", 40.6995, -99.0817, "city"], ["Scottsbluff", "Nebraska", 41.8666, -103.6672, "city"], ["Chimney Rock National Historic Site", "Nebraska", 41.7033, -103.348, "historic site"],
+        ["Carson City", "Nevada", 39.1638, -119.7674, "city"], ["Lake Tahoe", "Nevada", 39.0968, -120.0324, "landmark"],
+        ["Concord", "New Hampshire", 43.2081, -71.5376, "city"], ["Dartmouth College", "New Hampshire", 43.7044, -72.2887, "university"],
+        ["Atlantic City", "New Jersey", 39.3643, -74.4229, "city"], ["Rutgers University", "New Jersey", 40.5008, -74.4474, "university"],
+        ["Roswell", "New Mexico", 33.3943, -104.523, "city"], ["Silver City", "New Mexico", 32.7701, -108.2803, "small town"], ["University of New Mexico", "New Mexico", 35.0843, -106.6198, "university"],
+        ["Syracuse", "New York", 43.0481, -76.1474, "city"], ["Ithaca", "New York", 42.443, -76.5019, "college town"], ["West Point", "New York", 41.3915, -73.9559, "military academy"], ["Cornell University", "New York", 42.4534, -76.4735, "university"], ["Yankee Stadium", "New York", 40.8296, -73.9262, "stadium"], ["Niagara Falls", "New York", 43.0962, -79.0377, "landmark"],
+        ["Wilmington", "North Carolina", 34.2104, -77.8868, "city"], ["Chapel Hill", "North Carolina", 35.9132, -79.0558, "college town"], ["Boone", "North Carolina", 36.2168, -81.6746, "mountain town"], ["University of North Carolina at Chapel Hill", "North Carolina", 35.9049, -79.0469, "university"], ["Duke University", "North Carolina", 36.0014, -78.9382, "university"],
+        ["Grand Forks", "North Dakota", 47.9253, -97.0329, "city"], ["Medora", "North Dakota", 46.9139, -103.5244, "gateway town"],
+        ["Akron", "Ohio", 41.0814, -81.519, "city"], ["Dayton", "Ohio", 39.7589, -84.1916, "city"], ["Athens", "Ohio", 39.3292, -82.1013, "college town"], ["Ohio State University", "Ohio", 40.0067, -83.0305, "university"], ["Ohio Stadium", "Ohio", 40.0017, -83.0197, "stadium"],
+        ["Stillwater", "Oklahoma", 36.1156, -97.0584, "college town"], ["Lawton", "Oklahoma", 34.6036, -98.3959, "city"], ["Oklahoma State University", "Oklahoma", 36.127, -97.0737, "university"],
+        ["Corvallis", "Oregon", 44.5646, -123.262, "college town"], ["Ashland", "Oregon", 42.1946, -122.7095, "arts town"], ["Oregon State University", "Oregon", 44.5638, -123.2794, "university"],
+        ["State College", "Pennsylvania", 40.7934, -77.86, "college town"], ["Allentown", "Pennsylvania", 40.6023, -75.4714, "city"], ["Lancaster", "Pennsylvania", 40.0379, -76.3055, "city"], ["Penn State University", "Pennsylvania", 40.7982, -77.8599, "university"], ["Beaver Stadium", "Pennsylvania", 40.8122, -77.8561, "stadium"],
+        ["Brown University", "Rhode Island", 41.8268, -71.4025, "university"],
+        ["Myrtle Beach", "South Carolina", 33.6891, -78.8867, "coastal city"], ["Clemson", "South Carolina", 34.6834, -82.8374, "college town"], ["Clemson University", "South Carolina", 34.6776, -82.8367, "university"], ["Williams-Brice Stadium", "South Carolina", 33.973, -81.0192, "stadium"],
+        ["Brookings", "South Dakota", 44.3114, -96.7984, "college town"], ["Mount Rushmore National Memorial", "South Dakota", 43.8791, -103.4591, "landmark"],
+        ["Murfreesboro", "Tennessee", 35.8456, -86.3903, "city"], ["Johnson City", "Tennessee", 36.3134, -82.3535, "city"], ["University of Tennessee", "Tennessee", 35.9544, -83.9295, "university"], ["Neyland Stadium", "Tennessee", 35.955, -83.925, "stadium"],
+        ["Fort Worth", "Texas", 32.7555, -97.3308, "city"], ["Waco", "Texas", 31.5493, -97.1467, "city"], ["Lubbock", "Texas", 33.5779, -101.8552, "city"], ["College Station", "Texas", 30.6279, -96.3344, "college city"], ["University of Texas at Austin", "Texas", 30.2849, -97.7341, "university"], ["Texas A&M University", "Texas", 30.6104, -96.342, "university"], ["Kyle Field", "Texas", 30.6102, -96.34, "stadium"], ["The Alamo", "Texas", 29.4259, -98.4861, "historic site"],
+        ["Ogden", "Utah", 41.223, -111.9738, "city"], ["Logan", "Utah", 41.73698, -111.8338, "college town"], ["Brigham Young University", "Utah", 40.2518, -111.6493, "university"],
+        ["Bennington", "Vermont", 42.8781, -73.1968, "town"], ["Middlebury College", "Vermont", 44.0091, -73.1776, "college"],
+        ["Roanoke", "Virginia", 37.271, -79.9414, "city"], ["Williamsburg", "Virginia", 37.2707, -76.7075, "historic city"], ["Blacksburg", "Virginia", 37.2296, -80.4139, "college town"], ["University of Virginia", "Virginia", 38.0336, -78.5079, "university"], ["Virginia Tech", "Virginia", 37.2284, -80.4234, "university"], ["Colonial Williamsburg", "Virginia", 37.2707, -76.7075, "historic site"],
+        ["Olympia", "Washington", 47.0379, -122.9007, "city"], ["Bellingham", "Washington", 48.7519, -122.4787, "city"], ["University of Washington", "Washington", 47.6553, -122.3035, "university"],
+        ["Shepherdstown", "West Virginia", 39.4301, -77.8042, "small town"],
+        ["La Crosse", "Wisconsin", 43.8138, -91.2519, "city"], ["Eau Claire", "Wisconsin", 44.8113, -91.4985, "city"], ["University of Wisconsin-Madison", "Wisconsin", 43.0766, -89.4125, "university"], ["Lambeau Field", "Wisconsin", 44.5013, -88.0622, "stadium"],
+        ["Laramie", "Wyoming", 41.3114, -105.5911, "college town"], ["Cody", "Wyoming", 44.5263, -109.0565, "gateway town"], ["Devils Tower National Monument", "Wyoming", 44.5902, -104.7146, "landmark"],
+      ];
+
+      supplementalDestinationRows.forEach((row) => {
+        const exists = destinationRows.some((existing) => existing[0].toLowerCase() === row[0].toLowerCase() && existing[1].toLowerCase() === row[1].toLowerCase());
+        if (!exists) destinationRows.push(row);
+      });
+
+      const stateAliases = {
+        al: "alabama", ak: "alaska", az: "arizona", ar: "arkansas", ca: "california", co: "colorado", ct: "connecticut", de: "delaware", fl: "florida", ga: "georgia", hi: "hawaii", id: "idaho", il: "illinois", in: "indiana", ia: "iowa", ks: "kansas", ky: "kentucky", la: "louisiana", me: "maine", md: "maryland", ma: "massachusetts", mi: "michigan", mn: "minnesota", ms: "mississippi", mo: "missouri", mt: "montana", ne: "nebraska", nv: "nevada", nh: "new hampshire", nj: "new jersey", nm: "new mexico", ny: "new york", nc: "north carolina", nd: "north dakota", oh: "ohio", ok: "oklahoma", or: "oregon", pa: "pennsylvania", ri: "rhode island", sc: "south carolina", sd: "south dakota", tn: "tennessee", tx: "texas", ut: "utah", vt: "vermont", va: "virginia", wa: "washington", wv: "west virginia", wi: "wisconsin", wy: "wyoming", dc: "district of columbia"
+      };
+
       const destinations = Object.fromEntries(destinationRows.map((row) => [row[0].toLowerCase(), row]));
       const placeGuides = {
         boston: { teams: "Red Sox, Celtics, Bruins, Patriots regional fandom, Boston Marathon", food: "clam chowder, lobster rolls, roast beef sandwiches, North End cannoli", economy: "universities, hospitals, biotech, finance, port logistics", politics: "Boston/Suffolk County is strongly Democratic; Massachusetts is Democratic-leaning statewide.", anchors: "Freedom Trail, Fenway Park area, Boston Public Library, Boston Harbor, neighborhood squares" },
@@ -278,8 +340,13 @@ const pages = [
 
       function lookup(place) {
         const raw = (place || "").trim();
-        const lower = raw.toLowerCase();
+        const lower = raw.toLowerCase().replace(/,\s*([a-z]{2})\b/g, (_, code) => `, ${stateAliases[code] || code}`);
         if (!lower) return ["Unknown place", "", null, null];
+        const exact = destinationRows.find((row) => {
+          const label = `${row[0]}, ${row[1]}`.toLowerCase();
+          return lower === label || lower === row[0].toLowerCase();
+        });
+        if (exact) return exact;
         for (const key of Object.keys(destinations)) {
           if (lower.includes(key) || key.includes(lower)) return destinations[key];
         }
@@ -816,6 +883,8 @@ const pages = [
       fillSelect("#exportType", exports);
       fillSelect("#synthesisType", syntheses);
       document.querySelector("#destinationOptions").innerHTML = destinationRows
+        .slice()
+        .sort((a, b) => `${a[1]} ${a[0]}`.localeCompare(`${b[1]} ${b[0]}`))
         .map((row) => `<option value="${row[0]}, ${row[1]}">${row[4]}</option>`)
         .join("");
       document.querySelector("#askSamples").innerHTML = sampleQuestions.map(([place, question]) => `<button class="sample-card sample-question" data-place="${escapeHtml(place)}" data-question="${escapeHtml(question)}"><strong>${escapeHtml(place || "A roadside diner")}</strong><span>${escapeHtml(question)}</span></button>`).join("");
