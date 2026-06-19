@@ -114,6 +114,76 @@
           url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80") center / cover;
       }
 
+      .simple-start {
+        padding: clamp(26px, 5vw, 58px);
+        color: white;
+        background:
+          linear-gradient(110deg, rgba(9, 26, 20, .96), rgba(18, 52, 40, .9)),
+          url("https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1800&q=80") center / cover;
+        border: 1px solid rgba(184, 148, 92, .42);
+        box-shadow: var(--shadow);
+      }
+
+      .simple-start h1 {
+        margin-bottom: 8px;
+      }
+
+      .simple-copy {
+        max-width: 760px;
+        color: rgba(255,255,255,.82);
+        font-size: clamp(1.05rem, 2vw, 1.34rem);
+      }
+
+      .start-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 28px;
+      }
+
+      .start-card {
+        display: grid;
+        align-content: start;
+        gap: 12px;
+        min-height: 300px;
+        padding: clamp(20px, 3vw, 30px);
+        color: var(--ink);
+        background: rgba(255,250,241,.94);
+        border: 1px solid rgba(255,255,255,.34);
+      }
+
+      .start-card p {
+        color: var(--muted);
+        margin-top: 0;
+      }
+
+      .start-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        color: white;
+        background: var(--green);
+        border-radius: 50%;
+        font-size: 1.6rem;
+        font-weight: 900;
+      }
+
+      .how-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-top: 20px;
+        padding: 14px 0 0;
+        color: rgba(255,255,255,.84);
+      }
+
+      .secondary-hero {
+        min-height: 520px;
+        margin-top: 24px;
+      }
+
       .eyebrow {
         color: var(--gold);
         text-transform: uppercase;
@@ -351,6 +421,94 @@
         border-left: 4px solid var(--gold);
       }
 
+      .map-mode-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin: 18px 0;
+      }
+
+      .map-mode {
+        min-height: 58px;
+        border: 1px solid var(--line);
+        background: rgba(255,250,241,.92);
+        color: var(--green);
+        font-weight: 900;
+      }
+
+      .map-mode.active {
+        color: white;
+        background: var(--green);
+        border-color: var(--green);
+      }
+
+      .trip-planner-panel {
+        padding: clamp(18px, 3vw, 28px);
+        margin: 16px 0;
+        background: rgba(255,250,241,.94);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .route-summary,
+      .state-progress {
+        margin-top: 14px;
+      }
+
+      .route-result {
+        padding: 20px;
+        border-left: 5px solid var(--gold);
+        background: rgba(255,255,255,.72);
+      }
+
+      .route-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin: 16px 0;
+      }
+
+      .route-metrics span,
+      .progress-hero {
+        padding: 14px;
+        background: rgba(47,111,88,.1);
+        border: 1px solid rgba(47,111,88,.18);
+      }
+
+      .route-metrics strong,
+      .progress-hero strong {
+        display: block;
+        color: var(--green);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.8rem;
+      }
+
+      .state-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .state-chip {
+        display: grid;
+        gap: 2px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,.76);
+      }
+
+      .state-chip em {
+        color: var(--muted);
+        font-size: .82rem;
+        font-style: normal;
+      }
+
+      .state-chip.level-1 { border-left: 6px solid #b7c9bd; }
+      .state-chip.level-2 { border-left: 6px solid #86aa96; }
+      .state-chip.level-3 { border-left: 6px solid #4f8b6e; }
+      .state-chip.level-4 { border-left: 6px solid var(--gold); }
+
       .boundary-moment {
         padding: clamp(24px, 5vw, 44px);
         margin: 18px 0 24px;
@@ -513,6 +671,24 @@
           linear-gradient(135deg, #18221d, #33483d);
       }
 
+      .route-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      .route-layer polyline {
+        fill: none;
+        stroke: #e0bc7e;
+        stroke-width: 1.25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: drop-shadow(0 0 4px rgba(224,188,126,.45));
+      }
+
       .pin {
         position: absolute;
         transform: translate(-50%, -50%);
@@ -537,6 +713,24 @@
         border-color: rgba(47, 111, 88, 0.95);
         box-shadow: 0 0 0 5px rgba(47, 111, 88, 0.18);
         z-index: 2;
+      }
+
+      .visited-pin {
+        width: 20px;
+        height: 20px;
+        background: #ffffff;
+        border-color: var(--gold);
+        box-shadow: 0 0 0 10px rgba(184,148,92,.26);
+        z-index: 4;
+      }
+
+      .route-pin {
+        width: 14px;
+        height: 14px;
+        background: #e0bc7e;
+        border-color: var(--green);
+        box-shadow: 0 0 0 7px rgba(224,188,126,.22);
+        z-index: 3;
       }
 
       .pin span {
@@ -726,7 +920,10 @@
         .grid.two,
         .portrait-stats,
         .boundary-intro,
-        .quick-capture {
+        .quick-capture,
+        .start-grid,
+        .map-mode-tabs,
+        .route-metrics {
           grid-template-columns: 1fr;
         }
 
