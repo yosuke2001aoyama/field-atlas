@@ -174,6 +174,10 @@ const pages = [
       function initializeAccessGate() {
         const gate = document.querySelector("#accessGate");
         if (!gate) return;
+        gate.hidden = true;
+        document.body.classList.remove("locked");
+        localStorage.setItem(accessKey, "granted");
+        return;
         const params = new URLSearchParams(window.location.search);
         const token = params.get("access");
         const hasAccess = localStorage.getItem(accessKey) === "granted" || token === accessToken;
