@@ -14,7 +14,7 @@
     />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/waymark-icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="style.css?v=waymarkus-journey-20260612" />
+    <link rel="stylesheet" href="style.css?v=waymarkus-roadmap-20260618" />
   </head>
   <body>
     <button class="btn mobile-menu" id="menuButton">Menu</button>
@@ -28,7 +28,39 @@
 
       <main>
         <section class="page active" id="home">
-          <div class="hero">
+          <div class="simple-start">
+            <div class="eyebrow">Start here</div>
+            <h1>Waymark U.S.</h1>
+            <h2>Understand the road. Keep the places.</h2>
+            <p class="simple-copy">Open the app, choose one simple action, and let the map become a record of the places you passed, asked about, and remembered.</p>
+            <div class="start-grid" aria-label="Three ways to use Waymark">
+              <article class="start-card route-card">
+                <div class="start-icon">↗</div>
+                <div class="eyebrow">Before you go</div>
+                <h3>Plan a road trip</h3>
+                <p>Enter a start and destination. Waymark estimates the states and county moments you may cross, then gives you road prompts.</p>
+                <button class="btn gold" data-go="map" data-map-mode="route">Plan a Route</button>
+              </article>
+              <article class="start-card stamp-card">
+                <div class="start-icon">◇</div>
+                <div class="eyebrow">After or during</div>
+                <h3>Mark places I’ve been</h3>
+                <p>Tap cities, parks, or road corridors to build your own U.S. map. Watch states fill in as your journey grows.</p>
+                <button class="btn" data-go="map" data-map-mode="visited">Open My Map</button>
+              </article>
+              <article class="start-card live-card">
+                <div class="start-icon">●</div>
+                <div class="eyebrow">On the road</div>
+                <h3>Where am I?</h3>
+                <p>Use a safe one-tap preview to see a boundary moment and turn the place you are passing through into a note.</p>
+                <button class="btn light" data-go="map" data-map-mode="live">Show Current Place</button>
+              </article>
+            </div>
+            <div class="how-strip">
+              <strong>1. Choose a mode</strong><span>→</span><strong>2. Add places</strong><span>→</span><strong>3. See your U.S. map grow</strong>
+            </div>
+          </div>
+          <div class="hero secondary-hero">
             <div class="eyebrow">A real-world noticing app for travel</div>
             <h1>Waymark U.S.</h1>
             <h2>Travel to understand,<br />not just to visit.</h2>
@@ -153,9 +185,40 @@
         </section>
 
         <section class="page" id="map">
-          <h2>Memory Map</h2>
-          <p class="small">Map what you noticed, not just where you went.</p>
-          <div class="boundary-intro">
+          <h2>My U.S. Travel Map</h2>
+          <p class="small">Collect the roads and places you have touched. Waymark can show a simple route line, a visited-place stamp map, and private field notes on one map.</p>
+          <div class="map-mode-tabs" role="tablist" aria-label="Map modes">
+            <button class="map-mode active" data-map-mode="route">Plan route</button>
+            <button class="map-mode" data-map-mode="visited">Mark visited</button>
+            <button class="map-mode" data-map-mode="live">Where am I?</button>
+          </div>
+          <div class="trip-planner-panel" id="routePanel">
+            <div>
+              <div class="eyebrow">Route Mode</div>
+              <h3>Draw the road story before you go.</h3>
+              <p>Type a start and destination. This is a simple preview, not turn-by-turn navigation.</p>
+            </div>
+            <div class="grid two">
+              <div class="field"><label>Start</label><input id="routeStart" list="destinationOptions" placeholder="Chicago, Illinois" /></div>
+              <div class="field"><label>Destination</label><input id="routeEnd" list="destinationOptions" placeholder="Nashville, Tennessee" /></div>
+            </div>
+            <div class="toolbar"><button class="btn" id="drawRoute">Draw Route</button><button class="btn secondary" id="saveRoute">Save Route</button></div>
+            <div class="route-summary" id="routeSummary" aria-live="polite"></div>
+          </div>
+          <div class="trip-planner-panel" id="visitedPanel" hidden>
+            <div>
+              <div class="eyebrow">Collection Mode</div>
+              <h3>Tap places you have been.</h3>
+              <p>Think of it as a private stamp rally: cities, parks, and road corridors become your personal U.S. map.</p>
+            </div>
+            <div class="grid two">
+              <div class="field"><label>Add a place</label><input id="visitedPlace" list="destinationOptions" placeholder="Grand Canyon National Park, Arizona" /></div>
+              <div class="field"><label>Memory level</label><select id="visitedLevel"><option>Passed through</option><option>Stopped there</option><option>Stayed overnight</option><option>Meaningful memory</option></select></div>
+            </div>
+            <div class="toolbar"><button class="btn" id="markVisited">Mark Visited</button><button class="btn secondary" id="shareTravelMap">Create Share Card</button></div>
+            <div class="state-progress" id="stateProgress" aria-live="polite"></div>
+          </div>
+          <div class="boundary-intro" id="livePanel" hidden>
             <div>
               <div class="eyebrow">Boundary Moments</div>
               <h3>A border becomes a prompt to understand.</h3>
@@ -218,6 +281,6 @@
       <p><a href="support.html">Support</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <button class="text-button" id="deleteLocalData">Delete local data</button></p>
     </footer>
 
-    <script src="app.js?v=waymarkus-research-20260615"></script>
+    <script src="app.js?v=waymarkus-roadmap-20260618"></script>
   </body>
 </html>
