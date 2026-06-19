@@ -30,7 +30,7 @@
         <section class="page active" id="home">
           <div class="simple-start">
             <div class="eyebrow">Start here</div>
-            <h1>Waymark U.S.</h1>
+            <h1>Your road map starts here.</h1>
             <h2>Understand the road. Keep the places.</h2>
             <p class="simple-copy">Open the app, choose one simple action, and let the map become a record of the places you passed, asked about, and remembered.</p>
             <div class="start-grid" aria-label="Three ways to use Waymark">
@@ -62,7 +62,7 @@
           </div>
           <div class="hero secondary-hero">
             <div class="eyebrow">A real-world noticing app for travel</div>
-            <h1>Waymark U.S.</h1>
+            <h1>Notice. Ask. Remember.</h1>
             <h2>Travel to understand,<br />not just to visit.</h2>
             <p>
               See something that makes you curious? Ask what it might reveal about the place, save your observation,
@@ -275,12 +275,22 @@
     <datalist id="destinationOptions"></datalist>
 
     <div class="offline-banner" id="offlineBanner" hidden>You are offline. Capture and Library still work on this device.</div>
+    <div class="access-gate" id="accessGate" hidden>
+      <div class="access-card">
+        <div class="eyebrow">Private preview</div>
+        <h2>Waymark U.S. is shared by link or passcode.</h2>
+        <p>This preview is for invited collaborators. Nothing you type here is published, and local notes stay in this browser.</p>
+        <div class="field"><label>Passcode</label><input id="accessCode" type="password" autocomplete="current-password" placeholder="Enter preview passcode" /></div>
+        <button class="btn" id="unlockAccess">Enter Waymark</button>
+        <p class="small" id="accessMessage" aria-live="polite"></p>
+      </div>
+    </div>
     <nav class="bottom-nav" id="bottomNav" aria-label="Primary mobile navigation"></nav>
     <footer class="site-footer">
       <p><strong>Private by default.</strong> Nothing is published from Waymark.</p>
       <p><a href="support.html">Support</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <button class="text-button" id="deleteLocalData">Delete local data</button></p>
     </footer>
 
-    <script src="app.js?v=waymarkus-roadmap-20260618"></script>
+    <script src="app.js?v=waymarkus-private-preview-20260618"></script>
   </body>
 </html>
