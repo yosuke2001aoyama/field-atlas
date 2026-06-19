@@ -105,6 +105,30 @@ const pages = [
       };
       const storeKey = "waymark_private_records_v2";
       const briefCacheKey = "waymark_researched_briefs_v10";
+      const accessKey = "waymark.preview.access";
+      const accessToken = "wm-road-preview";
+      const previewPasscode = "road-notes";
+
+      function initializeAccessGate() {
+        const gate = document.querySelector("#accessGate");
+        if (!gate) return;
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get("access");
+        const hasAccess = localStorage.getItem(accessKey) === "granted" || token === accessToken;
+        if (token === accessToken) localStorage.setItem(accessKey, "granted");
+        gate.hidden = hasAccess;
+        document.body.classList.toggle("locked", !hasAccess);
+        document.querySelector("#unlockAccess")?.addEventListener("click", () => {
+          const code = document.querySelector("#accessCode").value.trim();
+          if (code === previewPasscode) {
+            localStorage.setItem(accessKey, "granted");
+            gate.hidden = true;
+            document.body.classList.remove("locked");
+          } else {
+            document.querySelector("#accessMessage").textContent = "That passcode did not work. Use the private preview link or ask for the current passcode.";
+          }
+        });
+      }
 
       function uid() {
         if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
@@ -1054,4 +1078,5 @@ const pages = [
       }
 
       renderAll();
+      initializeAccessGate();
       setPage(location.hash.replace("#", "") || "home");
