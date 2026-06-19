@@ -13,6 +13,12 @@
 		A10000000000000000000004 /* QuickCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* QuickCaptureView.swift */; };
 		A10000000000000000000005 /* PrivacyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* PrivacyView.swift */; };
 		A10000000000000000000006 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* Assets.xcassets */; };
+		A10000000000000000000007 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* OnboardingView.swift */; };
+		A10000000000000000000008 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000019 /* PrivacyInfo.xcprivacy */; };
+		A10000000000000000000009 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001A /* AppRouter.swift */; };
+		A1000000000000000000000A /* JourneyModeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001B /* JourneyModeManager.swift */; };
+		A1000000000000000000000B /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001C /* CarPlaySceneDelegate.swift */; };
+		A1000000000000000000000C /* CarPlay.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001D /* CarPlay.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +30,12 @@
 		A10000000000000000000015 /* PrivacyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyView.swift; sourceTree = "<group>"; };
 		A10000000000000000000016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A10000000000000000000017 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000018 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		A10000000000000000000019 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A1000000000000000000001A /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
+		A1000000000000000000001B /* JourneyModeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyModeManager.swift; sourceTree = "<group>"; };
+		A1000000000000000000001C /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
+		A1000000000000000000001D /* CarPlay.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CarPlay.framework; path = System/Library/Frameworks/CarPlay.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31,6 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1000000000000000000000C /* CarPlay.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,8 +66,14 @@
 				A10000000000000000000013 /* WebBriefView.swift */,
 				A10000000000000000000014 /* QuickCaptureView.swift */,
 				A10000000000000000000015 /* PrivacyView.swift */,
+				A10000000000000000000018 /* OnboardingView.swift */,
+				A1000000000000000000001A /* AppRouter.swift */,
+				A1000000000000000000001B /* JourneyModeManager.swift */,
+				A1000000000000000000001C /* CarPlaySceneDelegate.swift */,
 				A10000000000000000000016 /* Assets.xcassets */,
 				A10000000000000000000017 /* Info.plist */,
+				A10000000000000000000019 /* PrivacyInfo.xcprivacy */,
+				A1000000000000000000001D /* CarPlay.framework */,
 			);
 			path = WaymarkUS;
 			sourceTree = "<group>";
@@ -126,6 +145,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000006 /* Assets.xcassets in Resources */,
+				A10000000000000000000008 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,6 +161,10 @@
 				A10000000000000000000003 /* WebBriefView.swift in Sources */,
 				A10000000000000000000004 /* QuickCaptureView.swift in Sources */,
 				A10000000000000000000005 /* PrivacyView.swift in Sources */,
+				A10000000000000000000007 /* OnboardingView.swift in Sources */,
+				A10000000000000000000009 /* AppRouter.swift in Sources */,
+				A1000000000000000000000A /* JourneyModeManager.swift in Sources */,
+				A1000000000000000000000B /* CarPlaySceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -151,6 +175,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -159,11 +185,12 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WaymarkUS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.waymarkus.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -171,6 +198,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -178,11 +207,12 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WaymarkUS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.waymarkus.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
