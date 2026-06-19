@@ -4,12 +4,26 @@
 <dict>
 	<key>CFBundleDisplayName</key>
 	<string>Waymark U.S.</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.waymarkus.app</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.travel</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -17,14 +31,37 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 	</dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Waymark U.S. can attach photos to field notes in future releases.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Waymark U.S. can capture spoken movement notes in future releases.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Waymark U.S. can save exported field notes and images in future releases.</string>
+	<string>Waymark uses the microphone only when you choose to dictate a field note.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Journey Mode uses your location while Waymark is open to recognize a new state or county. Waymark does not save or upload your raw route.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Waymark turns speech into a private field-note transcript only when you choose to dictate.</string>
+	<key>WAYMARK_WEB_URL</key>
+	<string>https://waymarkus.vercel.app/</string>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<true/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>CPTemplateApplicationSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>CPTemplateApplicationScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>Waymark CarPlay</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
