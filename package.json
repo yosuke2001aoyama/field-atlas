@@ -1,0 +1,13 @@
+{
+  "name": "waymarkus-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node --check app.js && node --check api/ask.js && node --check sw.js",
+    "lint": "npm run build",
+    "preview": "npx serve .",
+    "ios": "open ../ios/WaymarkUS/WaymarkUS.xcodeproj",
+    "sync:ios": "npm run build",
+    "open:ios": "open ../ios/WaymarkUS/WaymarkUS.xcodeproj"
+  }
+}
