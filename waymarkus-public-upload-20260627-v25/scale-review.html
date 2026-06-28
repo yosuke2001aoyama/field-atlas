@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Waymark Product Scale Review</title>
+    <meta name="description" content="A blunt product, GIS, and architecture review for scaling Waymark into a road-trip field journal." />
+    <link rel="icon" href="assets/waymark-icon.svg" type="image/svg+xml" />
+    <style>
+      :root { --paper:#f6f0e5; --ink:#151712; --muted:#6f6a60; --green:#102a5c; --gold:#b82132; --line:rgba(21,23,18,.14); }
+      * { box-sizing: border-box; }
+      body { margin: 0; color: var(--ink); background: var(--paper); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; }
+      main { width: min(1120px, calc(100vw - 36px)); margin: 0 auto; padding: clamp(28px, 6vw, 80px) 0; }
+      header { padding: clamp(28px, 5vw, 56px); color: white; background: linear-gradient(135deg, #081b3f, #1f5c99); border: 1px solid rgba(184,33,50,.44); }
+      .eyebrow { color: var(--gold); text-transform: uppercase; letter-spacing: .18em; font-size: .82rem; font-weight: 900; }
+      h1, h2, h3 { line-height: 1.05; }
+      h1 { max-width: 940px; margin: 18px 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(3rem, 8vw, 6.8rem); }
+      h2 { margin-top: 48px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 4vw, 3.4rem); }
+      h3 { margin-top: 26px; font-size: 1.35rem; }
+      p, li { color: var(--muted); }
+      strong { color: var(--ink); }
+      section, .card { margin-top: 20px; padding: clamp(20px, 4vw, 34px); background: rgba(255,250,241,.86); border: 1px solid var(--line); }
+      .verdict { border-left: 6px solid #9a3f32; }
+      .win { border-left: 6px solid var(--gold); }
+      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+      pre { overflow: auto; padding: 18px; color: #f7f0e4; background: #111b17; border: 1px solid rgba(184,33,50,.35); }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92rem; }
+      a { color: var(--green); font-weight: 800; }
+      @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">Codex Review</div>
+        <h1>Waymark will not win by being prettier notes.</h1>
+        <p>It wins only if the map becomes a thing Google Maps, Apple Notes, and ChatGPT cannot give a road traveler: a private memory map of what they noticed, asked, crossed, and learned.</p>
+      </header>
+
+      <section class="verdict">
+        <h2>1. UI / UX verdict</h2>
+        <p><strong>Brutal truth:</strong> if the first screen does not immediately show a living map, route line, state progress, and one-tap capture, users will file Waymark mentally as another diary app. Road-trippers do not wake up wanting a database. They want the trip to feel more alive.</p>
+        <div class="grid">
+          <article class="card">
+            <div class="eyebrow">Missing wow</div>
+            <h3>Show the journey before asking for effort.</h3>
+            <p>The first view needs a visible U.S. map, example route, state progress, and a one-tap “I noticed something” control. Forms should come after the user sees the payoff.</p>
+          </article>
+          <article class="card">
+            <div class="eyebrow">Offline risk</div>
+            <h3>The desert will punish cloud-first UX.</h3>
+            <p>Capture, library, last map, and saved briefs must work offline. Research can degrade gracefully; saving a thought cannot fail.</p>
+          </article>
+          <article class="card">
+            <div class="eyebrow">Core distinction</div>
+            <h3>Do not compete with navigation.</h3>
+            <p>Waymark should never promise better routing. It should promise a better memory of why the route mattered.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="win">
+        <h2>Immediate product changes</h2>
+        <ul>
+          <li><strong>Map-first Home:</strong> route preview, visited map, and state industry layer are visible before the user fills a long form.</li>
+          <li><strong>Offline promise:</strong> all capture and library actions store locally first, then sync later when a backend exists.</li>
+          <li><strong>Shareable journey card:</strong> share the shape of the trip without exact real-time location, raw transcripts, or private names.</li>
+          <li><strong>Light-user presets:</strong> “Amtrak to DC” and “California road trip” prove the app is not only for hardcore cross-country travelers.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. GIS architecture and database design</h2>
+        <p><strong>Future bottleneck:</strong> raw GPS points are poison if stored and rendered naively. Keep raw samples short-lived, simplify route geometry, then query against indexed boundaries. The client should render generalized GeoJSON, not millions of points.</p>
+        <pre><code>-- PostgreSQL + PostGIS baseline
+create extension if not exists postgis;
+create extension if not exists pgcrypto;
+
+create table profiles (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now()
+);
+
+create table trips (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references profiles(id) on delete cascade,
+  title text not null,
+  visibility text not null default 'private'
+    check (visibility in ('private', 'link_shared')),
+  started_at timestamptz,
+  ended_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table trip_segments (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references trips(id) on delete cascade,
+  recorded_at timestamptz not null default now(),
+  -- Store simplified route, not every raw point forever.
+  geom geometry(LineString, 4326) not null,
+  point_count integer not null default 0
+);
+
+create index trip_segments_geom_gix
+  on trip_segments using gist (geom);
+
+create table admin_areas (
+  id text primary key,
+  area_type text not null check (area_type in ('state', 'county', 'park')),
+  name text not null,
+  state_code text,
+  geom geometry(MultiPolygon, 4326) not null
+);
+
+create index admin_areas_geom_gix
+  on admin_areas using gist (geom);
+
+create table trip_area_crossings (
+  trip_id uuid not null references trips(id) on delete cascade,
+  area_id text not null references admin_areas(id),
+  first_seen_at timestamptz,
+  last_seen_at timestamptz,
+  crossing_count integer not null default 1,
+  primary key (trip_id, area_id)
+);
+
+-- Fast badge materialization: which states/counties did this trip touch?
+insert into trip_area_crossings (trip_id, area_id, first_seen_at, last_seen_at)
+select s.trip_id, a.id, min(s.recorded_at), max(s.recorded_at)
+from trip_segments s
+join admin_areas a
+  on st_intersects(a.geom, s.geom)
+where s.trip_id = $1
+group by s.trip_id, a.id
+on conflict (trip_id, area_id)
+do update set
+  last_seen_at = greatest(trip_area_crossings.last_seen_at, excluded.last_seen_at),
+  crossing_count = trip_area_crossings.crossing_count + 1;</code></pre>
+        <p><strong>Best practice:</strong> use <code>ST_SimplifyPreserveTopology</code> before storage for display segments, keep raw location history only on-device or in a short retention table, and precompute badges instead of recalculating every page load.</p>
+      </section>
+
+      <section>
+        <h2>3. State management for Map + Timeline</h2>
+        <p><strong>Do not let the map rerender every card.</strong> Keep selection, viewport, and filters separate from record storage. Use selectors so a timeline click changes only selected IDs and the map highlights only affected pins.</p>
+        <pre><code>// stores/useJourneyStore.ts
+import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
+
+type RecordKind =
+  | "question" | "observation" | "food" | "farmstay"
+  | "economic_signal" | "cultural_signal" | "place_brief";
+
+type JourneyRecord = {
+  id: string;
+  kind: RecordKind;
+  title: string;
+  placeName: string;
+  lat?: number;
+  lon?: number;
+  createdAt: string;
+  summary: string;
+};
+
+type JourneyState = {
+  recordsById: Record&lt;string, JourneyRecord&gt;;
+  visibleIds: string[];
+  selectedId?: string;
+  activeFilter: "all" | RecordKind;
+  setFilter: (filter: JourneyState["activeFilter"]) =&gt; void;
+  selectRecord: (id?: string) =&gt; void;
+  upsertRecords: (records: JourneyRecord[]) =&gt; void;
+};
+
+export const useJourneyStore = create&lt;JourneyState&gt;()(subscribeWithSelector((set, get) =&gt; ({
+  recordsById: {},
+  visibleIds: [],
+  activeFilter: "all",
+  setFilter: (activeFilter) =&gt; {
+    const records = Object.values(get().recordsById);
+    set({
+      activeFilter,
+      visibleIds: records
+        .filter((r) =&gt; activeFilter === "all" || r.kind === activeFilter)
+        .map((r) =&gt; r.id),
+    });
+  },
+  selectRecord: (selectedId) =&gt; set({ selectedId }),
+  upsertRecords: (records) =&gt; set((state) =&gt; {
+    const next = { ...state.recordsById };
+    for (const record of records) next[record.id] = record;
+    const all = Object.values(next);
+    return {
+      recordsById: next,
+      visibleIds: all
+        .filter((r) =&gt; state.activeFilter === "all" || r.kind === state.activeFilter)
+        .map((r) =&gt; r.id),
+    };
+  }),
+})));
+
+export const selectVisibleRecords = (s: JourneyState) =&gt;
+  s.visibleIds.map((id) =&gt; s.recordsById[id]).filter(Boolean);</code></pre>
+      </section>
+
+      <section>
+        <h2>4. Next.js App Router + share URLs</h2>
+        <p><strong>Static-only is fine for a prototype, but not for viral sharing.</strong> Each shared trip needs server-rendered metadata, a fast public read model, and a privacy-preserving token.</p>
+        <pre><code>// app/trip/[shareId]/page.tsx
+import { Metadata } from "next";
+import { getSharedTrip } from "@/lib/trips";
+import { TripMapPreview } from "@/components/trip-map-preview";
+
+export async function generateMetadata(
+  { params }: { params: Promise&lt;{ shareId: string }&gt; }
+): Promise&lt;Metadata&gt; {
+  const { shareId } = await params;
+  const trip = await getSharedTrip(shareId);
+  if (!trip) return { title: "Waymark trip" };
+  return {
+    title: `${trip.title} · Waymark`,
+    description: `${trip.stateCount} states, ${trip.noteCount} field notes, ${trip.theme}`,
+    openGraph: {
+      title: `${trip.title} · Waymark`,
+      description: `Map what you noticed, not just where you went.`,
+      images: [`/api/og/trip/${shareId}`],
+    },
+  };
+}
+
+export const revalidate = 300;
+
+export default async function SharedTripPage(
+  { params }: { params: Promise&lt;{ shareId: string }&gt; }
+) {
+  const { shareId } = await params;
+  const trip = await getSharedTrip(shareId);
+  return &lt;TripMapPreview trip={trip} /&gt;;
+}</code></pre>
+      </section>
+
+      <section class="verdict">
+        <h2>Final call</h2>
+        <p>Waymark should not be sold as planning, tracking, or journaling. The defensible wedge is <strong>map-based noticing</strong>: what you saw, what you asked, what it may reveal, and how that changed across places. Build that relentlessly.</p>
+        <p><a href="index.html#home">Open Waymark Home</a></p>
+      </section>
+    </main>
+  </body>
+</html>

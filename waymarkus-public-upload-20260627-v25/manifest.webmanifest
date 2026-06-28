@@ -1,0 +1,18 @@
+{
+  "name": "Waymark U.S.",
+  "short_name": "Waymark",
+  "description": "A private AI field journal for curious travelers.",
+  "start_url": "/#home",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffaf1",
+  "theme_color": "#102a5c",
+  "icons": [
+    {
+      "src": "/assets/waymark-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
